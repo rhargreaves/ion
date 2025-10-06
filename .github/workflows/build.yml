@@ -1,0 +1,42 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+
+    - name: Install CMake
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential
+
+    - name: Build Ion Server
+      run: |
+        cd ion-server
+        mkdir -p cmake-build-debug
+        cd cmake-build-debug
+        cmake ..
+        cmake --build .
+
+    - name: Install Python test dependencies
+      run: |
+        pip3 install -e test
+        pip3 install pytest
+
+    - name: Run Python tests
+      run: |
+        python3 -m pytest test/ -v
