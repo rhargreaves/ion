@@ -19,10 +19,15 @@ jobs:
       with:
         python-version: '3.13'
 
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v2
+      with:
+        cmake-version: '4.1.1'
+
     - name: Install CMake
       run: |
         sudo apt-get update
-        sudo apt-get install -y cmake build-essential
+        sudo apt-get install -y build-essential
 
     - name: Build Ion Server
       run: |
