@@ -1,4 +1,7 @@
 # Ion :zap:
+
+[![Build & Test](https://github.com/rhargreaves/ion/actions/workflows/build.yml/badge.svg)](https://github.com/rhargreaves/ion/actions/workflows/build.yml)
+
 Light-weight HTTP/2 server in C++
 
 ## Getting Started
