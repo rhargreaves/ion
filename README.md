@@ -18,3 +18,7 @@ Install CMake, CLion, Python3.13+ and GCC/Clang
 ```sh
 make test
 ```
+
+## References
+
+* [RFC 9113 - HTTP/2](https://datatracker.ietf.org/doc/html/rfc9113)
