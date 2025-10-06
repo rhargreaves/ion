@@ -11,7 +11,7 @@ def test_tcp():
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect(("localhost", 8080))
         data = sock.recv(1024).decode('utf-8')
-        assert data == "Hello TCP World"
+        assert data == "Hello TCP World\n"
         sock.close()
     finally:
         server.terminate()
