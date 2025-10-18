@@ -1,157 +1,71 @@
-#include <iostream>
-#include <cstring>
-#include <unistd.h>
 #include <netinet/in.h>
-#include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <openssl/ssl.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <unistd.h>
 
-static constexpr uint16_t s_port = 8443;
+#include <cstring>
+#include <iostream>
+#include <vector>
 
-int alpn_callback(SSL* ssl, const unsigned char** out, unsigned char* outlen,
-                  const unsigned char* in, unsigned int inlen, void* arg) {
-    // Define the protocols we support (in order of preference)
-    static const unsigned char supported_protos[] = "\x02h2\x08http/1.1";
-    static const unsigned int supported_protos_len = sizeof(supported_protos) - 1;
+#include "tls_conn.h"
 
-    // Select a protocol from the client's list
-    int result = SSL_select_next_proto(
-        const_cast<unsigned char**>(out), outlen,
-        supported_protos, supported_protos_len,
-        in, inlen
-    );
+#pragma pack(push, 1)
+struct Http2FrameHeader {
+    uint8_t length[3];    // 24-bit length (big-endian)
+    uint8_t type;         // Frame type
+    uint8_t flags;        // Frame flags
+    uint32_t stream_id;   // Stream identifier (big-endian)
 
-    if (result == OPENSSL_NPN_NEGOTIATED) {
-        std::cout << "ALPN negotiated: ";
-        std::cout.write(reinterpret_cast<const char*>(*out), *outlen) << std::endl;
-        return SSL_TLSEXT_ERR_OK;
+    void set_length(uint32_t len) {
+        length[0] = (len >> 16) & 0xFF;
+        length[1] = (len >> 8) & 0xFF;
+        length[2] = len & 0xFF;
     }
 
-    // No match found - use the first protocol we support as fallback
-    *out = supported_protos + 1;  // Skip the length byte
-    *outlen = supported_protos[0]; // Get the length
-    std::cout << "ALPN negotiation failed, using default: ";
-    std::cout.write(reinterpret_cast<const char*>(*out), *outlen) << std::endl;
+    void set_stream_id(uint32_t id) {
+        stream_id = htonl(id);
+    }
+};
 
-    return SSL_TLSEXT_ERR_OK;
+struct Http2Setting {
+    uint16_t identifier;
+    uint32_t value;
+
+    Http2Setting(uint16_t id, uint32_t val)
+        : identifier(htons(id)), value(htonl(val)) {}
+};
+#pragma pack(pop)
+
+static constexpr uint8_t FRAME_TYPE_SETTINGS = 0x04;
+static constexpr uint16_t s_port = 8443;
+
+template<typename T>
+std::span<const char> as_char_span(const T& obj) {
+    return std::span<const char>(reinterpret_cast<const char*>(&obj), sizeof(T));
+}
+
+template<typename T>
+std::span<char> as_writable_char_span(T& obj) {
+    return std::span<char>(reinterpret_cast<char*>(&obj), sizeof(T));
 }
 
 int main() {
-    int server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd < 0) {
-        perror("socket");
-        return 1;
-    }
 
-    int opt = 1;
-    setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-
-    sockaddr_in addr{};
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(s_port);
-
-    if (bind(server_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
-        perror("bind");
-        close(server_fd);
-        return 1;
-    }
-
-    if (listen(server_fd, 1) < 0) {
-        perror("listen");
-        close(server_fd);
-        return 1;
-    }
-
+    TlsConnection tls_conn { s_port };
+    tls_conn.listen();
     std::cout << "[ion] Listening on port " << s_port << "..." << std::endl;
 
-    sockaddr_in client_addr{};
-    socklen_t client_len = sizeof(client_addr);
-    int client_fd = accept(server_fd, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
-    if (client_fd < 0) {
-        perror("accept");
-        close(server_fd);
-        return 1;
-    }
-
+    tls_conn.accept();
     std::cout << "Client connected." << std::endl;
 
-    SSL_CTX* ctx = SSL_CTX_new(TLS_server_method());
-    if (!ctx) {
-        std::cerr << "Error: Failed to create SSL context" << std::endl;
-        ERR_print_errors_fp(stderr);
-        close(client_fd);
-        close(server_fd);
-        return 1;
-    }
-
-    if (SSL_CTX_use_certificate_file(ctx, "cert.pem", SSL_FILETYPE_PEM) <= 0) {
-        std::cerr << "Error: Failed to load certificate file" << std::endl;
-        ERR_print_errors_fp(stderr);
-        SSL_CTX_free(ctx);
-        close(client_fd);
-        close(server_fd);
-        return 1;
-    }
-
-    if (SSL_CTX_use_PrivateKey_file(ctx, "key.pem", SSL_FILETYPE_PEM) <= 0) {
-        std::cerr << "Error: Failed to load private key file" << std::endl;
-        ERR_print_errors_fp(stderr);
-        SSL_CTX_free(ctx);
-        close(client_fd);
-        close(server_fd);
-        return 1;
-    }
-
-    if (!SSL_CTX_check_private_key(ctx)) {
-        std::cerr << "Error: Private key does not match certificate" << std::endl;
-        ERR_print_errors_fp(stderr);
-        SSL_CTX_free(ctx);
-        close(client_fd);
-        close(server_fd);
-        return 1;
-    }
-
-    SSL_CTX_set_alpn_select_cb(ctx, alpn_callback, NULL);
-
-    SSL* ssl = SSL_new(ctx);
-    if (!ssl) {
-        std::cerr << "Error: Failed to create SSL object" << std::endl;
-        ERR_print_errors_fp(stderr);
-        SSL_CTX_free(ctx);
-        close(client_fd);
-        close(server_fd);
-        return 1;
-    }
-
-    if (SSL_set_fd(ssl, client_fd) != 1) {
-        std::cerr << "Error: Failed to set SSL file descriptor" << std::endl;
-        ERR_print_errors_fp(stderr);
-        SSL_free(ssl);
-        SSL_CTX_free(ctx);
-        close(client_fd);
-        close(server_fd);
-        return 1;
-    }
-
-    if (SSL_accept(ssl) <= 0) {
-        std::cerr << "Error: SSL handshake failed" << std::endl;
-        ERR_print_errors_fp(stderr);
-        SSL_free(ssl);
-        SSL_CTX_free(ctx);
-        close(client_fd);
-        close(server_fd);
-        return 1;
-    }
-
+    tls_conn.handshake("cert.pem", "key.pem");
     std::cout << "SSL handshake completed successfully." << std::endl;
 
     const std::string client_preface { "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n" };
     std::array<char, 1024> buffer{};
 
-    ssize_t rx_len = SSL_read(ssl, buffer.data(), buffer.size());
+    ssize_t rx_len = tls_conn.read(buffer);
     if (rx_len < 0) {
         perror("read");
     } else if (rx_len >= static_cast<ssize_t>(client_preface.size())) {
@@ -165,9 +79,48 @@ int main() {
         std::cerr << "Received data too short to be a valid preface" << std::endl;
     }
 
+    // send SETTINGS frame
+    std::vector<Http2Setting> settings = {
+        {0x0003, 100},      // MAX_CONCURRENT_STREAMS
+        {0x0004, 65535},    // INITIAL_WINDOW_SIZE
+        {0x0005, 16384}     // MAX_FRAME_SIZE
+    };
 
-    close(client_fd);
-    close(server_fd);
+    Http2FrameHeader header;
+    header.set_length(settings.size() * sizeof(Http2Setting));
+    header.type = FRAME_TYPE_SETTINGS;
+    header.flags = 0x00;
+    header.set_stream_id(0);
+
+    // Send header
+    ssize_t sent = tls_conn.write(as_char_span(header));
+    if (sent < 0) {
+        perror("SSL_write header");
+    }
+
+    // Send settings payload
+    sent = tls_conn.write(std::span{
+        reinterpret_cast<const char*>(settings.data()),
+        settings.size() * sizeof(Http2Setting)
+    });
+    if (sent < 0) {
+        perror("SSL_write settings");
+    } else {
+        std::cout << "SETTINGS frame sent" << std::endl;
+    }
+
+    // Send header ack
+    Http2FrameHeader ack_header;
+    ack_header.set_length(0);
+    ack_header.type = FRAME_TYPE_SETTINGS;
+    ack_header.flags = 0x01;
+    ack_header.set_stream_id(0);
+    sent = tls_conn.write(as_char_span(ack_header));
+    if (sent < 0) {
+        perror("SSL_write header");
+    }
+
+    tls_conn.close();
     std::cout << "Connection closed." << std::endl;
 
     return 0;
