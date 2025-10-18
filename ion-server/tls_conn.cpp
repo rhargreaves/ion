@@ -3,16 +3,13 @@
 //
 
 #include "tls_conn.h"
-
 #include <sys/socket.h>
 #include <unistd.h>
-
 #include <filesystem>
 
 int TlsConnection::alpn_callback(SSL* ssl, const unsigned char** out, unsigned char* outlen,
                   const unsigned char* in, unsigned int inlen, void* arg) {
-    // Define the protocols we support (in order of preference)
-    static const unsigned char supported_protos[] = "\x02h2\x08http/1.1";
+    static const unsigned char supported_protos[] = "\x02h2";
     static const unsigned int supported_protos_len = sizeof(supported_protos) - 1;
 
     // Select a protocol from the client's list
