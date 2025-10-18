@@ -42,3 +42,6 @@
 
 *.egg-info/
 __pycache__/
+
+cert.pem
+key.pem

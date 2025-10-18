@@ -4,7 +4,7 @@ build:
 	cmake --build ion-server/cmake-build-debug
 .PHONY: build
 
-test:
+test: cert.pem
 	pip3 install -q -r test/requirements.txt
 	python3 -m pytest test/ -v
 .PHONY: test
