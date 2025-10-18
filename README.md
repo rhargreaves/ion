@@ -6,7 +6,12 @@ Light-weight HTTP/2 server in C++
 
 ## Getting Started
 
-Install CMake, CLion, Python3.13+ and GCC/Clang
+Install CMake (4.0+), CLion, Python (3.13+) and GCC/Clang
+
+### macOS
+```sh
+brew upgrade cmake
+```
 
 ### Build
 
