@@ -148,11 +148,23 @@ int main() {
 
     std::cout << "SSL handshake completed successfully." << std::endl;
 
-    const std::string msg { "Hello TCP World\n" };
-    ssize_t sent = SSL_write(ssl, msg.data(), msg.length());
-    if (sent < 0) {
-        perror("write");
+    const std::string client_preface { "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n" };
+    std::array<char, 1024> buffer{};
+
+    ssize_t rx_len = SSL_read(ssl, buffer.data(), buffer.size());
+    if (rx_len < 0) {
+        perror("read");
+    } else if (rx_len >= static_cast<ssize_t>(client_preface.size())) {
+        std::string_view received(buffer.data(), rx_len);
+        if (received.starts_with(client_preface)) {
+            std::cout << "Valid HTTP/2 preface received!" << std::endl;
+        } else {
+            std::cerr << "Invalid HTTP/2 preface" << std::endl;
+        }
+    } else {
+        std::cerr << "Received data too short to be a valid preface" << std::endl;
     }
+
 
     close(client_fd);
     close(server_fd);
