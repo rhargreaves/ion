@@ -135,11 +135,21 @@ void TlsConnection::print_debug_to_stderr() {
 }
 
 ssize_t TlsConnection::read(std::span<char> buffer) {
-    return SSL_read(ssl, buffer.data(), buffer.size());
+    auto bytes_read = SSL_read(ssl, buffer.data(), buffer.size());
+    if (bytes_read < 0) {
+        int ssl_error = SSL_get_error(ssl, bytes_read);
+        throw std::runtime_error("SSL read error: " + std::to_string(ssl_error));
+    }
+    return bytes_read;
 }
 
 ssize_t TlsConnection::write(std::span<const char> buffer) {
-    return SSL_write(ssl, buffer.data(), buffer.size());
+    auto bytes_written = SSL_write(ssl, buffer.data(), buffer.size());
+    if (bytes_written < 0) {
+        int ssl_error = SSL_get_error(ssl, bytes_written);
+        throw std::runtime_error("SSL write error: " + std::to_string(ssl_error));
+    }
+    return bytes_written;
 }
 
 void TlsConnection::close() {

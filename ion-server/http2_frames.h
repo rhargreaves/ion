@@ -1,0 +1,29 @@
+#pragma once
+#include <cstdint>
+
+#pragma pack(push, 1)
+struct Http2FrameHeader {
+    uint8_t length[3];    // 24-bit length (big-endian)
+    uint8_t type;         // Frame type
+    uint8_t flags;        // Frame flags
+    uint32_t stream_id;   // Stream identifier (big-endian)
+
+    void set_length(uint32_t len) {
+        length[0] = (len >> 16) & 0xFF;
+        length[1] = (len >> 8) & 0xFF;
+        length[2] = len & 0xFF;
+    }
+
+    void set_stream_id(uint32_t id) {
+        stream_id = htonl(id);
+    }
+};
+
+struct Http2Setting {
+    uint16_t identifier;
+    uint32_t value;
+
+    Http2Setting(uint16_t id, uint32_t val)
+        : identifier(htons(id)), value(htonl(val)) {}
+};
+#pragma pack(pop)

@@ -1,38 +1,9 @@
-#include <netinet/in.h>
 #include <openssl/ssl.h>
 #include <sys/socket.h>
-#include <unistd.h>
 #include <iostream>
 #include <vector>
-
+#include "http2_frames.h"
 #include "tls_conn.h"
-
-#pragma pack(push, 1)
-struct Http2FrameHeader {
-    uint8_t length[3];    // 24-bit length (big-endian)
-    uint8_t type;         // Frame type
-    uint8_t flags;        // Frame flags
-    uint32_t stream_id;   // Stream identifier (big-endian)
-
-    void set_length(uint32_t len) {
-        length[0] = (len >> 16) & 0xFF;
-        length[1] = (len >> 8) & 0xFF;
-        length[2] = len & 0xFF;
-    }
-
-    void set_stream_id(uint32_t id) {
-        stream_id = htonl(id);
-    }
-};
-
-struct Http2Setting {
-    uint16_t identifier;
-    uint32_t value;
-
-    Http2Setting(uint16_t id, uint32_t val)
-        : identifier(htons(id)), value(htonl(val)) {}
-};
-#pragma pack(pop)
 
 static constexpr uint8_t FRAME_TYPE_SETTINGS = 0x04;
 static constexpr uint16_t s_port = 8443;
@@ -47,8 +18,23 @@ std::span<char> as_writable_char_span(T& obj) {
     return std::span(reinterpret_cast<char*>(&obj), sizeof(T));
 }
 
-int main() {
+void read_preface(TlsConnection& conn) {
+    constexpr std::string_view client_preface { "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n" };
+    std::array<char, client_preface.length()> buffer{};
 
+    const auto bytes_read = conn.read(buffer);
+    std::string_view received(buffer.data(), bytes_read);
+    if (bytes_read == client_preface.length()) {
+        if (received.starts_with(client_preface)) {
+        } else {
+            throw std::runtime_error("Invalid HTTP/2 preface");
+        }
+    } else {
+        throw std::runtime_error("Received data too short to be a valid preface");
+    }
+}
+
+void run_server() {
     TlsConnection tls_conn { s_port };
     tls_conn.listen();
     std::cout << "[ion] Listening on port " << s_port << "..." << std::endl;
@@ -59,22 +45,8 @@ int main() {
     tls_conn.handshake("cert.pem", "key.pem");
     std::cout << "SSL handshake completed successfully." << std::endl;
 
-    const std::string client_preface { "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n" };
-    std::array<char, 1024> buffer{};
-
-    ssize_t rx_len = tls_conn.read(buffer);
-    if (rx_len < 0) {
-        perror("read");
-    } else if (rx_len >= static_cast<ssize_t>(client_preface.size())) {
-        std::string_view received(buffer.data(), rx_len);
-        if (received.starts_with(client_preface)) {
-            std::cout << "Valid HTTP/2 preface received!" << std::endl;
-        } else {
-            std::cerr << "Invalid HTTP/2 preface" << std::endl;
-        }
-    } else {
-        std::cerr << "Received data too short to be a valid preface" << std::endl;
-    }
+    read_preface(tls_conn);
+    std::cout << "Valid HTTP/2 preface received!" << std::endl;
 
     // send SETTINGS frame
     std::vector<Http2Setting> settings = {
@@ -119,6 +91,14 @@ int main() {
 
     tls_conn.close();
     std::cout << "Connection closed." << std::endl;
+}
 
-    return 0;
+int main() {
+    try {
+        run_server();
+        return 0;
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        return 1;
+    }
 }

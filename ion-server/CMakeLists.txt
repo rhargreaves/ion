@@ -6,6 +6,7 @@ find_package(OpenSSL REQUIRED)
 
 add_executable(ion-server main.cpp
         tls_conn.cpp
-        tls_conn.h)
+        tls_conn.h
+        http2_frames.h)
 
 target_link_libraries(ion-server PRIVATE OpenSSL::SSL OpenSSL::Crypto)
