@@ -1,10 +1,7 @@
 #include <netinet/in.h>
-#include <openssl/err.h>
 #include <openssl/ssl.h>
 #include <sys/socket.h>
 #include <unistd.h>
-
-#include <cstring>
 #include <iostream>
 #include <vector>
 
@@ -42,12 +39,12 @@ static constexpr uint16_t s_port = 8443;
 
 template<typename T>
 std::span<const char> as_char_span(const T& obj) {
-    return std::span<const char>(reinterpret_cast<const char*>(&obj), sizeof(T));
+    return std::span(reinterpret_cast<const char*>(&obj), sizeof(T));
 }
 
 template<typename T>
 std::span<char> as_writable_char_span(T& obj) {
-    return std::span<char>(reinterpret_cast<char*>(&obj), sizeof(T));
+    return std::span(reinterpret_cast<char*>(&obj), sizeof(T));
 }
 
 int main() {

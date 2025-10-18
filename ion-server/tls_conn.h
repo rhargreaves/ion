@@ -1,58 +1,13 @@
-//
-// Created by Robert Hargreaves on 18/10/2025.
-//
-
-#ifndef ION_SERVER_TLS_CONN_H
-#define ION_SERVER_TLS_CONN_H
-#include <netinet/in.h>
-#include <openssl/err.h>
+#pragma once
 #include <openssl/ssl.h>
-#include <sys/socket.h>
 #include <unistd.h>
-
-#include <cstring>
 #include <filesystem>
-#include <iostream>
-#include <system_error>
-#include <vector>
 #include <span>
 
 class TlsConnection {
 public:
-    explicit TlsConnection(uint16_t port) {
-        server_fd = socket(AF_INET, SOCK_STREAM, 0);
-        if (server_fd < 0) {
-            throw std::system_error(errno, std::system_category(), "socket");
-        }
-
-        int opt = 1;
-        setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-
-        sockaddr_in addr{};
-        addr.sin_family = AF_INET;
-        addr.sin_addr.s_addr = INADDR_ANY;
-        addr.sin_port = htons(port);
-
-        if (bind(server_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
-            ::close(server_fd);
-            throw std::system_error(errno, std::system_category(), "bind");
-        }
-
-        client_fd = 0;
-        ssl = nullptr;
-    }
-
-    ~TlsConnection() {
-        if (server_fd > 0) {
-            ::close(server_fd);
-        }
-        if (client_fd > 0) {
-            ::close(client_fd);
-        }
-        if (ssl) {
-            ::SSL_free(ssl);
-        }
-    }
+    explicit TlsConnection(uint16_t port);
+    ~TlsConnection();
 
     void listen() const;
     void accept();
@@ -70,5 +25,3 @@ private:
     static int alpn_callback(SSL* ssl, const unsigned char** out, unsigned char* outlen,
         const unsigned char* in, unsigned int inlen, void* arg);
 };
-
-#endif  // ION_SERVER_TLS_CONN_H
