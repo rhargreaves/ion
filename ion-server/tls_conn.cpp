@@ -1,10 +1,8 @@
 #include "tls_conn.h"
-
 #include <netinet/in.h>
 #include <openssl/err.h>
 #include <sys/socket.h>
 #include <unistd.h>
-
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -158,7 +156,10 @@ ssize_t TlsConnection::write(const std::span<const char> buffer) const {
 void TlsConnection::close() {
     if (ssl) {
         BIO_flush(SSL_get_wbio(ssl));
-        SSL_shutdown(ssl);
+        // Bidirectional shutdown
+        if (const int ret = SSL_shutdown(ssl); ret == 0) {
+            SSL_shutdown(ssl);
+        }
         SSL_free(ssl);
         ssl = nullptr;
     }
