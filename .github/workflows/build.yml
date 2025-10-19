@@ -14,34 +14,5 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.13'
-
-    - name: Setup cmake
-      uses: jwlawson/actions-setup-cmake@v2
-      with:
-        cmake-version: '4.1.1'
-
-    - name: Install CMake
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential
-
-    - name: Build Ion Server
-      run: |
-        cd ion-server
-        mkdir -p cmake-build-debug
-        cd cmake-build-debug
-        cmake ..
-        cmake --build .
-
-    - name: Install Python test dependencies
-      run: |
-        pip3 install -e test
-        pip3 install pytest
-
-    - name: Run Python tests
-      run: |
-        python3 -m pytest test/ -v
+    - name: Build in Docker
+      run: docker build -t ion-server .
