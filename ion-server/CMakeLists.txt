@@ -10,3 +10,7 @@ add_executable(ion-server main.cpp
         http2_frames.h)
 
 target_link_libraries(ion-server PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+
+target_compile_options(ion-server PRIVATE
+    -Wall -Wextra -Wpedantic -Werror
+)

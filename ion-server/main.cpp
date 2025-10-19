@@ -6,16 +6,16 @@
 #include "tls_conn.h"
 
 static constexpr uint8_t FRAME_TYPE_SETTINGS = 0x04;
-static constexpr uint16_t s_port = 8443;
+static constexpr uint16_t SERVER_PORT = 8443;
 
 template<typename T>
 std::span<const char> as_char_span(const T& obj) {
-    return std::span(reinterpret_cast<const char*>(&obj), sizeof(T));
+    return {reinterpret_cast<const char*>(&obj), sizeof(T)};
 }
 
 template<typename T>
 std::span<char> as_writable_char_span(T& obj) {
-    return std::span(reinterpret_cast<char*>(&obj), sizeof(T));
+    return {reinterpret_cast<char*>(&obj), sizeof(T)};
 }
 
 void read_preface(TlsConnection& conn) {
@@ -23,7 +23,7 @@ void read_preface(TlsConnection& conn) {
     std::array<char, client_preface.length()> buffer{};
 
     const auto bytes_read = conn.read(buffer);
-    std::string_view received(buffer.data(), bytes_read);
+    const std::string_view received(buffer.data(), bytes_read);
     if (bytes_read == client_preface.length()) {
         if (received.starts_with(client_preface)) {
         } else {
@@ -34,10 +34,14 @@ void read_preface(TlsConnection& conn) {
     }
 }
 
+void write_header(uint8_t ) {
+
+}
+
 void run_server() {
-    TlsConnection tls_conn { s_port };
+    TlsConnection tls_conn { SERVER_PORT };
     tls_conn.listen();
-    std::cout << "[ion] Listening on port " << s_port << "..." << std::endl;
+    std::cout << "[ion] Listening on port " << SERVER_PORT << "..." << std::endl;
 
     tls_conn.accept();
     std::cout << "Client connected." << std::endl;
@@ -49,20 +53,20 @@ void run_server() {
     std::cout << "Valid HTTP/2 preface received!" << std::endl;
 
     // send SETTINGS frame
-    std::vector<Http2Setting> settings = {
+    const std::vector<Http2Setting> settings = {
         {0x0003, 100},      // MAX_CONCURRENT_STREAMS
         {0x0004, 65535},    // INITIAL_WINDOW_SIZE
         {0x0005, 16384}     // MAX_FRAME_SIZE
     };
 
-    Http2FrameHeader header;
+    Http2FrameHeader header{};
     header.set_length(settings.size() * sizeof(Http2Setting));
     header.type = FRAME_TYPE_SETTINGS;
     header.flags = 0x00;
     header.set_stream_id(0);
 
     // Send header
-    ssize_t sent = tls_conn.write(as_char_span(header));
+    auto sent = tls_conn.write(as_char_span(header));
     if (sent < 0) {
         perror("SSL_write header");
     }
@@ -79,7 +83,7 @@ void run_server() {
     }
 
     // Send header ack
-    Http2FrameHeader ack_header;
+    Http2FrameHeader ack_header{};
     ack_header.set_length(0);
     ack_header.type = FRAME_TYPE_SETTINGS;
     ack_header.flags = 0x01;
