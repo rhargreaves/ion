@@ -6,8 +6,8 @@ struct Http2FrameHeader {
     uint8_t length[3];    // 24-bit length (big-endian)
     uint8_t type;
     uint8_t flags;
-    uint8_t reserved : 1;
-    uint32_t stream_id : 31;   // Stream identifier (big-endian)
+    //uint8_t reserved : 1;
+    uint32_t stream_id : 32;   // Stream identifier (big-endian)
 
     void set_length(uint32_t len) {
         length[0] = (len >> 16) & 0xFF;

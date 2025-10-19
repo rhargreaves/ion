@@ -27,3 +27,4 @@ make test
 ## References
 
 * [RFC 9113 - HTTP/2](https://datatracker.ietf.org/doc/html/rfc9113)
+* [RFC 7541 - HPACK: Header Compression for HTTP/2](https://datatracker.ietf.org/doc/html/rfc7541)

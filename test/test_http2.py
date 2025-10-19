@@ -11,7 +11,7 @@ def test_http2_tls_connect():
                                str(SERVER_PORT)], env=env)
     time.sleep(1)
     try:
-        result = subprocess.run(["curl", "--http2", "--insecure",
+        result = subprocess.run(["curl", "--http2", "--insecure", "--verbose",
                 'https://localhost:' + str(SERVER_PORT)],
             capture_output=True,
             text=True,
@@ -20,8 +20,9 @@ def test_http2_tls_connect():
         )
         print(result.stdout)
         print(result.stderr)
+
         assert result.returncode == 0
-        assert "Hello" in result.stdout
+        assert "< HTTP/2 200 \n< \n{ [0 bytes data]" in result.stderr
     finally:
         server.terminate()
         server.wait()

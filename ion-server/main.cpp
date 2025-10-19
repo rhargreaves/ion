@@ -1,11 +1,15 @@
-#include <openssl/ssl.h>
 #include <sys/socket.h>
 #include <iostream>
 #include <vector>
 #include "http2_frames.h"
 #include "tls_conn.h"
 
+static constexpr uint8_t FRAME_TYPE_HEADERS = 0x01;
 static constexpr uint8_t FRAME_TYPE_SETTINGS = 0x04;
+
+static constexpr uint8_t FLAG_END_HEADERS = 0x04;
+static constexpr uint8_t FLAG_END_STREAM = 0x01;
+
 static constexpr uint16_t SERVER_PORT = 8443;
 
 template<typename T>
@@ -106,6 +110,25 @@ void read_settings_ack(const TlsConnection& conn) {
     }
 }
 
+void send_200_response(const TlsConnection& conn, uint32_t stream_id) {
+    // HPACK: index 8 = ":status: 200"
+    std::array<uint8_t, 1> headers_data = {0x88};  // 0x80 | 8 = indexed header
+
+    Http2FrameHeader header{};
+    header.set_length(headers_data.size());
+    header.type = FRAME_TYPE_HEADERS;
+    header.flags = FLAG_END_HEADERS | FLAG_END_STREAM;  // Complete response
+    header.set_stream_id(stream_id);
+
+    conn.write(as_char_span(header));
+    conn.write(std::span{
+        reinterpret_cast<const char*>(headers_data.data()),
+        headers_data.size()
+    });
+
+    std::cout << "200 response sent" << std::endl;
+}
+
 void run_server() {
     TlsConnection tls_conn { SERVER_PORT };
     tls_conn.listen();
@@ -122,9 +145,6 @@ void run_server() {
 
     read_frame(tls_conn);
 
-   // write_settings_ack(tls_conn);
-   // std::cout << "SETTINGS ACK frame sent" << std::endl;
-
     const std::vector<Http2Setting> settings = {
         {0x0003, 100},      // MAX_CONCURRENT_STREAMS
         {0x0004, 65535},    // INITIAL_WINDOW_SIZE
@@ -136,6 +156,8 @@ void run_server() {
     read_frame(tls_conn);
     //read_settings_ack(tls_conn);
     //std::cout << "SETTINGS ACK frame received" << std::endl;
+
+    send_200_response(tls_conn, 1);
 
     tls_conn.close();
     std::cout << "Connection closed." << std::endl;
