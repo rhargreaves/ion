@@ -4,6 +4,10 @@
 
 Light-weight HTTP/2 server in C++
 
+## Progress
+
+* Returns 200 OK, empty body, for all requests from `curl`
+
 ## Getting Started
 
 Install CMake (4.0+), CLion, Python (3.13+) and GCC/Clang
