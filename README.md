@@ -4,11 +4,17 @@
 
 Light-weight HTTP/2 server in C++
 
+## Goals
+
+I'm using this as a learning exercise to learn more about HTTP/2 and modern C++.
+It is not intended to be a production-ready server!
+
 ## Progress
 
-* Returns 200 OK, empty body, for all requests from `curl`
+* Basic HTTP/2 over TLS
+* Returns 200 OK, empty body, for all requests and then exits
 
-## Getting Started
+## Build
 
 ### macOS
 
@@ -25,12 +31,20 @@ Use Docker:
 
 ```sh
 docker build -t ion .
+docker run -p 8443:8443 -it ion
 ```
 
 Use Make:
 
 ```sh
 make build test
+```
+
+## Usage
+
+```sh
+./ion-server/cmake-build-debug/ion-server &
+curl -k --http2 -v https://localhost:8443/
 ```
 
 ## References
