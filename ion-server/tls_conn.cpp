@@ -1,9 +1,12 @@
 #include "tls_conn.h"
+
 #include <netinet/in.h>
 #include <openssl/err.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <system_error>
 
@@ -109,6 +112,15 @@ void TlsConnection::handshake(const std::filesystem::path& cert_path,
     }
 
     SSL_CTX_set_alpn_select_cb(ctx, alpn_callback, nullptr);
+
+    SSL_CTX_set_keylog_callback(ctx, [](const SSL*, const char* line) {
+        if (auto keylog_file = std::getenv("SSLKEYLOGFILE")) {
+            std::ofstream file(keylog_file, std::ios::app);
+            if (file.is_open()) {
+               file << line << '\n';
+            }
+        }
+    });
 
     ssl = SSL_new(ctx);
     if (!ssl) {

@@ -1,16 +1,22 @@
 import subprocess
 import time
+import os
+
+SERVER_PORT = 8443
 
 def test_http2_tls_connect():
-    server = subprocess.Popen(["./ion-server/cmake-build-debug/ion-server", "8443"])
+    env = os.environ.copy()
+    env['SSLKEYLOGFILE'] = '/tmp/tls-keys.log'
+    server = subprocess.Popen(["./ion-server/cmake-build-debug/ion-server",
+                               str(SERVER_PORT)], env=env)
     time.sleep(1)
-
     try:
-        result = subprocess.run(
-            ["curl", "--http2", "--insecure", "https://localhost:8443"],
+        result = subprocess.run(["curl", "--http2", "--insecure", "--trace", "trace.log",
+                'https://localhost:' + str(SERVER_PORT)],
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=5,
+            env=env
         )
         print(result.stdout)
         print(result.stderr)

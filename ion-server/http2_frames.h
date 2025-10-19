@@ -4,14 +4,19 @@
 #pragma pack(push, 1)
 struct Http2FrameHeader {
     uint8_t length[3];    // 24-bit length (big-endian)
-    uint8_t type;         // Frame type
-    uint8_t flags;        // Frame flags
-    uint32_t stream_id;   // Stream identifier (big-endian)
+    uint8_t type;
+    uint8_t flags;
+    uint8_t reserved : 1;
+    uint32_t stream_id : 31;   // Stream identifier (big-endian)
 
     void set_length(uint32_t len) {
         length[0] = (len >> 16) & 0xFF;
         length[1] = (len >> 8) & 0xFF;
         length[2] = len & 0xFF;
+    }
+
+    int get_length() const {
+        return (length[0] << 16) | (length[1] << 8) | length[2];
     }
 
     void set_stream_id(uint32_t id) {

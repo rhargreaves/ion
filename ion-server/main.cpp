@@ -62,6 +62,11 @@ void read_and_ignore_settings_header(const TlsConnection& conn) {
     if (bytes_read != static_cast<ssize_t>(buffer.size())) {
         throw std::runtime_error("Failed to read settings header (not enough bytes)");
     }
+    auto data = std::vector<char>(header.get_length());
+    bytes_read = conn.read(data);
+    if (bytes_read != static_cast<ssize_t>(data.size())) {
+        throw std::runtime_error("Failed to read settings body header (not enough bytes)");
+    }
 }
 
 void read_settings_ack(const TlsConnection& conn) {
@@ -97,6 +102,12 @@ void run_server() {
     read_preface(tls_conn);
     std::cout << "Valid HTTP/2 preface received!" << std::endl;
 
+    read_and_ignore_settings_header(tls_conn);
+    std::cout << "SETTINGS frame received" << std::endl;
+
+   // write_settings_ack(tls_conn);
+   // std::cout << "SETTINGS ACK frame sent" << std::endl;
+
     const std::vector<Http2Setting> settings = {
         {0x0003, 100},      // MAX_CONCURRENT_STREAMS
         {0x0004, 65535},    // INITIAL_WINDOW_SIZE
@@ -104,12 +115,6 @@ void run_server() {
     };
     write_settings_header(tls_conn, settings);
     std::cout << "SETTINGS frame sent" << std::endl;
-
-    read_and_ignore_settings_header(tls_conn);
-    std::cout << "SETTINGS frame received" << std::endl;
-
-    write_settings_ack(tls_conn);
-    std::cout << "SETTINGS ACK frame sent" << std::endl;
 
     read_settings_ack(tls_conn);
     std::cout << "SETTINGS ACK frame received" << std::endl;
