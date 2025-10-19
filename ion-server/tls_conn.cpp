@@ -158,12 +158,7 @@ ssize_t TlsConnection::write(const std::span<const char> buffer) const {
 void TlsConnection::close() {
     if (ssl) {
         BIO_flush(SSL_get_wbio(ssl));
-        // Bidirectional shutdown: send close_notify and wait for peer's
-        const int ret = SSL_shutdown(ssl);
-        if (ret == 0) {
-            // First shutdown succeeded, wait for peer's close_notify
-            SSL_shutdown(ssl);
-        }
+        SSL_shutdown(ssl);
         SSL_free(ssl);
         ssl = nullptr;
     }
