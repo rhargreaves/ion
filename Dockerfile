@@ -11,14 +11,7 @@ RUN apt-get update && apt-get install -y \
     make \
     wget \
     curl \
-    clang-18 \
-    libc++-18-dev \
-    libc++abi-18-dev \
     && rm -rf /var/lib/apt/lists/*
-
-# Set clang-18 as the default compiler
-ENV CC=clang-18
-ENV CXX=clang++-18
 
 # Install CMake 4.0+ (detect architecture)
 RUN ARCH=$(uname -m) && \
