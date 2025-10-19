@@ -56,7 +56,31 @@ void write_settings_ack(const TlsConnection& conn) {
 }
 
 void read_and_ignore_settings_header(const TlsConnection& conn) {
-    (void)conn;
+    Http2FrameHeader header{};
+    auto buffer = as_writable_char_span(header);
+    auto bytes_read = conn.read(buffer);
+    if (bytes_read != static_cast<ssize_t>(buffer.size())) {
+        throw std::runtime_error("Failed to read settings header (not enough bytes)");
+    }
+}
+
+void read_settings_ack(const TlsConnection& conn) {
+    Http2FrameHeader header{};
+    auto buffer = as_writable_char_span(header);
+    auto bytes_read = conn.read(buffer);
+    if (bytes_read != static_cast<ssize_t>(buffer.size())) {
+        throw std::runtime_error("Failed to read settings header (not enough bytes)");
+    }
+    if (header.type != FRAME_TYPE_SETTINGS) {
+        throw std::runtime_error("Received frame was not a SETTINGS frame. Got type " +
+            std::to_string(header.type));
+    }
+    if (header.flags != 0x01) {
+        throw std::runtime_error("Received SETTINGS frame was not an ACK");
+    }
+    if (header.stream_id != 0) {
+        throw std::runtime_error("Received SETTINGS frame had a non-zero stream ID");
+    }
 }
 
 void run_server() {
@@ -81,11 +105,14 @@ void run_server() {
     write_settings_header(tls_conn, settings);
     std::cout << "SETTINGS frame sent" << std::endl;
 
-    // read client settings (and ignore for now)
     read_and_ignore_settings_header(tls_conn);
+    std::cout << "SETTINGS frame received" << std::endl;
 
-    // Send header ack
     write_settings_ack(tls_conn);
+    std::cout << "SETTINGS ACK frame sent" << std::endl;
+
+    read_settings_ack(tls_conn);
+    std::cout << "SETTINGS ACK frame received" << std::endl;
 
     tls_conn.close();
     std::cout << "Connection closed." << std::endl;
