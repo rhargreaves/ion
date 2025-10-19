@@ -37,4 +37,12 @@ struct Http2Setting {
     Http2Setting(uint16_t id, uint32_t val)
         : identifier(htons(id)), value(htonl(val)) {}
 };
+
+struct Http2GoAwayPayload {
+    uint32_t last_stream_id;  // 31-bit stream ID + 1 reserved bit
+    uint32_t error_code;
+
+    Http2GoAwayPayload(uint32_t stream_id, uint32_t error)
+        : last_stream_id(htonl(stream_id)), error_code(htonl(error)) {}
+};
 #pragma pack(pop)

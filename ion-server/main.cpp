@@ -6,6 +6,7 @@
 
 static constexpr uint8_t FRAME_TYPE_HEADERS = 0x01;
 static constexpr uint8_t FRAME_TYPE_SETTINGS = 0x04;
+static constexpr uint8_t FRAME_TYPE_GOAWAY = 0x07;
 
 static constexpr uint8_t FLAG_END_HEADERS = 0x04;
 static constexpr uint8_t FLAG_END_STREAM = 0x01;
@@ -125,8 +126,19 @@ void send_200_response(const TlsConnection& conn, uint32_t stream_id) {
         reinterpret_cast<const char*>(headers_data.data()),
         headers_data.size()
     });
+}
 
-    std::cout << "200 response sent" << std::endl;
+void send_goaway(const TlsConnection& conn, uint32_t last_stream_id) {
+    Http2GoAwayPayload payload{last_stream_id, 0};
+
+    Http2FrameHeader header{};
+    header.set_length(sizeof(payload));
+    header.type = FRAME_TYPE_GOAWAY;
+    header.flags = 0x00;
+    header.set_stream_id(0);
+
+    conn.write(as_char_span(header));
+    conn.write(as_char_span(payload));
 }
 
 void run_server() {
@@ -158,6 +170,10 @@ void run_server() {
     //std::cout << "SETTINGS ACK frame received" << std::endl;
 
     send_200_response(tls_conn, 1);
+    std::cout << "200 response sent" << std::endl;
+
+    send_goaway(tls_conn, 1);
+    std::cout << "GOAWAY frame sent" << std::endl;
 
     tls_conn.close();
     std::cout << "Connection closed." << std::endl;

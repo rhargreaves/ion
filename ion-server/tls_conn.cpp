@@ -34,15 +34,7 @@ TlsConnection::TlsConnection(uint16_t port) {
 }
 
 TlsConnection::~TlsConnection() {
-    if (server_fd > 0) {
-        ::close(server_fd);
-    }
-    if (client_fd > 0) {
-        ::close(client_fd);
-    }
-    if (ssl) {
-        ::SSL_free(ssl);
-    }
+    close();
 }
 
 // ReSharper disable once CppDFAConstantFunctionResult
@@ -164,16 +156,23 @@ ssize_t TlsConnection::write(const std::span<const char> buffer) const {
 }
 
 void TlsConnection::close() {
-    if (server_fd > 0) {
-        ::close(server_fd);
-        server_fd = 0;
+    if (ssl) {
+        BIO_flush(SSL_get_wbio(ssl));
+        // Bidirectional shutdown: send close_notify and wait for peer's
+        const int ret = SSL_shutdown(ssl);
+        if (ret == 0) {
+            // First shutdown succeeded, wait for peer's close_notify
+            SSL_shutdown(ssl);
+        }
+        SSL_free(ssl);
+        ssl = nullptr;
     }
     if (client_fd > 0) {
         ::close(client_fd);
         client_fd = 0;
     }
-    if (ssl) {
-        SSL_free(ssl);
-        ssl = nullptr;
+    if (server_fd > 0) {
+        ::close(server_fd);
+        server_fd = 0;
     }
 }

@@ -22,7 +22,7 @@ def test_http2_tls_connect():
         print(result.stderr)
 
         assert result.returncode == 0
-        assert "< HTTP/2 200 \n< \n{ [0 bytes data]" in result.stderr
+        assert "< HTTP/2 200 \n< \n" in result.stderr
     finally:
         server.terminate()
         server.wait()
