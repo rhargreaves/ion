@@ -18,15 +18,14 @@ std::span<char> as_writable_char_span(T& obj) {
     return {reinterpret_cast<char*>(&obj), sizeof(T)};
 }
 
-void read_preface(TlsConnection& conn) {
+void read_preface(const TlsConnection& conn) {
     constexpr std::string_view client_preface { "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n" };
     std::array<char, client_preface.length()> buffer{};
 
     const auto bytes_read = conn.read(buffer);
     const std::string_view received(buffer.data(), bytes_read);
     if (bytes_read == client_preface.length()) {
-        if (received.starts_with(client_preface)) {
-        } else {
+        if (!received.starts_with(client_preface)) {
             throw std::runtime_error("Invalid HTTP/2 preface");
         }
     } else {
@@ -34,8 +33,30 @@ void read_preface(TlsConnection& conn) {
     }
 }
 
-void write_header(uint8_t ) {
+void write_settings_header(const TlsConnection& conn, const std::vector<Http2Setting>& settings) {
+    Http2FrameHeader header{};
+    header.set_length(settings.size() * sizeof(Http2Setting));
+    header.type = FRAME_TYPE_SETTINGS;
+    header.flags = 0x00;
+    header.set_stream_id(0);
+    conn.write(as_char_span(header));
+    conn.write(std::span{
+        reinterpret_cast<const char*>(settings.data()),
+        settings.size() * sizeof(Http2Setting)
+    });
+}
 
+void write_settings_ack(const TlsConnection& conn) {
+    Http2FrameHeader header{};
+    header.set_length(0);
+    header.type = FRAME_TYPE_SETTINGS;
+    header.flags = 0x01;
+    header.set_stream_id(0);
+    conn.write(as_char_span(header));
+}
+
+void read_and_ignore_settings_header(const TlsConnection& conn) {
+    (void)conn;
 }
 
 void run_server() {
@@ -52,46 +73,19 @@ void run_server() {
     read_preface(tls_conn);
     std::cout << "Valid HTTP/2 preface received!" << std::endl;
 
-    // send SETTINGS frame
     const std::vector<Http2Setting> settings = {
         {0x0003, 100},      // MAX_CONCURRENT_STREAMS
         {0x0004, 65535},    // INITIAL_WINDOW_SIZE
         {0x0005, 16384}     // MAX_FRAME_SIZE
     };
+    write_settings_header(tls_conn, settings);
+    std::cout << "SETTINGS frame sent" << std::endl;
 
-    Http2FrameHeader header{};
-    header.set_length(settings.size() * sizeof(Http2Setting));
-    header.type = FRAME_TYPE_SETTINGS;
-    header.flags = 0x00;
-    header.set_stream_id(0);
-
-    // Send header
-    auto sent = tls_conn.write(as_char_span(header));
-    if (sent < 0) {
-        perror("SSL_write header");
-    }
-
-    // Send settings payload
-    sent = tls_conn.write(std::span{
-        reinterpret_cast<const char*>(settings.data()),
-        settings.size() * sizeof(Http2Setting)
-    });
-    if (sent < 0) {
-        perror("SSL_write settings");
-    } else {
-        std::cout << "SETTINGS frame sent" << std::endl;
-    }
+    // read client settings (and ignore for now)
+    read_and_ignore_settings_header(tls_conn);
 
     // Send header ack
-    Http2FrameHeader ack_header{};
-    ack_header.set_length(0);
-    ack_header.type = FRAME_TYPE_SETTINGS;
-    ack_header.flags = 0x01;
-    ack_header.set_stream_id(0);
-    sent = tls_conn.write(as_char_span(ack_header));
-    if (sent < 0) {
-        perror("SSL_write header");
-    }
+    write_settings_ack(tls_conn);
 
     tls_conn.close();
     std::cout << "Connection closed." << std::endl;
