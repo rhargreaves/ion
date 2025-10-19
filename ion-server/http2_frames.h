@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <arpa/inet.h>
 
 #pragma pack(push, 1)
 struct Http2FrameHeader {

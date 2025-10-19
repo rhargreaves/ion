@@ -1,0 +1,4 @@
+ion-server/cmake-build-debug
+.idea
+.venv
+.git

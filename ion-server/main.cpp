@@ -79,7 +79,7 @@ void read_frame(const TlsConnection& conn) {
             break;
         }
         default: {
-            std::println("Received frame of type {}", header.type);
+            std::cout <<"Received frame of type " << +header.type << std::endl;
 
             auto data = std::vector<char>(header.get_length());
             bytes_read = conn.read(data);
