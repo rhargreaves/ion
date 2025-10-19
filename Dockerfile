@@ -22,7 +22,7 @@ RUN ARCH=$(uname -m) && \
     else \
         echo "Unsupported architecture: $ARCH" && exit 1; \
     fi && \
-    wget https://github.com/Kitware/CMake/releases/download/v4.1.1/cmake-4.1.1-${CMAKE_ARCH}.sh -O /tmp/cmake.sh && \
+    wget https://github.com/Kitware/CMake/releases/download/v4.1.1/cmake-4.1.1-${CMAKE_ARCH}.sh -q -O /tmp/cmake.sh && \
     sh /tmp/cmake.sh --skip-license --prefix=/usr/local && \
     rm /tmp/cmake.sh
 
