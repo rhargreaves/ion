@@ -13,9 +13,9 @@ public:
     void accept();
     void close();
     void handshake(const std::filesystem::path& cert_path, const std::filesystem::path& key_path);
-    void print_debug_to_stderr();
-    ssize_t read(std::span<char> buffer);
-    ssize_t write(std::span<const char> buffer);
+    static void print_debug_to_stderr();
+    [[nodiscard]] ssize_t read(std::span<char> buffer) const;
+    [[nodiscard]] ssize_t write(std::span<const char> buffer) const;
 
 private:
     int server_fd;

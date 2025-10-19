@@ -13,8 +13,8 @@ TlsConnection::TlsConnection(uint16_t port) {
         throw std::system_error(errno, std::system_category(), "socket");
     }
 
-    int opt = 1;
-    setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    constexpr int enable_opt = 1;
+    setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &enable_opt, sizeof(enable_opt));
 
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
@@ -42,15 +42,15 @@ TlsConnection::~TlsConnection() {
     }
 }
 
+// ReSharper disable once CppDFAConstantFunctionResult
 int TlsConnection::alpn_callback(SSL*, const unsigned char** out, unsigned char* outlen,
                   const unsigned char* in, unsigned int inlen, void*) {
-    static const unsigned char supported_protos[] = "\x02h2";
-    static const unsigned int supported_protos_len = sizeof(supported_protos) - 1;
+    static constexpr std::array<unsigned char,3> supported_protos{'\x02', 'h', '2'};
 
     // Select a protocol from the client's list
-    int result = SSL_select_next_proto(
+    const int result = SSL_select_next_proto(
         const_cast<unsigned char**>(out), outlen,
-        supported_protos, supported_protos_len,
+        supported_protos.data(), supported_protos.size(),
         in, inlen
     );
 
@@ -60,12 +60,11 @@ int TlsConnection::alpn_callback(SSL*, const unsigned char** out, unsigned char*
         return SSL_TLSEXT_ERR_OK;
     }
 
-    // No match found - use the first protocol we support as fallback
-    *out = supported_protos + 1;  // Skip the length byte
-    *outlen = supported_protos[0]; // Get the length
+    // No match found - use h2
+    *outlen = supported_protos[0];
+    *out = supported_protos.data() + 1;
     std::cout << "ALPN negotiation failed, using default: ";
     std::cout.write(reinterpret_cast<const char*>(*out), *outlen) << std::endl;
-
     return SSL_TLSEXT_ERR_OK;
 }
 
@@ -78,7 +77,7 @@ void TlsConnection::listen() const {
 void TlsConnection::accept() {
     sockaddr_in client_addr{};
     socklen_t client_len = sizeof(client_addr);
-    int tmp_client_fd = ::accept(server_fd,
+    const int tmp_client_fd = ::accept(server_fd,
         reinterpret_cast<sockaddr*>(&client_addr), &client_len);
     if (tmp_client_fd < 0) {
         throw std::system_error(errno, std::system_category(), "accept");
@@ -109,7 +108,7 @@ void TlsConnection::handshake(const std::filesystem::path& cert_path,
         throw std::runtime_error("Private key does not match certificate");
     }
 
-    SSL_CTX_set_alpn_select_cb(ctx, alpn_callback, NULL);
+    SSL_CTX_set_alpn_select_cb(ctx, alpn_callback, nullptr);
 
     ssl = SSL_new(ctx);
     if (!ssl) {
@@ -134,19 +133,19 @@ void TlsConnection::print_debug_to_stderr() {
     ERR_print_errors_fp(stderr);
 }
 
-ssize_t TlsConnection::read(std::span<char> buffer) {
-    auto bytes_read = SSL_read(ssl, buffer.data(), buffer.size());
+ssize_t TlsConnection::read(std::span<char> buffer) const {
+    const auto bytes_read = SSL_read(ssl, buffer.data(), static_cast<int>(buffer.size()));
     if (bytes_read < 0) {
-        int ssl_error = SSL_get_error(ssl, bytes_read);
+        const int ssl_error = SSL_get_error(ssl, bytes_read);
         throw std::runtime_error("SSL read error: " + std::to_string(ssl_error));
     }
     return bytes_read;
 }
 
-ssize_t TlsConnection::write(std::span<const char> buffer) {
-    auto bytes_written = SSL_write(ssl, buffer.data(), buffer.size());
+ssize_t TlsConnection::write(const std::span<const char> buffer) const {
+    const auto bytes_written = SSL_write(ssl, buffer.data(), static_cast<int>(buffer.size()));
     if (bytes_written < 0) {
-        int ssl_error = SSL_get_error(ssl, bytes_written);
+        const int ssl_error = SSL_get_error(ssl, bytes_written);
         throw std::runtime_error("SSL write error: " + std::to_string(ssl_error));
     }
     return bytes_written;
