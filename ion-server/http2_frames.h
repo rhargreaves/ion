@@ -24,6 +24,11 @@ struct Http2FrameHeader {
     }
 };
 
+struct Http2WindowUpdate {
+    uint8_t reserved : 1;
+    uint32_t window_size_increment : 31;
+};
+
 struct Http2Setting {
     uint16_t identifier;
     uint32_t value;

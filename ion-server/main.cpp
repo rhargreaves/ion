@@ -55,17 +55,35 @@ void write_settings_ack(const TlsConnection& conn) {
     conn.write(as_char_span(header));
 }
 
-void read_and_ignore_settings_header(const TlsConnection& conn) {
+void read_frame(const TlsConnection& conn) {
     Http2FrameHeader header{};
     auto buffer = as_writable_char_span(header);
     auto bytes_read = conn.read(buffer);
     if (bytes_read != static_cast<ssize_t>(buffer.size())) {
-        throw std::runtime_error("Failed to read settings header (not enough bytes)");
+        throw std::runtime_error("Failed to read frame header (not enough bytes)");
     }
-    auto data = std::vector<char>(header.get_length());
-    bytes_read = conn.read(data);
-    if (bytes_read != static_cast<ssize_t>(data.size())) {
-        throw std::runtime_error("Failed to read settings body header (not enough bytes)");
+
+    switch (header.type) {
+        case FRAME_TYPE_SETTINGS: {
+            std::cout << "SETTINGS frame received" << std::endl;
+
+            auto data = std::vector<char>(header.get_length());
+            bytes_read = conn.read(data);
+            if (bytes_read != static_cast<ssize_t>(data.size())) {
+                throw std::runtime_error("Failed to skip frame data (not enough bytes)");
+            }
+            break;
+        }
+        default: {
+            std::println("Received frame of type {}", header.type);
+
+            auto data = std::vector<char>(header.get_length());
+            bytes_read = conn.read(data);
+            if (bytes_read != static_cast<ssize_t>(data.size())) {
+                throw std::runtime_error("Failed to skip frame data (not enough bytes)");
+            }
+            break;
+        }
     }
 }
 
@@ -102,8 +120,7 @@ void run_server() {
     read_preface(tls_conn);
     std::cout << "Valid HTTP/2 preface received!" << std::endl;
 
-    read_and_ignore_settings_header(tls_conn);
-    std::cout << "SETTINGS frame received" << std::endl;
+    read_frame(tls_conn);
 
    // write_settings_ack(tls_conn);
    // std::cout << "SETTINGS ACK frame sent" << std::endl;
@@ -116,8 +133,9 @@ void run_server() {
     write_settings_header(tls_conn, settings);
     std::cout << "SETTINGS frame sent" << std::endl;
 
-    read_settings_ack(tls_conn);
-    std::cout << "SETTINGS ACK frame received" << std::endl;
+    read_frame(tls_conn);
+    //read_settings_ack(tls_conn);
+    //std::cout << "SETTINGS ACK frame received" << std::endl;
 
     tls_conn.close();
     std::cout << "Connection closed." << std::endl;
