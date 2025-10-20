@@ -32,7 +32,7 @@ struct Http2FrameHeader {
     uint8_t flags;
     uint32_t stream_id;
 
-    static Http2FrameHeader parse(std::span<const uint8_t, 9> data) {
+    static Http2FrameHeader parse(const std::span<const uint8_t, 9> data) {
         return Http2FrameHeader{.length = load_uint24_be(data.data()),
                                 .type = data[3],
                                 .flags = data[4],
