@@ -1,3 +1,5 @@
+#PYTEST_ARGS=-rP
+PYTEST_ARGS=
 
 build:
 	cmake -S ion-server -B ion-server/cmake-build-debug
@@ -6,7 +8,7 @@ build:
 
 test: cert.pem
 	pip3 install -q -r test/requirements.txt
-	python3 -m pytest test/ -v
+	python3 -m pytest test/ -v $(PYTEST_ARGS)
 .PHONY: test
 
 cert.pem:
