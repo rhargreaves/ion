@@ -15,7 +15,7 @@ def run_server():
     ], env=env)
 
 
-def test_http2_tls_connect():
+def test_http2_returns_200():
     server = run_server()
     assert wait_for_port(SERVER_PORT)
     try:
@@ -26,3 +26,8 @@ def test_http2_tls_connect():
     finally:
         server.terminate()
         server.wait()
+
+
+def test_http2_returns_200_many_times():
+    for _ in range(10):
+        test_http2_returns_200()
