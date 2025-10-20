@@ -1,11 +1,12 @@
 #pragma once
 #include <openssl/ssl.h>
 #include <unistd.h>
+
 #include <filesystem>
 #include <span>
 
 class TlsConnection {
-public:
+   public:
     explicit TlsConnection(uint16_t port);
     ~TlsConnection();
 
@@ -17,11 +18,11 @@ public:
     ssize_t read(std::span<char> buffer) const;
     ssize_t write(std::span<const char> buffer) const;
 
-private:
+   private:
     int server_fd;
     int client_fd;
     SSL* ssl;
 
     static int alpn_callback(SSL* ssl, const unsigned char** out, unsigned char* outlen,
-        const unsigned char* in, unsigned int inlen, void* arg);
+                             const unsigned char* in, unsigned int inlen, void* arg);
 };

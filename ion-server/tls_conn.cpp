@@ -1,8 +1,10 @@
 #include "tls_conn.h"
+
 #include <netinet/in.h>
 #include <openssl/err.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -31,21 +33,17 @@ TlsConnection::TlsConnection(uint16_t port) {
     ssl = nullptr;
 }
 
-TlsConnection::~TlsConnection() {
-    close();
-}
+TlsConnection::~TlsConnection() { close(); }
 
 // ReSharper disable once CppDFAConstantFunctionResult
 int TlsConnection::alpn_callback(SSL*, const unsigned char** out, unsigned char* outlen,
-                  const unsigned char* in, unsigned int inlen, void*) {
-    static constexpr std::array<unsigned char,3> supported_protos{'\x02', 'h', '2'};
+                                 const unsigned char* in, unsigned int inlen, void*) {
+    static constexpr std::array<unsigned char, 3> supported_protos{'\x02', 'h', '2'};
 
     // Select a protocol from the client's list
-    const int result = SSL_select_next_proto(
-        const_cast<unsigned char**>(out), outlen,
-        supported_protos.data(), supported_protos.size(),
-        in, inlen
-    );
+    const int result =
+        SSL_select_next_proto(const_cast<unsigned char**>(out), outlen, supported_protos.data(),
+                              supported_protos.size(), in, inlen);
 
     if (result == OPENSSL_NPN_NEGOTIATED) {
         std::cout << "ALPN negotiated: ";
@@ -70,8 +68,8 @@ void TlsConnection::listen() const {
 void TlsConnection::accept() {
     sockaddr_in client_addr{};
     socklen_t client_len = sizeof(client_addr);
-    const int tmp_client_fd = ::accept(server_fd,
-        reinterpret_cast<sockaddr*>(&client_addr), &client_len);
+    const int tmp_client_fd =
+        ::accept(server_fd, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
     if (tmp_client_fd < 0) {
         throw std::system_error(errno, std::system_category(), "accept");
     }
@@ -79,8 +77,7 @@ void TlsConnection::accept() {
 }
 
 void TlsConnection::handshake(const std::filesystem::path& cert_path,
-    const std::filesystem::path& key_path) {
-
+                              const std::filesystem::path& key_path) {
     SSL_CTX* ctx = SSL_CTX_new(TLS_server_method());
     if (!ctx) {
         throw std::runtime_error("Failed to create SSL context");
@@ -107,7 +104,7 @@ void TlsConnection::handshake(const std::filesystem::path& cert_path,
         if (auto keylog_file = std::getenv("SSLKEYLOGFILE")) {
             std::ofstream file(keylog_file, std::ios::app);
             if (file.is_open()) {
-               file << line << '\n';
+                file << line << '\n';
             }
         }
     });
@@ -131,9 +128,7 @@ void TlsConnection::handshake(const std::filesystem::path& cert_path,
     }
 }
 
-void TlsConnection::print_debug_to_stderr() {
-    ERR_print_errors_fp(stderr);
-}
+void TlsConnection::print_debug_to_stderr() { ERR_print_errors_fp(stderr); }
 
 ssize_t TlsConnection::read(std::span<char> buffer) const {
     const auto bytes_read = SSL_read(ssl, buffer.data(), static_cast<int>(buffer.size()));

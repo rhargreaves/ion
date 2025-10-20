@@ -3,11 +3,10 @@
 
 #pragma pack(push, 1)
 struct Http2FrameHeader {
-    uint8_t length[3];    // 24-bit length (big-endian)
+    uint8_t length[3];  // 24-bit, big-endian
     uint8_t type;
     uint8_t flags;
-    //uint8_t reserved : 1;
-    uint32_t stream_id : 32;   // Stream identifier (big-endian)
+    uint32_t reserved_and_stream_id;  // Reserved (1 bit) + Stream ID (31 bits), big-endian
 
     void set_length(uint32_t len) {
         length[0] = (len >> 16) & 0xFF;
@@ -15,13 +14,11 @@ struct Http2FrameHeader {
         length[2] = len & 0xFF;
     }
 
-    int get_length() const {
-        return (length[0] << 16) | (length[1] << 8) | length[2];
-    }
+    int get_length() const { return length[0] << 16 | length[1] << 8 | length[2]; }
 
-    void set_stream_id(uint32_t id) {
-        stream_id = htonl(id);
-    }
+    void set_stream_id(uint32_t id) { reserved_and_stream_id = htonl(id & 0x7FFFFFFF); }
+
+    uint32_t get_stream_id() const { return ntohl(reserved_and_stream_id) & 0x7FFFFFFF; }
 };
 
 struct Http2WindowUpdate {
@@ -33,8 +30,7 @@ struct Http2Setting {
     uint16_t identifier;
     uint32_t value;
 
-    Http2Setting(uint16_t id, uint32_t val)
-        : identifier(htons(id)), value(htonl(val)) {}
+    Http2Setting(uint16_t id, uint32_t val) : identifier(htons(id)), value(htonl(val)) {}
 };
 
 struct Http2GoAwayPayload {

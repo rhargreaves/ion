@@ -1,6 +1,8 @@
 #include <sys/socket.h>
+
 #include <iostream>
 #include <vector>
+
 #include "http2_frames.h"
 #include "tls_conn.h"
 
@@ -13,18 +15,18 @@ static constexpr uint8_t FLAG_END_STREAM = 0x01;
 
 static constexpr uint16_t SERVER_PORT = 8443;
 
-template<typename T>
+template <typename T>
 std::span<const char> as_char_span(const T& obj) {
     return {reinterpret_cast<const char*>(&obj), sizeof(T)};
 }
 
-template<typename T>
+template <typename T>
 std::span<char> as_writable_char_span(T& obj) {
     return {reinterpret_cast<char*>(&obj), sizeof(T)};
 }
 
 void read_preface(const TlsConnection& conn) {
-    constexpr std::string_view client_preface { "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n" };
+    constexpr std::string_view client_preface{"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"};
     std::array<char, client_preface.length()> buffer{};
 
     const auto bytes_read = conn.read(buffer);
@@ -45,10 +47,8 @@ void write_settings_header(const TlsConnection& conn, const std::vector<Http2Set
     header.flags = 0x00;
     header.set_stream_id(0);
     conn.write(as_char_span(header));
-    conn.write(std::span{
-        reinterpret_cast<const char*>(settings.data()),
-        settings.size() * sizeof(Http2Setting)
-    });
+    conn.write(std::span{reinterpret_cast<const char*>(settings.data()),
+                         settings.size() * sizeof(Http2Setting)});
 }
 
 void write_settings_ack(const TlsConnection& conn) {
@@ -80,7 +80,7 @@ void read_frame(const TlsConnection& conn) {
             break;
         }
         default: {
-            std::cout <<"Received frame of type " << +header.type << std::endl;
+            std::cout << "Received frame of type " << +header.type << std::endl;
 
             auto data = std::vector<char>(header.get_length());
             bytes_read = conn.read(data);
@@ -101,12 +101,12 @@ void read_settings_ack(const TlsConnection& conn) {
     }
     if (header.type != FRAME_TYPE_SETTINGS) {
         throw std::runtime_error("Received frame was not a SETTINGS frame. Got type " +
-            std::to_string(header.type));
+                                 std::to_string(header.type));
     }
     if (header.flags != 0x01) {
         throw std::runtime_error("Received SETTINGS frame was not an ACK");
     }
-    if (header.stream_id != 0) {
+    if (header.get_stream_id() != 0) {
         throw std::runtime_error("Received SETTINGS frame had a non-zero stream ID");
     }
 }
@@ -122,10 +122,7 @@ void send_200_response(const TlsConnection& conn, uint32_t stream_id) {
     header.set_stream_id(stream_id);
 
     conn.write(as_char_span(header));
-    conn.write(std::span{
-        reinterpret_cast<const char*>(headers_data.data()),
-        headers_data.size()
-    });
+    conn.write(std::span{reinterpret_cast<const char*>(headers_data.data()), headers_data.size()});
 }
 
 void send_goaway(const TlsConnection& conn, uint32_t last_stream_id) {
@@ -142,7 +139,7 @@ void send_goaway(const TlsConnection& conn, uint32_t last_stream_id) {
 }
 
 void run_server() {
-    TlsConnection tls_conn { SERVER_PORT };
+    TlsConnection tls_conn{SERVER_PORT};
     tls_conn.listen();
     std::cout << "[ion] Listening on port " << SERVER_PORT << "..." << std::endl;
 
@@ -158,16 +155,16 @@ void run_server() {
     read_frame(tls_conn);
 
     const std::vector<Http2Setting> settings = {
-        {0x0003, 100},      // MAX_CONCURRENT_STREAMS
-        {0x0004, 65535},    // INITIAL_WINDOW_SIZE
-        {0x0005, 16384}     // MAX_FRAME_SIZE
+        {0x0003, 100},    // MAX_CONCURRENT_STREAMS
+        {0x0004, 65535},  // INITIAL_WINDOW_SIZE
+        {0x0005, 16384}   // MAX_FRAME_SIZE
     };
     write_settings_header(tls_conn, settings);
     std::cout << "SETTINGS frame sent" << std::endl;
 
     read_frame(tls_conn);
-    //read_settings_ack(tls_conn);
-    //std::cout << "SETTINGS ACK frame received" << std::endl;
+    // read_settings_ack(tls_conn);
+    // std::cout << "SETTINGS ACK frame received" << std::endl;
 
     send_200_response(tls_conn, 1);
     std::cout << "200 response sent" << std::endl;
