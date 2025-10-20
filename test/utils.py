@@ -1,5 +1,15 @@
 import subprocess
 import time
+import os
+
+
+def run_server(port):
+    env = os.environ.copy()
+    env['SSLKEYLOGFILE'] = '/tmp/tls-keys.log'
+    return subprocess.Popen([
+        "./ion-server/cmake-build-debug/ion-server",
+        str(port)
+    ], env=env)
 
 
 def wait_for_port(port, timeout=5):
