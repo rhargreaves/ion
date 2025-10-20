@@ -19,3 +19,19 @@ def wait_for_port(port, timeout=5):
             pass
         time.sleep(0.05)
     return False
+
+
+def curl_http2(url):
+    result = subprocess.run(
+        ["curl", "--http2", "--insecure", "--verbose", url],
+        capture_output=True,
+        text=True,
+        timeout=5
+    )
+    print(result.stdout)
+    print(result.stderr)
+    return result
+
+
+def assert_curl_response_ok(result):
+    assert "< HTTP/2 200 \n< \n" in result.stderr
