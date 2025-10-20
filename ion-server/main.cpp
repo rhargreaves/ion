@@ -25,6 +25,17 @@ std::span<char> as_writable_char_span(T& obj) {
     return {reinterpret_cast<char*>(&obj), sizeof(T)};
 }
 
+void read_exact(const TlsConnection& conn, std::span<char> buffer) {
+    size_t total_read = 0;
+    while (total_read < buffer.size()) {
+        const auto bytes_read = conn.read(buffer.subspan(total_read));
+        if (bytes_read == 0) {
+            throw std::runtime_error("Connection closed unexpectedly");
+        }
+        total_read += bytes_read;
+    }
+}
+
 void read_preface(const TlsConnection& conn) {
     constexpr std::string_view client_preface{"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"};
     std::array<char, client_preface.length()> buffer{};
@@ -41,100 +52,95 @@ void read_preface(const TlsConnection& conn) {
 }
 
 void write_settings_header(const TlsConnection& conn, const std::vector<Http2Setting>& settings) {
-    Http2FrameHeader header{};
-    header.set_length(settings.size() * sizeof(Http2Setting));
-    header.type = FRAME_TYPE_SETTINGS;
-    header.flags = 0x00;
-    header.set_stream_id(0);
-    conn.write(as_char_span(header));
+    Http2FrameHeader header{.length = static_cast<uint32_t>(settings.size() * sizeof(Http2Setting)),
+                            .type = FRAME_TYPE_SETTINGS,
+                            .flags = 0x00,
+                            .stream_id = 0};
+
+    std::array<uint8_t, 9> header_bytes{};
+    header.serialize(header_bytes);
+    conn.write(std::span{reinterpret_cast<const char*>(header_bytes.data()), 9});
     conn.write(std::span{reinterpret_cast<const char*>(settings.data()),
                          settings.size() * sizeof(Http2Setting)});
 }
 
 void write_settings_ack(const TlsConnection& conn) {
-    Http2FrameHeader header{};
-    header.set_length(0);
-    header.type = FRAME_TYPE_SETTINGS;
-    header.flags = 0x01;
-    header.set_stream_id(0);
-    conn.write(as_char_span(header));
+    Http2FrameHeader header{
+        .length = 0, .type = FRAME_TYPE_SETTINGS, .flags = 0x01, .stream_id = 0};
+    std::array<uint8_t, 9> header_bytes{};
+    header.serialize(header_bytes);
+    conn.write(std::span{reinterpret_cast<const char*>(header_bytes.data()), 9});
+}
+
+std::vector<Http2Setting> read_settings(const std::span<char> data) {
+    if (data.size() % sizeof(Http2Setting) != 0) {
+        throw std::runtime_error(std::format(
+            "Invalid SETTINGS frame: data size not a multiple of {}", sizeof(Http2Setting)));
+    }
+
+    std::vector<Http2Setting> settings;
+    const auto num_settings = data.size() / sizeof(Http2Setting);
+    settings.reserve(num_settings);
+
+    auto* settings_ptr = reinterpret_cast<const Http2Setting*>(data.data());
+    for (size_t i = 0; i < num_settings; ++i) {
+        settings.push_back(settings_ptr[i]);
+    }
+    return settings;
 }
 
 void read_frame(const TlsConnection& conn) {
-    Http2FrameHeader header{};
-    auto buffer = as_writable_char_span(header);
-    auto bytes_read = conn.read(buffer);
-    if (bytes_read != static_cast<ssize_t>(buffer.size())) {
-        throw std::runtime_error("Failed to read frame header (not enough bytes)");
-    }
+    constexpr size_t frame_header_length = 9;
+    std::array<uint8_t, frame_header_length> header_bytes{};
+    read_exact(conn, std::span{reinterpret_cast<char*>(header_bytes.data()), frame_header_length});
 
+    const auto header = Http2FrameHeader::parse(header_bytes);
     switch (header.type) {
         case FRAME_TYPE_SETTINGS: {
             std::cout << "SETTINGS frame received" << std::endl;
 
-            auto data = std::vector<char>(header.get_length());
-            bytes_read = conn.read(data);
-            if (bytes_read != static_cast<ssize_t>(data.size())) {
-                throw std::runtime_error("Failed to skip frame data (not enough bytes)");
-            }
+            auto data = std::vector<char>(header.length);
+            read_exact(conn, data);
+
+            auto settings = read_settings(data);
+            std::cout << "Received " << settings.size() << " settings" << std::endl;
             break;
         }
         default: {
             std::cout << "Received frame of type " << +header.type << std::endl;
 
-            auto data = std::vector<char>(header.get_length());
-            bytes_read = conn.read(data);
-            if (bytes_read != static_cast<ssize_t>(data.size())) {
-                throw std::runtime_error("Failed to skip frame data (not enough bytes)");
-            }
+            auto data = std::vector<char>(header.length);
+            read_exact(conn, data);
             break;
         }
-    }
-}
-
-void read_settings_ack(const TlsConnection& conn) {
-    Http2FrameHeader header{};
-    auto buffer = as_writable_char_span(header);
-    auto bytes_read = conn.read(buffer);
-    if (bytes_read != static_cast<ssize_t>(buffer.size())) {
-        throw std::runtime_error("Failed to read settings header (not enough bytes)");
-    }
-    if (header.type != FRAME_TYPE_SETTINGS) {
-        throw std::runtime_error("Received frame was not a SETTINGS frame. Got type " +
-                                 std::to_string(header.type));
-    }
-    if (header.flags != 0x01) {
-        throw std::runtime_error("Received SETTINGS frame was not an ACK");
-    }
-    if (header.get_stream_id() != 0) {
-        throw std::runtime_error("Received SETTINGS frame had a non-zero stream ID");
     }
 }
 
 void send_200_response(const TlsConnection& conn, uint32_t stream_id) {
     // HPACK: index 8 = ":status: 200"
     std::array<uint8_t, 1> headers_data = {0x88};  // 0x80 | 8 = indexed header
+    std::array<uint8_t, 9> header_bytes{};
 
-    Http2FrameHeader header{};
-    header.set_length(headers_data.size());
-    header.type = FRAME_TYPE_HEADERS;
-    header.flags = FLAG_END_HEADERS | FLAG_END_STREAM;  // Complete response
-    header.set_stream_id(stream_id);
+    Http2FrameHeader header{.length = static_cast<uint32_t>(headers_data.size()),
+                            .type = FRAME_TYPE_HEADERS,
+                            .flags = FLAG_END_HEADERS | FLAG_END_STREAM,
+                            .stream_id = stream_id};
 
-    conn.write(as_char_span(header));
+    header.serialize(header_bytes);
+    conn.write(std::span{reinterpret_cast<const char*>(header_bytes.data()), 9});
     conn.write(std::span{reinterpret_cast<const char*>(headers_data.data()), headers_data.size()});
 }
 
 void send_goaway(const TlsConnection& conn, uint32_t last_stream_id) {
     Http2GoAwayPayload payload{last_stream_id, 0};
+    Http2FrameHeader header{.length = static_cast<uint32_t>(sizeof(payload)),
+                            .type = FRAME_TYPE_GOAWAY,
+                            .flags = 0x00,
+                            .stream_id = 0};
 
-    Http2FrameHeader header{};
-    header.set_length(sizeof(payload));
-    header.type = FRAME_TYPE_GOAWAY;
-    header.flags = 0x00;
-    header.set_stream_id(0);
-
-    conn.write(as_char_span(header));
+    std::array<uint8_t, 9> header_bytes{};
+    header.serialize(header_bytes);
+    conn.write(std::span{reinterpret_cast<const char*>(header_bytes.data()), 9});
     conn.write(as_char_span(payload));
 }
 

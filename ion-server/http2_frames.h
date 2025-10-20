@@ -1,29 +1,55 @@
 #pragma once
 #include <arpa/inet.h>
 
-#pragma pack(push, 1)
+#include <span>
+
+inline uint32_t load_uint24_be(const uint8_t* data) {
+    return (static_cast<uint32_t>(data[0]) << 16) | (static_cast<uint32_t>(data[1]) << 8) |
+           static_cast<uint32_t>(data[2]);
+}
+
+inline uint32_t load_uint32_be(const uint8_t* data) {
+    return (static_cast<uint32_t>(data[0]) << 24) | (static_cast<uint32_t>(data[1]) << 16) |
+           (static_cast<uint32_t>(data[2]) << 8) | static_cast<uint32_t>(data[3]);
+}
+
+inline void store_uint24_be(uint32_t value, uint8_t* data) {
+    data[0] = (value >> 16) & 0xFF;
+    data[1] = (value >> 8) & 0xFF;
+    data[2] = value & 0xFF;
+}
+
+inline void store_uint32_be(uint32_t value, uint8_t* data) {
+    data[0] = (value >> 24) & 0xFF;
+    data[1] = (value >> 16) & 0xFF;
+    data[2] = (value >> 8) & 0xFF;
+    data[3] = value & 0xFF;
+}
+
 struct Http2FrameHeader {
-    uint8_t length[3];  // 24-bit, big-endian
+    uint32_t length;
     uint8_t type;
     uint8_t flags;
-    uint32_t reserved_and_stream_id;  // Reserved (1 bit) + Stream ID (31 bits), big-endian
+    uint32_t stream_id;
 
-    void set_length(uint32_t len) {
-        length[0] = (len >> 16) & 0xFF;
-        length[1] = (len >> 8) & 0xFF;
-        length[2] = len & 0xFF;
+    static Http2FrameHeader parse(std::span<const uint8_t, 9> data) {
+        return Http2FrameHeader{.length = load_uint24_be(data.data()),
+                                .type = data[3],
+                                .flags = data[4],
+                                .stream_id = load_uint32_be(data.data() + 5) & 0x7FFFFFFF};
     }
 
-    int get_length() const { return length[0] << 16 | length[1] << 8 | length[2]; }
-
-    void set_stream_id(uint32_t id) { reserved_and_stream_id = htonl(id & 0x7FFFFFFF); }
-
-    uint32_t get_stream_id() const { return ntohl(reserved_and_stream_id) & 0x7FFFFFFF; }
+    void serialize(std::span<uint8_t, 9> data) const {
+        store_uint24_be(length, data.data());
+        data[3] = type;
+        data[4] = flags;
+        store_uint32_be(stream_id & 0x7FFFFFFF, data.data() + 5);
+    }
 };
 
+#pragma pack(push, 1)
 struct Http2WindowUpdate {
-    uint8_t reserved : 1;
-    uint32_t window_size_increment : 31;
+    uint32_t reserved_and_window_size_increment;
 };
 
 struct Http2Setting {
