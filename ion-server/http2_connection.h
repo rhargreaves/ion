@@ -14,6 +14,7 @@ class Http2Connection {
     Http2FrameHeader read_frame_header();
     std::vector<uint8_t> read_payload(uint32_t length);
     std::vector<Http2Setting> read_settings_payload(uint32_t length);
+    Http2WindowUpdate read_window_update(uint32_t length);
 
     void write_frame_header(const Http2FrameHeader& header);
     void write_settings(const std::vector<Http2Setting>& settings);

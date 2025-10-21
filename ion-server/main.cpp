@@ -6,6 +6,7 @@
 #include "tls_conn.h"
 
 static constexpr uint8_t FRAME_TYPE_SETTINGS = 0x04;
+static constexpr uint8_t FRAME_TYPE_WINDOW_UPDATE = 0x08;
 static constexpr uint8_t FLAG_END_HEADERS = 0x04;
 static constexpr uint8_t FLAG_END_STREAM = 0x01;
 
@@ -17,8 +18,14 @@ void read_frame(Http2Connection& http2) {
     switch (header.type) {
         case FRAME_TYPE_SETTINGS: {
             std::cout << "SETTINGS frame received" << std::endl;
-            auto settings = http2.read_settings_payload(header.length);
+            const auto settings = http2.read_settings_payload(header.length);
             std::cout << "Received " << settings.size() << " settings" << std::endl;
+            break;
+        }
+        case FRAME_TYPE_WINDOW_UPDATE: {
+            std::cout << "WINDOW_UPDATE frame received" << std::endl;
+            auto [window_size_increment] = http2.read_window_update(header.length);
+            std::cout << "Window size increment: " << window_size_increment << std::endl;
             break;
         }
         default: {

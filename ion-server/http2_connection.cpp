@@ -62,6 +62,17 @@ std::vector<Http2Setting> Http2Connection::read_settings_payload(uint32_t length
     return settings;
 }
 
+Http2WindowUpdate Http2Connection::read_window_update(uint32_t length) {
+    if (length != Http2WindowUpdate::wire_size) {
+        throw std::runtime_error(std::format("Invalid WINDOW_UPDATE frame: data size not {}",
+                                             Http2WindowUpdate::wire_size));
+    }
+
+    auto data = read_payload(length);
+    return Http2WindowUpdate::parse(std::span<const uint8_t, Http2WindowUpdate::wire_size>{
+        data.data(), Http2WindowUpdate::wire_size});
+}
+
 void Http2Connection::write_frame_header(const Http2FrameHeader& header) {
     std::array<uint8_t, Http2FrameHeader::wire_size> header_bytes{};
     header.serialize(header_bytes);
