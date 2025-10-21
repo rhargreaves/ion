@@ -15,8 +15,8 @@ class TlsConnection {
     void close();
     void handshake(const std::filesystem::path& cert_path, const std::filesystem::path& key_path);
     static void print_debug_to_stderr();
-    ssize_t read(std::span<char> buffer) const;
-    ssize_t write(std::span<const char> buffer) const;
+    ssize_t read(std::span<uint8_t> buffer) const;
+    ssize_t write(std::span<const uint8_t> buffer) const;
 
    private:
     int server_fd;

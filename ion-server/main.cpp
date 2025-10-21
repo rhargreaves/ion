@@ -13,17 +13,7 @@ static constexpr uint8_t FLAG_END_STREAM = 0x01;
 
 static constexpr uint16_t SERVER_PORT = 8443;
 
-template <typename T>
-std::span<const char> as_char_span(const T& obj) {
-    return {reinterpret_cast<const char*>(&obj), sizeof(T)};
-}
-
-template <typename T>
-std::span<char> as_writable_char_span(T& obj) {
-    return {reinterpret_cast<char*>(&obj), sizeof(T)};
-}
-
-void read_exact(const TlsConnection& conn, std::span<char> buffer) {
+void read_exact(const TlsConnection& conn, std::span<uint8_t> buffer) {
     size_t total_read = 0;
     while (total_read < buffer.size()) {
         const auto bytes_read = conn.read(buffer.subspan(total_read));
@@ -36,10 +26,10 @@ void read_exact(const TlsConnection& conn, std::span<char> buffer) {
 
 void read_preface(const TlsConnection& conn) {
     constexpr std::string_view client_preface{"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"};
-    std::array<char, client_preface.length()> buffer{};
+    std::array<uint8_t, client_preface.length()> buffer{};
 
     const auto bytes_read = conn.read(buffer);
-    const std::string_view received(buffer.data(), bytes_read);
+    const std::string_view received(reinterpret_cast<const char*>(buffer.data()), bytes_read);
     if (bytes_read == client_preface.length()) {
         if (!received.starts_with(client_preface)) {
             throw std::runtime_error("Invalid HTTP/2 preface");
@@ -51,21 +41,20 @@ void read_preface(const TlsConnection& conn) {
 
 void write_settings_header(const TlsConnection& conn, const std::vector<Http2Setting>& settings) {
     const Http2FrameHeader header{
-        .length = static_cast<uint32_t>(settings.size() * Http2Setting::wire_size),
+        .length = static_cast<uint32_t>(settings.size() * 6),
         .type = FRAME_TYPE_SETTINGS,
         .flags = 0x00,
         .stream_id = 0};
 
     std::array<uint8_t, Http2FrameHeader::wire_size> header_bytes{};
     header.serialize(header_bytes);
-    conn.write(std::span{reinterpret_cast<const char*>(header_bytes.data()), 9});
+    conn.write(header_bytes);
 
     // Serialize and write each setting
     for (const auto& setting : settings) {
         std::array<uint8_t, Http2Setting::wire_size> setting_bytes{};
         setting.serialize(setting_bytes);
-        conn.write(
-            std::span{reinterpret_cast<const char*>(setting_bytes.data()), setting_bytes.size()});
+        conn.write(setting_bytes);
     }
 }
 
@@ -74,43 +63,37 @@ void write_settings_ack(const TlsConnection& conn) {
         .length = 0, .type = FRAME_TYPE_SETTINGS, .flags = 0x01, .stream_id = 0};
     std::array<uint8_t, Http2FrameHeader::wire_size> header_bytes{};
     header.serialize(header_bytes);
-    conn.write(
-        std::span{reinterpret_cast<const char*>(header_bytes.data()), Http2FrameHeader::wire_size});
+    conn.write(header_bytes);
 }
 
-std::vector<Http2Setting> read_settings(std::span<const char> data) {
-    if (data.size() % Http2Setting::wire_size != 0) {
+std::vector<Http2Setting> read_settings(std::span<const uint8_t> data) {
+    constexpr size_t kSettingSize = 6;
+    if (data.size() % kSettingSize != 0) {
         throw std::runtime_error(std::format(
-            "Invalid SETTINGS frame: data size not a multiple of {}", Http2Setting::wire_size));
+            "Invalid SETTINGS frame: data size not a multiple of {}", kSettingSize));
     }
 
     std::vector<Http2Setting> settings;
-    const auto num_settings = data.size() / Http2Setting::wire_size;
+    const auto num_settings = data.size() / kSettingSize;
     settings.reserve(num_settings);
 
-    // Treat data as bytes
-    const auto* bytes_ptr = reinterpret_cast<const uint8_t*>(data.data());
-    std::span bytes{bytes_ptr, data.size()};
-
     for (size_t i = 0; i < num_settings; ++i) {
-        std::span<const uint8_t, Http2Setting::wire_size> entry{
-            bytes.data() + i * Http2Setting::wire_size, Http2Setting::wire_size};
+        std::span<const uint8_t, 6> entry{data.data() + i * kSettingSize, kSettingSize};
         settings.push_back(Http2Setting::parse(entry));
     }
     return settings;
 }
 
 void read_frame(const TlsConnection& conn) {
-    constexpr size_t frame_header_length = 9;
-    std::array<uint8_t, frame_header_length> header_bytes{};
-    read_exact(conn, std::span{reinterpret_cast<char*>(header_bytes.data()), frame_header_length});
+    std::array<uint8_t, 9> header_bytes{};
+    read_exact(conn, header_bytes);
 
     const auto header = Http2FrameHeader::parse(header_bytes);
     switch (header.type) {
         case FRAME_TYPE_SETTINGS: {
             std::cout << "SETTINGS frame received" << std::endl;
 
-            auto data = std::vector<char>(header.length);
+            auto data = std::vector<uint8_t>(header.length);
             read_exact(conn, data);
 
             auto settings = read_settings(data);
@@ -120,7 +103,7 @@ void read_frame(const TlsConnection& conn) {
         default: {
             std::cout << "Received frame of type " << +header.type << std::endl;
 
-            auto data = std::vector<char>(header.length);
+            auto data = std::vector<uint8_t>(header.length);
             read_exact(conn, data);
             break;
         }
@@ -138,8 +121,8 @@ void send_200_response(const TlsConnection& conn, uint32_t stream_id) {
                             .stream_id = stream_id};
 
     header.serialize(header_bytes);
-    conn.write(std::span{reinterpret_cast<const char*>(header_bytes.data()), 9});
-    conn.write(std::span{reinterpret_cast<const char*>(headers_data.data()), headers_data.size()});
+    conn.write(header_bytes);
+    conn.write(headers_data);
 }
 
 void send_goaway(const TlsConnection& conn, uint32_t last_stream_id) {
@@ -149,12 +132,11 @@ void send_goaway(const TlsConnection& conn, uint32_t last_stream_id) {
 
     std::array<uint8_t, 9> header_bytes{};
     header.serialize(header_bytes);
-    conn.write(std::span{reinterpret_cast<const char*>(header_bytes.data()), 9});
+    conn.write(header_bytes);
 
     std::array<uint8_t, 8> payload_bytes{};
     payload.serialize(payload_bytes);
-    conn.write(
-        std::span{reinterpret_cast<const char*>(payload_bytes.data()), payload_bytes.size()});
+    conn.write(payload_bytes);
 }
 
 void run_server() {

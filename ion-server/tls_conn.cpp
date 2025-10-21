@@ -40,18 +40,15 @@ int TlsConnection::alpn_callback(SSL*, const unsigned char** out, unsigned char*
                                  const unsigned char* in, unsigned int inlen, void*) {
     static constexpr std::array<unsigned char, 3> supported_protos{'\x02', 'h', '2'};
 
-    // Select a protocol from the client's list
     const int result =
         SSL_select_next_proto(const_cast<unsigned char**>(out), outlen, supported_protos.data(),
                               supported_protos.size(), in, inlen);
-
     if (result == OPENSSL_NPN_NEGOTIATED) {
         std::cout << "ALPN negotiated: ";
         std::cout.write(reinterpret_cast<const char*>(*out), *outlen) << std::endl;
         return SSL_TLSEXT_ERR_OK;
     }
 
-    // No match found - use h2
     *outlen = supported_protos[0];
     *out = supported_protos.data() + 1;
     std::cout << "ALPN negotiation failed, using default: ";
@@ -130,7 +127,7 @@ void TlsConnection::handshake(const std::filesystem::path& cert_path,
 
 void TlsConnection::print_debug_to_stderr() { ERR_print_errors_fp(stderr); }
 
-ssize_t TlsConnection::read(std::span<char> buffer) const {
+ssize_t TlsConnection::read(std::span<uint8_t> buffer) const {
     const auto bytes_read = SSL_read(ssl, buffer.data(), static_cast<int>(buffer.size()));
     if (bytes_read < 0) {
         const int ssl_error = SSL_get_error(ssl, bytes_read);
@@ -139,7 +136,7 @@ ssize_t TlsConnection::read(std::span<char> buffer) const {
     return bytes_read;
 }
 
-ssize_t TlsConnection::write(const std::span<const char> buffer) const {
+ssize_t TlsConnection::write(std::span<const uint8_t> buffer) const {
     const auto bytes_written = SSL_write(ssl, buffer.data(), static_cast<int>(buffer.size()));
     if (bytes_written < 0) {
         const int ssl_error = SSL_get_error(ssl, bytes_written);
