@@ -23,7 +23,7 @@ def wait_for_port(port, timeout=5):
                 timeout=1
             )
             for line in result.stdout.splitlines():
-                if f".{port}" in line and "LISTEN" in line:
+                if ((f".{port}" in line or f"0.0.0.0:{port}" in line) and "LISTEN" in line):
                     return True
         except (subprocess.TimeoutExpired, subprocess.SubprocessError):
             pass

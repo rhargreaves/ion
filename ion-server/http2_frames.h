@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <span>
 
 inline uint16_t load_uint16_be(std::span<const uint8_t, 2> data) {
