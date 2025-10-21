@@ -28,23 +28,18 @@ void read_preface(const TlsConnection& conn) {
     constexpr std::string_view client_preface{"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"};
     std::array<uint8_t, client_preface.length()> buffer{};
 
-    const auto bytes_read = conn.read(buffer);
-    const std::string_view received(reinterpret_cast<const char*>(buffer.data()), bytes_read);
-    if (bytes_read == client_preface.length()) {
-        if (!received.starts_with(client_preface)) {
-            throw std::runtime_error("Invalid HTTP/2 preface");
-        }
-    } else {
-        throw std::runtime_error("Received data too short to be a valid preface");
+    read_exact(conn, buffer);
+    const std::string_view received(reinterpret_cast<const char*>(buffer.data()), buffer.size());
+    if (received != client_preface) {
+        throw std::runtime_error("Invalid HTTP/2 preface");
     }
 }
 
 void write_settings_header(const TlsConnection& conn, const std::vector<Http2Setting>& settings) {
-    const Http2FrameHeader header{
-        .length = static_cast<uint32_t>(settings.size() * 6),
-        .type = FRAME_TYPE_SETTINGS,
-        .flags = 0x00,
-        .stream_id = 0};
+    const Http2FrameHeader header{.length = static_cast<uint32_t>(settings.size() * 6),
+                                  .type = FRAME_TYPE_SETTINGS,
+                                  .flags = 0x00,
+                                  .stream_id = 0};
 
     std::array<uint8_t, Http2FrameHeader::wire_size> header_bytes{};
     header.serialize(header_bytes);
@@ -67,25 +62,25 @@ void write_settings_ack(const TlsConnection& conn) {
 }
 
 std::vector<Http2Setting> read_settings(std::span<const uint8_t> data) {
-    constexpr size_t kSettingSize = 6;
-    if (data.size() % kSettingSize != 0) {
+    if (data.size() % Http2Setting::wire_size != 0) {
         throw std::runtime_error(std::format(
-            "Invalid SETTINGS frame: data size not a multiple of {}", kSettingSize));
+            "Invalid SETTINGS frame: data size not a multiple of {}", Http2Setting::wire_size));
     }
 
     std::vector<Http2Setting> settings;
-    const auto num_settings = data.size() / kSettingSize;
+    const auto num_settings = data.size() / Http2Setting::wire_size;
     settings.reserve(num_settings);
 
     for (size_t i = 0; i < num_settings; ++i) {
-        std::span<const uint8_t, 6> entry{data.data() + i * kSettingSize, kSettingSize};
+        std::span<const uint8_t, Http2Setting::wire_size> entry{
+            data.data() + i * Http2Setting::wire_size, Http2Setting::wire_size};
         settings.push_back(Http2Setting::parse(entry));
     }
     return settings;
 }
 
 void read_frame(const TlsConnection& conn) {
-    std::array<uint8_t, 9> header_bytes{};
+    std::array<uint8_t, Http2FrameHeader::wire_size> header_bytes{};
     read_exact(conn, header_bytes);
 
     const auto header = Http2FrameHeader::parse(header_bytes);
@@ -113,7 +108,7 @@ void read_frame(const TlsConnection& conn) {
 void send_200_response(const TlsConnection& conn, uint32_t stream_id) {
     // HPACK: index 8 = ":status: 200"
     std::array<uint8_t, 1> headers_data = {0x88};  // 0x80 | 8 = indexed header
-    std::array<uint8_t, 9> header_bytes{};
+    std::array<uint8_t, Http2FrameHeader::wire_size> header_bytes{};
 
     Http2FrameHeader header{.length = static_cast<uint32_t>(headers_data.size()),
                             .type = FRAME_TYPE_HEADERS,
@@ -130,11 +125,11 @@ void send_goaway(const TlsConnection& conn, uint32_t last_stream_id) {
 
     Http2FrameHeader header{.length = 8, .type = FRAME_TYPE_GOAWAY, .flags = 0x00, .stream_id = 0};
 
-    std::array<uint8_t, 9> header_bytes{};
+    std::array<uint8_t, Http2FrameHeader::wire_size> header_bytes{};
     header.serialize(header_bytes);
     conn.write(header_bytes);
 
-    std::array<uint8_t, 8> payload_bytes{};
+    std::array<uint8_t, Http2GoAwayPayload::wire_size> payload_bytes{};
     payload.serialize(payload_bytes);
     conn.write(payload_bytes);
 }
