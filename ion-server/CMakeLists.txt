@@ -8,12 +8,12 @@ add_executable(ion-server main.cpp
         tls_conn.cpp
         tls_conn.h
         http2_frames.h
-        http2_connection.cpp
-        http2_connection.h
-        http2_connection.cpp)
+        http2_conn.cpp
+        http2_conn.h
+        http2_conn.cpp)
 
 target_link_libraries(ion-server PRIVATE OpenSSL::SSL OpenSSL::Crypto)
 
 target_compile_options(ion-server PRIVATE
-    -Wall -Wextra -Wpedantic -Werror
+        -Wall -Wextra -Wpedantic -Werror
 )
