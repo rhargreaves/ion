@@ -1,7 +1,9 @@
 #include "tls_conn.h"
 
+#include <fcntl.h>
 #include <netinet/in.h>
 #include <openssl/err.h>
+#include <sys/poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -14,6 +16,16 @@ TlsConnection::TlsConnection(uint16_t port) {
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd < 0) {
         throw std::system_error(errno, std::system_category(), "socket");
+    }
+
+    const int flags = fcntl(server_fd, F_GETFL, 0);
+    if (flags == -1) {
+        ::close(server_fd);
+        throw std::system_error(errno, std::system_category(), "fcntl F_GETFL");
+    }
+    if (fcntl(server_fd, F_SETFL, flags | O_NONBLOCK) == -1) {
+        ::close(server_fd);
+        throw std::system_error(errno, std::system_category(), "fcntl F_SETFL");
     }
 
     constexpr int enable_opt = 1;
@@ -63,18 +75,42 @@ void TlsConnection::listen() const {
 }
 
 void TlsConnection::accept() {
-    sockaddr_in client_addr{};
-    socklen_t client_len = sizeof(client_addr);
-    const int tmp_client_fd =
-        ::accept(server_fd, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
-    if (tmp_client_fd < 0) {
-        throw std::system_error(errno, std::system_category(), "accept");
+    // block for now
+    while (true) {
+        constexpr int infinite_timeout = -1;
+        pollfd pfd = {server_fd, POLLIN, 0};
+        const int result = poll(&pfd, 1, infinite_timeout);
+        if (result < 0) {
+            throw std::system_error(errno, std::system_category(), "poll");
+        }
+
+        if (pfd.revents & POLLIN) {  // connection available
+            sockaddr_in client_addr{};
+            socklen_t client_len = sizeof(client_addr);
+            const int tmp_client_fd =
+                ::accept(server_fd, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
+            if (tmp_client_fd >= 0) {
+                client_fd = tmp_client_fd;
+                break;
+            }
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                continue;  // spurious wakeup, try again
+            }
+            throw std::system_error(errno, std::system_category(), "accept");
+        }
     }
-    client_fd = tmp_client_fd;
 }
 
 void TlsConnection::handshake(const std::filesystem::path& cert_path,
                               const std::filesystem::path& key_path) {
+    if (!exists(cert_path)) {
+        throw std::runtime_error("Certificate file not found");
+    }
+
+    if (!exists(key_path)) {
+        throw std::runtime_error("Private key file not found");
+    }
+
     SSL_CTX* ctx = SSL_CTX_new(TLS_server_method());
     if (!ctx) {
         throw std::runtime_error("Failed to create SSL context");
@@ -113,15 +149,40 @@ void TlsConnection::handshake(const std::filesystem::path& cert_path,
     }
 
     if (SSL_set_fd(ssl, client_fd) != 1) {
-        SSL_free(ssl);
-        SSL_CTX_free(ctx);
         throw std::runtime_error("Failed to set SSL file descriptor");
     }
 
-    if (SSL_accept(ssl) <= 0) {
-        SSL_free(ssl);
-        SSL_CTX_free(ctx);
-        throw std::runtime_error("SSL handshake failed");
+    constexpr int timeout_ms = 100;
+    constexpr int max_retries = 100;
+
+    for (int attempt = 0; attempt < max_retries; ++attempt) {
+        const int result = SSL_accept(ssl);
+        if (result == 1) {
+            return;
+        }
+        switch (const int ssl_error = SSL_get_error(ssl, result)) {
+            case SSL_ERROR_WANT_READ:
+            case SSL_ERROR_WANT_WRITE: {
+                pollfd pfd = {client_fd, 0, 0};
+                pfd.events = (ssl_error == SSL_ERROR_WANT_READ) ? POLLIN : POLLOUT;
+                const int poll_result = poll(&pfd, 1, timeout_ms);
+                if (poll_result > 0 && (pfd.revents & pfd.events)) {
+                    continue;  // Socket ready, try again
+                }
+                if (poll_result == 0) {
+                    continue;  // Timeout, try again
+                }
+                if (poll_result < 0) {
+                    throw std::system_error(errno, std::system_category(), "poll during handshake");
+                }
+                break;
+            }
+            default: {
+                char err_buf[256];
+                ERR_error_string_n(ERR_get_error(), err_buf, sizeof(err_buf));
+                throw std::runtime_error("SSL handshake failed: " + std::string(err_buf));
+            }
+        }
     }
 }
 
@@ -131,7 +192,17 @@ ssize_t TlsConnection::read(std::span<uint8_t> buffer) const {
     const auto bytes_read = SSL_read(ssl, buffer.data(), static_cast<int>(buffer.size()));
     if (bytes_read < 0) {
         const int ssl_error = SSL_get_error(ssl, bytes_read);
-        throw std::runtime_error("SSL read error: " + std::to_string(ssl_error));
+        switch (ssl_error) {
+            case SSL_ERROR_WANT_READ:
+            case SSL_ERROR_WANT_WRITE:
+                return 0;  // no data available right now
+            case SSL_ERROR_ZERO_RETURN:
+                // Clean shutdown
+                return 0;
+
+            default:
+                throw std::runtime_error("SSL read error: " + std::to_string(ssl_error));
+        }
     }
     return bytes_read;
 }
@@ -143,6 +214,17 @@ ssize_t TlsConnection::write(std::span<const uint8_t> buffer) const {
         throw std::runtime_error("SSL write error: " + std::to_string(ssl_error));
     }
     return bytes_written;
+}
+
+bool TlsConnection::has_data() const {
+    if (SSL_pending(ssl) > 0) {
+        return true;
+    }
+
+    constexpr int timeout_ms = 100;
+    pollfd pfd = {client_fd, POLLIN, 0};
+    const int result = poll(&pfd, 1, timeout_ms);
+    return result > 0 && (pfd.revents & POLLIN);
 }
 
 void TlsConnection::close() {

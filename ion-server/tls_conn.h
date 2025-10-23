@@ -17,11 +17,12 @@ class TlsConnection {
     static void print_debug_to_stderr();
     ssize_t read(std::span<uint8_t> buffer) const;
     ssize_t write(std::span<const uint8_t> buffer) const;
+    bool has_data() const;
 
    private:
-    int server_fd;
-    int client_fd;
-    SSL* ssl;
+    int server_fd = -1;
+    int client_fd = -1;
+    SSL* ssl = nullptr;
 
     static int alpn_callback(SSL* ssl, const unsigned char** out, unsigned char* outlen,
                              const unsigned char* in, unsigned int inlen, void* arg);

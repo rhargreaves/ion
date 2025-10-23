@@ -1,3 +1,4 @@
+#include <csignal>
 #include <iostream>
 #include <vector>
 
@@ -12,6 +13,10 @@ static constexpr uint8_t FLAG_END_HEADERS = 0x04;
 static constexpr uint8_t FLAG_END_STREAM = 0x01;
 
 static constexpr uint16_t SERVER_PORT = 8443;
+
+static volatile sig_atomic_t should_stop = 0;
+
+void signal_handler(int) { should_stop = 1; }
 
 void write_response(Http2Connection& http) {
     // Send 200 response: HPACK index 8 = ":status: 200"
@@ -67,6 +72,9 @@ void write_settings(Http2Connection& http) {
 }
 
 void run_server() {
+    std::signal(SIGINT, signal_handler);
+    std::signal(SIGTERM, signal_handler);
+
     TlsConnection tls_conn{SERVER_PORT};
     tls_conn.listen();
     std::cout << "[ion] Listening on port " << SERVER_PORT << "..." << std::endl;
@@ -83,9 +91,16 @@ void run_server() {
 
     write_settings(http);
 
-    read_frame(http);
-    read_frame(http);
-    read_frame(http);
+    while (!should_stop) {
+        try {
+            if (tls_conn.has_data()) {
+                read_frame(http);
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+            break;
+        }
+    }
 
     http.write_goaway(1);
     std::cout << "GOAWAY frame sent" << std::endl;
