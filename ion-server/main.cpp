@@ -13,56 +13,56 @@ static constexpr uint8_t FLAG_END_STREAM = 0x01;
 
 static constexpr uint16_t SERVER_PORT = 8443;
 
-void write_response(Http2Connection& http2) {
+void write_response(Http2Connection& http) {
     // Send 200 response: HPACK index 8 = ":status: 200"
     std::array<uint8_t, 1> headers_data = {0x88};  // 0x80 | 8 = indexed header
-    http2.write_headers_response(1, headers_data, FLAG_END_HEADERS | FLAG_END_STREAM);
+    http.write_headers_response(1, headers_data, FLAG_END_HEADERS | FLAG_END_STREAM);
     std::cout << "200 response sent" << std::endl;
 }
 
-void read_frame(Http2Connection& http2) {
-    const auto header = http2.read_frame_header();
+void read_frame(Http2Connection& http) {
+    const auto header = http.read_frame_header();
 
     switch (header.type) {
         case FRAME_TYPE_SETTINGS: {
             std::cout << "SETTINGS frame received" << std::endl;
-            const auto settings = http2.read_settings_payload(header.length);
+            const auto settings = http.read_settings_payload(header.length);
             std::cout << " - Received " << settings.size() << " settings" << std::endl;
             break;
         }
         case FRAME_TYPE_WINDOW_UPDATE: {
             std::cout << "WINDOW_UPDATE frame received" << std::endl;
-            auto [window_size_increment] = http2.read_window_update(header.length);
+            auto [window_size_increment] = http.read_window_update(header.length);
             std::cout << " - Window size increment: " << window_size_increment << std::endl;
             break;
         }
         case FRAME_TYPE_HEADERS: {
             std::cout << "HEADERS frame received" << std::endl;
-            auto payload = http2.read_payload(header.length);
+            auto payload = http.read_payload(header.length);
             const bool end_headers_set = (header.flags & FLAG_END_HEADERS) != 0;
             const bool end_stream_set = (header.flags & FLAG_END_STREAM) != 0;
             std::cout << " - Stream ID: " << header.stream_id << std::endl;
             std::cout << " - End headers: " << end_headers_set << std::endl;
             std::cout << " - End stream: " << end_stream_set << std::endl;
             std::cout << " - Payload size: " << header.length << std::endl;
-            write_response(http2);
+            write_response(http);
             break;
         }
         default: {
             std::cout << "Received frame of type " << +header.type << std::endl;
-            auto data = http2.read_payload(header.length);  // Read and discard
+            auto data = http.read_payload(header.length);  // Read and discard
             break;
         }
     }
 }
 
-void write_settings(Http2Connection& http2) {
+void write_settings(Http2Connection& http) {
     const std::vector<Http2Setting> settings = {
         {0x0003, 100},    // MAX_CONCURRENT_STREAMS
         {0x0004, 65535},  // INITIAL_WINDOW_SIZE
         {0x0005, 16384}   // MAX_FRAME_SIZE
     };
-    http2.write_settings(settings);
+    http.write_settings(settings);
     std::cout << "SETTINGS frame sent" << std::endl;
 }
 
@@ -77,17 +77,17 @@ void run_server() {
     tls_conn.handshake("cert.pem", "key.pem");
     std::cout << "SSL handshake completed successfully." << std::endl;
 
-    Http2Connection http2{tls_conn};
-    http2.read_preface();
+    Http2Connection http{tls_conn};
+    http.read_preface();
     std::cout << "Valid HTTP/2 preface received!" << std::endl;
 
-    write_settings(http2);
+    write_settings(http);
 
-    read_frame(http2);
-    read_frame(http2);
-    read_frame(http2);
+    read_frame(http);
+    read_frame(http);
+    read_frame(http);
 
-    http2.write_goaway(1);
+    http.write_goaway(1);
     std::cout << "GOAWAY frame sent" << std::endl;
 
     tls_conn.close();
