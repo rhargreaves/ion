@@ -5,12 +5,20 @@
 #include "http2_frames.h"
 #include "tls_conn.h"
 
+static constexpr uint8_t FRAME_TYPE_HEADERS = 0x01;
 static constexpr uint8_t FRAME_TYPE_SETTINGS = 0x04;
 static constexpr uint8_t FRAME_TYPE_WINDOW_UPDATE = 0x08;
 static constexpr uint8_t FLAG_END_HEADERS = 0x04;
 static constexpr uint8_t FLAG_END_STREAM = 0x01;
 
 static constexpr uint16_t SERVER_PORT = 8443;
+
+void write_response(Http2Connection& http2) {
+    // Send 200 response: HPACK index 8 = ":status: 200"
+    std::array<uint8_t, 1> headers_data = {0x88};  // 0x80 | 8 = indexed header
+    http2.write_headers_response(1, headers_data, FLAG_END_HEADERS | FLAG_END_STREAM);
+    std::cout << "200 response sent" << std::endl;
+}
 
 void read_frame(Http2Connection& http2) {
     const auto header = http2.read_frame_header();
@@ -19,13 +27,25 @@ void read_frame(Http2Connection& http2) {
         case FRAME_TYPE_SETTINGS: {
             std::cout << "SETTINGS frame received" << std::endl;
             const auto settings = http2.read_settings_payload(header.length);
-            std::cout << "Received " << settings.size() << " settings" << std::endl;
+            std::cout << " - Received " << settings.size() << " settings" << std::endl;
             break;
         }
         case FRAME_TYPE_WINDOW_UPDATE: {
             std::cout << "WINDOW_UPDATE frame received" << std::endl;
             auto [window_size_increment] = http2.read_window_update(header.length);
-            std::cout << "Window size increment: " << window_size_increment << std::endl;
+            std::cout << " - Window size increment: " << window_size_increment << std::endl;
+            break;
+        }
+        case FRAME_TYPE_HEADERS: {
+            std::cout << "HEADERS frame received" << std::endl;
+            auto payload = http2.read_payload(header.length);
+            const bool end_headers_set = (header.flags & FLAG_END_HEADERS) != 0;
+            const bool end_stream_set = (header.flags & FLAG_END_STREAM) != 0;
+            std::cout << " - Stream ID: " << header.stream_id << std::endl;
+            std::cout << " - End headers: " << end_headers_set << std::endl;
+            std::cout << " - End stream: " << end_stream_set << std::endl;
+            std::cout << " - Payload size: " << header.length << std::endl;
+            write_response(http2);
             break;
         }
         default: {
@@ -34,6 +54,16 @@ void read_frame(Http2Connection& http2) {
             break;
         }
     }
+}
+
+void write_settings(Http2Connection& http2) {
+    const std::vector<Http2Setting> settings = {
+        {0x0003, 100},    // MAX_CONCURRENT_STREAMS
+        {0x0004, 65535},  // INITIAL_WINDOW_SIZE
+        {0x0005, 16384}   // MAX_FRAME_SIZE
+    };
+    http2.write_settings(settings);
+    std::cout << "SETTINGS frame sent" << std::endl;
 }
 
 void run_server() {
@@ -48,26 +78,14 @@ void run_server() {
     std::cout << "SSL handshake completed successfully." << std::endl;
 
     Http2Connection http2{tls_conn};
-
     http2.read_preface();
     std::cout << "Valid HTTP/2 preface received!" << std::endl;
 
-    read_frame(http2);
-
-    const std::vector<Http2Setting> settings = {
-        {0x0003, 100},    // MAX_CONCURRENT_STREAMS
-        {0x0004, 65535},  // INITIAL_WINDOW_SIZE
-        {0x0005, 16384}   // MAX_FRAME_SIZE
-    };
-    http2.write_settings(settings);
-    std::cout << "SETTINGS frame sent" << std::endl;
+    write_settings(http2);
 
     read_frame(http2);
-
-    // Send 200 response: HPACK index 8 = ":status: 200"
-    std::array<uint8_t, 1> headers_data = {0x88};  // 0x80 | 8 = indexed header
-    http2.write_headers_response(1, headers_data, FLAG_END_HEADERS | FLAG_END_STREAM);
-    std::cout << "200 response sent" << std::endl;
+    read_frame(http2);
+    read_frame(http2);
 
     http2.write_goaway(1);
     std::cout << "GOAWAY frame sent" << std::endl;
