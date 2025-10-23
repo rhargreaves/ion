@@ -105,7 +105,11 @@ void run_server() {
     http.write_goaway(1);
     std::cout << "GOAWAY frame sent" << std::endl;
 
-    tls_conn.close();
+    if (!http.wait_for_client_disconnect()) {
+        std::cout << "Client took too long to disconnect. Forcibly closing" << std::endl;
+        tls_conn.close();
+    }
+
     std::cout << "Connection closed." << std::endl;
 }
 
@@ -114,7 +118,7 @@ int main() {
         run_server();
         return 0;
     } catch (const std::exception& e) {
-        std::cerr << e.what() << std::endl;
+        std::cerr << "[ion] " << e.what() << std::endl;
         return 1;
     }
 }

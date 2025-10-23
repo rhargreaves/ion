@@ -22,6 +22,7 @@ class Http2Connection {
     void write_headers_response(uint32_t stream_id, std::span<const uint8_t> headers_data,
                                 uint8_t flags);
     void write_goaway(uint32_t last_stream_id, uint32_t error_code = 0);
+    bool wait_for_client_disconnect();
 
    private:
     const TlsConnection& tls_conn;

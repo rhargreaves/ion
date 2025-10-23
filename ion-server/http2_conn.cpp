@@ -2,6 +2,7 @@
 
 #include <format>
 #include <iostream>
+#include <thread>
 
 static constexpr uint8_t FRAME_TYPE_HEADERS = 0x01;
 static constexpr uint8_t FRAME_TYPE_SETTINGS = 0x04;
@@ -11,12 +12,21 @@ Http2Connection::Http2Connection(const TlsConnection& conn) : tls_conn(conn) {}
 
 void Http2Connection::read_exact(std::span<uint8_t> buffer) {
     size_t total_read = 0;
+    constexpr auto timeout = std::chrono::seconds(5);
+    auto start_time = std::chrono::steady_clock::now();
+
     while (total_read < buffer.size()) {
-        const auto bytes_read = tls_conn.read(buffer.subspan(total_read));
-        if (bytes_read == 0) {
-            throw std::runtime_error("Connection closed unexpectedly");
+        if (std::chrono::steady_clock::now() - start_time > timeout) {
+            throw std::runtime_error("Read timeout");
         }
-        total_read += bytes_read;
+
+        const auto bytes_read = tls_conn.read(buffer.subspan(total_read));
+        if (bytes_read > 0) {
+            total_read += bytes_read;
+        } else if (bytes_read == 0) {
+            // No data available - wait briefly
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
     }
 }
 
@@ -125,4 +135,30 @@ void Http2Connection::write_goaway(uint32_t last_stream_id, uint32_t error_code)
     std::array<uint8_t, Http2GoAwayPayload::wire_size> payload_bytes{};
     payload.serialize(payload_bytes);
     tls_conn.write(payload_bytes);
+}
+
+bool Http2Connection::wait_for_client_disconnect() {
+    constexpr int shutdown_timeout_ms = 5000;  // 5 seconds
+    constexpr int poll_interval_ms = 100;
+    int elapsed_ms = 0;
+
+    while (elapsed_ms < shutdown_timeout_ms) {
+        try {
+            if (tls_conn.has_data()) {
+                // discard any remaining frames
+                const auto header = read_frame_header();
+                auto data = read_payload(header.length);
+                std::cout << "Received frame type " << +header.type << " during shutdown"
+                          << std::endl;
+            } else {
+                std::this_thread::sleep_for(std::chrono::milliseconds(poll_interval_ms));
+                elapsed_ms += poll_interval_ms;
+            }
+        } catch (const std::exception& e) {
+            std::cout << "Client disconnected: " << e.what() << std::endl;
+            return true;
+        }
+    }
+    std::cout << "Shutdown timeout reached, forcing connection close" << std::endl;
+    return false;
 }

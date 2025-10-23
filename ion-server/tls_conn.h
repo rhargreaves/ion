@@ -17,7 +17,7 @@ class TlsConnection {
     static void print_debug_to_stderr();
     ssize_t read(std::span<uint8_t> buffer) const;
     ssize_t write(std::span<const uint8_t> buffer) const;
-    bool has_data() const;
+    [[nodiscard]] bool has_data() const noexcept;
 
    private:
     int server_fd = -1;

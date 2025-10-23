@@ -12,6 +12,8 @@
 #include <iostream>
 #include <system_error>
 
+#include "tls_conn_except.h"
+
 TlsConnection::TlsConnection(uint16_t port) {
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd < 0) {
@@ -197,8 +199,7 @@ ssize_t TlsConnection::read(std::span<uint8_t> buffer) const {
             case SSL_ERROR_WANT_WRITE:
                 return 0;  // no data available right now
             case SSL_ERROR_ZERO_RETURN:
-                // Clean shutdown
-                return 0;
+                throw TlsConnectionClosed(TlsConnectionClosed::Reason::CLEAN_SHUTDOWN);
 
             default:
                 throw std::runtime_error("SSL read error: " + std::to_string(ssl_error));
@@ -216,7 +217,7 @@ ssize_t TlsConnection::write(std::span<const uint8_t> buffer) const {
     return bytes_written;
 }
 
-bool TlsConnection::has_data() const {
+bool TlsConnection::has_data() const noexcept {
     if (SSL_pending(ssl) > 0) {
         return true;
     }
