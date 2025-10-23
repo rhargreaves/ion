@@ -36,7 +36,7 @@ def curl_http2(url):
         ["curl", "--http2", "--insecure", "--verbose", url],
         capture_output=True,
         text=True,
-        timeout=5
+        timeout=10
     )
     print(result.stdout)
     print(result.stderr)

@@ -12,7 +12,7 @@ Http2Connection::Http2Connection(const TlsConnection& conn) : tls_conn(conn) {}
 
 void Http2Connection::read_exact(std::span<uint8_t> buffer) {
     size_t total_read = 0;
-    constexpr auto timeout = std::chrono::seconds(5);
+    constexpr auto timeout = std::chrono::milliseconds(100);
     auto start_time = std::chrono::steady_clock::now();
 
     while (total_read < buffer.size()) {

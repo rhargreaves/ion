@@ -1,4 +1,5 @@
 from utils import wait_for_port, curl_http2, assert_curl_response_ok, run_server
+import signal
 
 SERVER_PORT = 8443
 URL = f"https://localhost:{SERVER_PORT}"
@@ -12,9 +13,13 @@ def test_http2_returns_200():
 
         assert result.returncode == 0
         assert_curl_response_ok(result)
-    finally:
+
+        server.send_signal(signal.SIGTERM)
+        server.wait(timeout=10)
+    except Exception as e:
         server.terminate()
         server.wait()
+        raise e
 
 
 def test_http2_returns_200_many_times():

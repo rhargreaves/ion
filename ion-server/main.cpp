@@ -101,6 +101,9 @@ void run_server() {
             break;
         }
     }
+    if (should_stop) {
+        std::cout << "Server shutting down..." << std::endl;
+    }
 
     http.write_goaway(1);
     std::cout << "GOAWAY frame sent" << std::endl;
