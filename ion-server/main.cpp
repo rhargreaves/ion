@@ -18,7 +18,10 @@ static constexpr uint16_t SERVER_PORT = 8443;
 
 static volatile sig_atomic_t should_stop = 0;
 
-void signal_handler(int) { should_stop = 1; }
+void signal_handler(int) {
+    std::cout << "Signal received!..." << std::endl;
+    should_stop = 1;
+}
 
 void write_response(Http2Connection& http) {
     // Send 200 response: HPACK index 8 = ":status: 200"
@@ -35,6 +38,11 @@ void read_frame(Http2Connection& http) {
             std::cout << "SETTINGS frame received" << std::endl;
             const auto settings = http.read_settings_payload(header.length);
             std::cout << " - Received " << settings.size() << " settings" << std::endl;
+
+            if (header.flags == 0x00) {
+                http.write_settings_ack();
+                std::cout << "SETTINGS ACK frame sent" << std::endl;
+            }
             break;
         }
         case FRAME_TYPE_WINDOW_UPDATE: {

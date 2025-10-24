@@ -1,4 +1,5 @@
 #PYTEST_ARGS=-rP
+#PYTEST_ARGS=--log-cli-level=DEBUG
 PYTEST_ARGS=
 CERT_PEM=cert.pem
 KEY_PEM=key.pem

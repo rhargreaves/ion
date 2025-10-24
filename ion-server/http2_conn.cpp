@@ -142,7 +142,7 @@ void Http2Connection::write_goaway(uint32_t last_stream_id, uint32_t error_code)
 }
 
 bool Http2Connection::wait_for_client_disconnect() {
-    constexpr int shutdown_timeout_ms = 5000;  // 5 seconds
+    constexpr int shutdown_timeout_ms = 1000;
     constexpr int poll_interval_ms = 100;
     int elapsed_ms = 0;
 

@@ -1,2 +1,5 @@
 pytest
+pytest-asyncio
+pytest-only
 ruff
+httpx[http2]
