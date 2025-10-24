@@ -5,6 +5,8 @@
 #include <filesystem>
 #include <span>
 
+#include "socket_fd.h"
+
 class TlsConnection {
    public:
     explicit TlsConnection(uint16_t port);
@@ -20,10 +22,14 @@ class TlsConnection {
     [[nodiscard]] bool has_data() const;
 
    private:
-    int server_fd = -1;
-    int client_fd = -1;
-    SSL* ssl = nullptr;
+    SocketFd server_fd_;
+    SocketFd client_fd_;
+    SSL* ssl_ = nullptr;
 
     static int alpn_callback(SSL* ssl, const unsigned char** out, unsigned char* outlen,
                              const unsigned char* in, unsigned int inlen, void* arg);
+
+    void set_nonblocking_socket();
+    void set_reusable_addr();
+    void bind_socket(uint16_t port);
 };

@@ -14,37 +14,43 @@
 
 #include "tls_conn_except.h"
 
-TlsConnection::TlsConnection(uint16_t port) {
-    server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd < 0) {
-        throw std::system_error(errno, std::system_category(), "socket");
-    }
-
-    const int flags = fcntl(server_fd, F_GETFL, 0);
+void TlsConnection::set_nonblocking_socket() {
+    const int flags = fcntl(server_fd_, F_GETFL, 0);
     if (flags == -1) {
-        ::close(server_fd);
         throw std::system_error(errno, std::system_category(), "fcntl F_GETFL");
     }
-    if (fcntl(server_fd, F_SETFL, flags | O_NONBLOCK) == -1) {
-        ::close(server_fd);
+    if (fcntl(server_fd_, F_SETFL, flags | O_NONBLOCK) == -1) {
         throw std::system_error(errno, std::system_category(), "fcntl F_SETFL");
     }
+}
 
+void TlsConnection::set_reusable_addr() {
     constexpr int enable_opt = 1;
-    setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &enable_opt, sizeof(enable_opt));
+    if (setsockopt(server_fd_, SOL_SOCKET, SO_REUSEADDR, &enable_opt, sizeof(enable_opt))) {
+        throw std::system_error(errno, std::system_category(), "setsockopt SO_REUSEADDR");
+    }
+}
 
+void TlsConnection::bind_socket(uint16_t port) {
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = INADDR_ANY;
     addr.sin_port = htons(port);
 
-    if (bind(server_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
-        ::close(server_fd);
+    if (bind(server_fd_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
         throw std::system_error(errno, std::system_category(), "bind");
     }
+}
 
-    client_fd = 0;
-    ssl = nullptr;
+TlsConnection::TlsConnection(uint16_t port) {
+    const int server_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_fd < 0) {
+        throw std::system_error(errno, std::system_category(), "socket");
+    }
+    server_fd_ = SocketFd(server_fd);
+    set_nonblocking_socket();
+    set_reusable_addr();
+    bind_socket(port);
 }
 
 TlsConnection::~TlsConnection() { close(); }
@@ -71,7 +77,7 @@ int TlsConnection::alpn_callback(SSL*, const unsigned char** out, unsigned char*
 }
 
 void TlsConnection::listen() const {
-    if (::listen(server_fd, 1) < 0) {
+    if (::listen(server_fd_, 1) < 0) {
         throw std::system_error(errno, std::system_category(), "listen");
     }
 }
@@ -80,7 +86,7 @@ void TlsConnection::accept() {
     // block for now
     while (true) {
         constexpr int infinite_timeout = -1;
-        pollfd pfd = {server_fd, POLLIN, 0};
+        pollfd pfd = {server_fd_, POLLIN, 0};
         const int result = poll(&pfd, 1, infinite_timeout);
         if (result < 0) {
             throw std::system_error(errno, std::system_category(), "poll");
@@ -90,9 +96,9 @@ void TlsConnection::accept() {
             sockaddr_in client_addr{};
             socklen_t client_len = sizeof(client_addr);
             const int tmp_client_fd =
-                ::accept(server_fd, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
+                ::accept(server_fd_, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
             if (tmp_client_fd >= 0) {
-                client_fd = tmp_client_fd;
+                client_fd_ = SocketFd(tmp_client_fd);
                 break;
             }
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -144,13 +150,13 @@ void TlsConnection::handshake(const std::filesystem::path& cert_path,
         }
     });
 
-    ssl = SSL_new(ctx);
-    if (!ssl) {
+    ssl_ = SSL_new(ctx);
+    if (!ssl_) {
         SSL_CTX_free(ctx);
         throw std::runtime_error("Failed to create SSL object");
     }
 
-    if (SSL_set_fd(ssl, client_fd) != 1) {
+    if (SSL_set_fd(ssl_, client_fd_) != 1) {
         throw std::runtime_error("Failed to set SSL file descriptor");
     }
 
@@ -158,14 +164,14 @@ void TlsConnection::handshake(const std::filesystem::path& cert_path,
     constexpr int max_retries = 100;
 
     for (int attempt = 0; attempt < max_retries; ++attempt) {
-        const int result = SSL_accept(ssl);
+        const int result = SSL_accept(ssl_);
         if (result == 1) {
             return;
         }
-        switch (const int ssl_error = SSL_get_error(ssl, result)) {
+        switch (const int ssl_error = SSL_get_error(ssl_, result)) {
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE: {
-                pollfd pfd = {client_fd, 0, 0};
+                pollfd pfd = {client_fd_, 0, 0};
                 pfd.events = (ssl_error == SSL_ERROR_WANT_READ) ? POLLIN : POLLOUT;
                 const int poll_result = poll(&pfd, 1, timeout_ms);
                 if (poll_result > 0 && (pfd.revents & pfd.events)) {
@@ -191,9 +197,9 @@ void TlsConnection::handshake(const std::filesystem::path& cert_path,
 void TlsConnection::print_debug_to_stderr() { ERR_print_errors_fp(stderr); }
 
 ssize_t TlsConnection::read(std::span<uint8_t> buffer) const {
-    const auto bytes_read = SSL_read(ssl, buffer.data(), static_cast<int>(buffer.size()));
+    const auto bytes_read = SSL_read(ssl_, buffer.data(), static_cast<int>(buffer.size()));
     if (bytes_read < 0) {
-        const int ssl_error = SSL_get_error(ssl, bytes_read);
+        const int ssl_error = SSL_get_error(ssl_, bytes_read);
         switch (ssl_error) {
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE:
@@ -209,41 +215,33 @@ ssize_t TlsConnection::read(std::span<uint8_t> buffer) const {
 }
 
 ssize_t TlsConnection::write(std::span<const uint8_t> buffer) const {
-    const auto bytes_written = SSL_write(ssl, buffer.data(), static_cast<int>(buffer.size()));
+    const auto bytes_written = SSL_write(ssl_, buffer.data(), static_cast<int>(buffer.size()));
     if (bytes_written < 0) {
-        const int ssl_error = SSL_get_error(ssl, bytes_written);
+        const int ssl_error = SSL_get_error(ssl_, bytes_written);
         throw std::runtime_error("SSL write error: " + std::to_string(ssl_error));
     }
     return bytes_written;
 }
 
 bool TlsConnection::has_data() const {
-    if (SSL_pending(ssl) > 0) {
+    if (SSL_pending(ssl_) > 0) {
         return true;
     }
 
     constexpr int timeout_ms = 100;
-    pollfd pfd = {client_fd, POLLIN, 0};
+    pollfd pfd = {client_fd_, POLLIN, 0};
     const int result = poll(&pfd, 1, timeout_ms);
     return result > 0 && (pfd.revents & POLLIN);
 }
 
 void TlsConnection::close() {
-    if (ssl) {
-        BIO_flush(SSL_get_wbio(ssl));
+    if (ssl_) {
+        BIO_flush(SSL_get_wbio(ssl_));
         // Bidirectional shutdown
-        if (const int ret = SSL_shutdown(ssl); ret == 0) {
-            SSL_shutdown(ssl);
+        if (const int ret = SSL_shutdown(ssl_); ret == 0) {
+            SSL_shutdown(ssl_);
         }
-        SSL_free(ssl);
-        ssl = nullptr;
-    }
-    if (client_fd > 0) {
-        ::close(client_fd);
-        client_fd = 0;
-    }
-    if (server_fd > 0) {
-        ::close(server_fd);
-        server_fd = 0;
+        SSL_free(ssl_);
+        ssl_ = nullptr;
     }
 }
