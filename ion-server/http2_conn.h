@@ -25,7 +25,7 @@ class Http2Connection {
     bool wait_for_client_disconnect();
 
    private:
-    const TlsConnection& tls_conn;
+    const TlsConnection& tls_conn_;
 
     void read_exact(std::span<uint8_t> buffer);
 };

@@ -10,7 +10,7 @@ static constexpr uint8_t FRAME_TYPE_HEADERS = 0x01;
 static constexpr uint8_t FRAME_TYPE_SETTINGS = 0x04;
 static constexpr uint8_t FRAME_TYPE_GOAWAY = 0x07;
 
-Http2Connection::Http2Connection(const TlsConnection& conn) : tls_conn(conn) {}
+Http2Connection::Http2Connection(const TlsConnection& conn) : tls_conn_(conn) {}
 
 void Http2Connection::read_exact(std::span<uint8_t> buffer) {
     size_t total_read = 0;
@@ -22,7 +22,7 @@ void Http2Connection::read_exact(std::span<uint8_t> buffer) {
             throw Http2TimeoutException();
         }
 
-        const auto bytes_read = tls_conn.read(buffer.subspan(total_read));
+        const auto bytes_read = tls_conn_.read(buffer.subspan(total_read));
         if (bytes_read > 0) {
             total_read += bytes_read;
         } else if (bytes_read == 0) {
@@ -90,7 +90,7 @@ Http2WindowUpdate Http2Connection::read_window_update(uint32_t length) {
 void Http2Connection::write_frame_header(const Http2FrameHeader& header) {
     std::array<uint8_t, Http2FrameHeader::wire_size> header_bytes{};
     header.serialize(header_bytes);
-    tls_conn.write(header_bytes);
+    tls_conn_.write(header_bytes);
 }
 
 void Http2Connection::write_settings(const std::vector<Http2Setting>& settings) {
@@ -105,7 +105,7 @@ void Http2Connection::write_settings(const std::vector<Http2Setting>& settings) 
     for (const auto& setting : settings) {
         std::array<uint8_t, Http2Setting::wire_size> setting_bytes{};
         setting.serialize(setting_bytes);
-        tls_conn.write(setting_bytes);
+        tls_conn_.write(setting_bytes);
     }
 }
 
@@ -123,7 +123,7 @@ void Http2Connection::write_headers_response(uint32_t stream_id,
                                   .stream_id = stream_id};
 
     write_frame_header(header);
-    tls_conn.write(headers_data);
+    tls_conn_.write(headers_data);
 }
 
 void Http2Connection::write_goaway(uint32_t last_stream_id, uint32_t error_code) {
@@ -138,7 +138,7 @@ void Http2Connection::write_goaway(uint32_t last_stream_id, uint32_t error_code)
 
     std::array<uint8_t, Http2GoAwayPayload::wire_size> payload_bytes{};
     payload.serialize(payload_bytes);
-    tls_conn.write(payload_bytes);
+    tls_conn_.write(payload_bytes);
 }
 
 bool Http2Connection::wait_for_client_disconnect() {
@@ -148,7 +148,7 @@ bool Http2Connection::wait_for_client_disconnect() {
 
     while (elapsed_ms < shutdown_timeout_ms) {
         try {
-            if (tls_conn.has_data()) {
+            if (tls_conn_.has_data()) {
                 // discard any remaining frames
                 const auto header = read_frame_header();
                 auto data = read_payload(header.length);
