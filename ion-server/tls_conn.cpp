@@ -14,43 +14,9 @@
 
 #include "tls_conn_except.h"
 
-TlsConnection::TlsConnection(TcpConnection& tcp_conn) : tcp_conn_(tcp_conn) {}
-
-TlsConnection::~TlsConnection() {
-    if (ssl_) {
-        BIO_flush(SSL_get_wbio(ssl_));
-        // Bidirectional shutdown
-        if (const int ret = SSL_shutdown(ssl_); ret == 0) {
-            SSL_shutdown(ssl_);
-        }
-        SSL_free(ssl_);
-        ssl_ = nullptr;
-    }
-}
-
-// ReSharper disable once CppDFAConstantFunctionResult
-int TlsConnection::alpn_callback(SSL*, const unsigned char** out, unsigned char* outlen,
-                                 const unsigned char* in, unsigned int inlen, void*) {
-    static constexpr std::array<unsigned char, 3> supported_protos{'\x02', 'h', '2'};
-
-    const int result =
-        SSL_select_next_proto(const_cast<unsigned char**>(out), outlen, supported_protos.data(),
-                              supported_protos.size(), in, inlen);
-    if (result == OPENSSL_NPN_NEGOTIATED) {
-        std::cout << "ALPN negotiated: ";
-        std::cout.write(reinterpret_cast<const char*>(*out), *outlen) << std::endl;
-        return SSL_TLSEXT_ERR_OK;
-    }
-
-    *outlen = supported_protos[0];
-    *out = supported_protos.data() + 1;
-    std::cout << "ALPN negotiation failed, using default: ";
-    std::cout.write(reinterpret_cast<const char*>(*out), *outlen) << std::endl;
-    return SSL_TLSEXT_ERR_OK;
-}
-
-void TlsConnection::handshake(const std::filesystem::path& cert_path,
-                              const std::filesystem::path& key_path) {
+TlsConnection::TlsConnection(TcpConnection& tcp_conn, const std::filesystem::path& cert_path,
+                             const std::filesystem::path& key_path)
+    : tcp_conn_(tcp_conn) {
     if (!exists(cert_path)) {
         throw std::runtime_error("Certificate file not found");
     }
@@ -99,7 +65,9 @@ void TlsConnection::handshake(const std::filesystem::path& cert_path,
     if (SSL_set_fd(ssl_, tcp_conn_.client_fd()) != 1) {
         throw std::runtime_error("Failed to set SSL file descriptor");
     }
+}
 
+void TlsConnection::handshake() const {
     constexpr int timeout_ms = 100;
     constexpr int max_retries = 100;
 
@@ -132,6 +100,39 @@ void TlsConnection::handshake(const std::filesystem::path& cert_path,
             }
         }
     }
+}
+
+TlsConnection::~TlsConnection() {
+    if (ssl_) {
+        BIO_flush(SSL_get_wbio(ssl_));
+        // Bidirectional shutdown
+        if (const int ret = SSL_shutdown(ssl_); ret == 0) {
+            SSL_shutdown(ssl_);
+        }
+        SSL_free(ssl_);
+        ssl_ = nullptr;
+    }
+}
+
+// ReSharper disable once CppDFAConstantFunctionResult
+int TlsConnection::alpn_callback(SSL*, const unsigned char** out, unsigned char* outlen,
+                                 const unsigned char* in, unsigned int inlen, void*) {
+    static constexpr std::array<unsigned char, 3> supported_protos{'\x02', 'h', '2'};
+
+    const int result =
+        SSL_select_next_proto(const_cast<unsigned char**>(out), outlen, supported_protos.data(),
+                              supported_protos.size(), in, inlen);
+    if (result == OPENSSL_NPN_NEGOTIATED) {
+        std::cout << "ALPN negotiated: ";
+        std::cout.write(reinterpret_cast<const char*>(*out), *outlen) << std::endl;
+        return SSL_TLSEXT_ERR_OK;
+    }
+
+    *outlen = supported_protos[0];
+    *out = supported_protos.data() + 1;
+    std::cout << "ALPN negotiation failed, using default: ";
+    std::cout.write(reinterpret_cast<const char*>(*out), *outlen) << std::endl;
+    return SSL_TLSEXT_ERR_OK;
 }
 
 void TlsConnection::print_debug_to_stderr() { ERR_print_errors_fp(stderr); }

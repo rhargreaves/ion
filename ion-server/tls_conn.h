@@ -9,14 +9,15 @@
 
 class TlsConnection {
    public:
-    explicit TlsConnection(TcpConnection& tcp_conn);
+    explicit TlsConnection(TcpConnection& tcp_conn, const std::filesystem::path& cert_path,
+                           const std::filesystem::path& key_path);
     ~TlsConnection();
 
-    void handshake(const std::filesystem::path& cert_path, const std::filesystem::path& key_path);
     static void print_debug_to_stderr();
     ssize_t read(std::span<uint8_t> buffer) const;
     ssize_t write(std::span<const uint8_t> buffer) const;
     [[nodiscard]] bool has_data() const;
+    void handshake() const;
 
    private:
     TcpConnection& tcp_conn_;

@@ -86,8 +86,8 @@ void run_server() {
             tcp_conn.accept();
             std::cout << "Client connected." << std::endl;
 
-            TlsConnection tls_conn{tcp_conn};
-            tls_conn.handshake("cert.pem", "key.pem");
+            TlsConnection tls_conn{tcp_conn, "cert.pem", "key.pem"};
+            tls_conn.handshake();
             std::cout << "SSL handshake completed successfully." << std::endl;
 
             Http2Connection http{tls_conn};
