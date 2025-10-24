@@ -5,16 +5,13 @@
 #include <filesystem>
 #include <span>
 
-#include "socket_fd.h"
+#include "tcp_conn.h"
 
 class TlsConnection {
    public:
-    explicit TlsConnection(uint16_t port);
+    explicit TlsConnection(TcpConnection& tcp_conn);
     ~TlsConnection();
 
-    void listen() const;
-    void accept();
-    void close();
     void handshake(const std::filesystem::path& cert_path, const std::filesystem::path& key_path);
     static void print_debug_to_stderr();
     ssize_t read(std::span<uint8_t> buffer) const;
@@ -22,14 +19,9 @@ class TlsConnection {
     [[nodiscard]] bool has_data() const;
 
    private:
-    SocketFd server_fd_;
-    SocketFd client_fd_;
+    TcpConnection& tcp_conn_;
     SSL* ssl_ = nullptr;
 
     static int alpn_callback(SSL* ssl, const unsigned char** out, unsigned char* outlen,
                              const unsigned char* in, unsigned int inlen, void* arg);
-
-    void set_nonblocking_socket();
-    void set_reusable_addr();
-    void bind_socket(uint16_t port);
 };

@@ -77,15 +77,16 @@ void run_server() {
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
 
-    TlsConnection tls_conn{SERVER_PORT};
-    tls_conn.listen();
+    TcpConnection tcp_conn{SERVER_PORT};
+    tcp_conn.listen();
     std::cout << "[ion] Listening on port " << SERVER_PORT << "..." << std::endl;
 
     while (!should_stop) {
         try {
-            tls_conn.accept();
+            tcp_conn.accept();
             std::cout << "Client connected." << std::endl;
 
+            TlsConnection tls_conn{tcp_conn};
             tls_conn.handshake("cert.pem", "key.pem");
             std::cout << "SSL handshake completed successfully." << std::endl;
 
@@ -104,7 +105,6 @@ void run_server() {
 
             if (!http.wait_for_client_disconnect()) {
                 std::cout << "Client took too long to disconnect. Forcibly closing" << std::endl;
-                tls_conn.close();
             }
             std::cout << "Connection closed." << std::endl;
 
