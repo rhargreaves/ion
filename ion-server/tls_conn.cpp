@@ -217,7 +217,7 @@ ssize_t TlsConnection::write(std::span<const uint8_t> buffer) const {
     return bytes_written;
 }
 
-bool TlsConnection::has_data() const noexcept {
+bool TlsConnection::has_data() const {
     if (SSL_pending(ssl) > 0) {
         return true;
     }

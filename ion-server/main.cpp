@@ -3,8 +3,10 @@
 #include <vector>
 
 #include "http2_conn.h"
+#include "http2_except.h"
 #include "http2_frames.h"
 #include "tls_conn.h"
+#include "tls_conn_except.h"
 
 static constexpr uint8_t FRAME_TYPE_HEADERS = 0x01;
 static constexpr uint8_t FRAME_TYPE_SETTINGS = 0x04;
@@ -79,41 +81,46 @@ void run_server() {
     tls_conn.listen();
     std::cout << "[ion] Listening on port " << SERVER_PORT << "..." << std::endl;
 
-    tls_conn.accept();
-    std::cout << "Client connected." << std::endl;
-
-    tls_conn.handshake("cert.pem", "key.pem");
-    std::cout << "SSL handshake completed successfully." << std::endl;
-
-    Http2Connection http{tls_conn};
-    http.read_preface();
-    std::cout << "Valid HTTP/2 preface received!" << std::endl;
-
-    write_settings(http);
-
     while (!should_stop) {
         try {
-            if (tls_conn.has_data()) {
+            tls_conn.accept();
+            std::cout << "Client connected." << std::endl;
+
+            tls_conn.handshake("cert.pem", "key.pem");
+            std::cout << "SSL handshake completed successfully." << std::endl;
+
+            Http2Connection http{tls_conn};
+            http.read_preface();
+            std::cout << "Valid HTTP/2 preface received!" << std::endl;
+
+            write_settings(http);
+
+            while (tls_conn.has_data() && !should_stop) {
                 read_frame(http);
             }
+
+            http.write_goaway(1);
+            std::cout << "GOAWAY frame sent" << std::endl;
+
+            if (!http.wait_for_client_disconnect()) {
+                std::cout << "Client took too long to disconnect. Forcibly closing" << std::endl;
+                tls_conn.close();
+            }
+            std::cout << "Connection closed." << std::endl;
+
+        } catch (const TlsConnectionClosed& e) {
+            std::cerr << "Connection closed (exception)" << e.what() << std::endl;
+        } catch (const Http2TimeoutException& e) {
+            std::cerr << "Connection closed (timeout)" << e.what() << std::endl;
         } catch (const std::exception& e) {
             std::cerr << "Error: " << e.what() << std::endl;
             break;
         }
     }
+
     if (should_stop) {
         std::cout << "Server shutting down..." << std::endl;
     }
-
-    http.write_goaway(1);
-    std::cout << "GOAWAY frame sent" << std::endl;
-
-    if (!http.wait_for_client_disconnect()) {
-        std::cout << "Client took too long to disconnect. Forcibly closing" << std::endl;
-        tls_conn.close();
-    }
-
-    std::cout << "Connection closed." << std::endl;
 }
 
 int main() {

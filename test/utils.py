@@ -33,7 +33,7 @@ def wait_for_port(port, timeout=5):
 
 def curl_http2(url):
     result = subprocess.run(
-        ["curl", "--http2", "--insecure", "--verbose", url],
+        ["curl", "--http2", "--insecure", "--no-keepalive", "--verbose", url],
         capture_output=True,
         text=True,
         timeout=10

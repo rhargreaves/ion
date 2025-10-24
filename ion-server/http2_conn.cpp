@@ -4,6 +4,8 @@
 #include <iostream>
 #include <thread>
 
+#include "http2_except.h"
+
 static constexpr uint8_t FRAME_TYPE_HEADERS = 0x01;
 static constexpr uint8_t FRAME_TYPE_SETTINGS = 0x04;
 static constexpr uint8_t FRAME_TYPE_GOAWAY = 0x07;
@@ -12,12 +14,12 @@ Http2Connection::Http2Connection(const TlsConnection& conn) : tls_conn(conn) {}
 
 void Http2Connection::read_exact(std::span<uint8_t> buffer) {
     size_t total_read = 0;
-    constexpr auto timeout = std::chrono::milliseconds(100);
+    constexpr auto timeout = std::chrono::milliseconds(500);
     auto start_time = std::chrono::steady_clock::now();
 
     while (total_read < buffer.size()) {
         if (std::chrono::steady_clock::now() - start_time > timeout) {
-            throw std::runtime_error("Read timeout");
+            throw Http2TimeoutException();
         }
 
         const auto bytes_read = tls_conn.read(buffer.subspan(total_read));
@@ -26,6 +28,8 @@ void Http2Connection::read_exact(std::span<uint8_t> buffer) {
         } else if (bytes_read == 0) {
             // No data available - wait briefly
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        } else {
+            throw std::runtime_error("Failed to read from TLS connection");
         }
     }
 }
