@@ -36,6 +36,7 @@ COPY . .
 # Create and activate virtual environment, then build and test
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --upgrade setuptools
 RUN make build
 RUN make test
 
