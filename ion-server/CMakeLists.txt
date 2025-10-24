@@ -12,7 +12,8 @@ add_executable(ion-server main.cpp
         http2_conn.h
         http2_conn.cpp
         tls_conn_except.cpp
-        tls_conn_except.h)
+        tls_conn_except.h
+        http2_except.h)
 
 target_link_libraries(ion-server PRIVATE OpenSSL::SSL OpenSSL::Crypto)
 
