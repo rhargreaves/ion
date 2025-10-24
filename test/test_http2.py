@@ -25,7 +25,7 @@ def test_http2_returns_200():
 def test_http2_returns_200_many_times_same_server():
     server = run_server(SERVER_PORT)
     try:
-        for _ in range(2):
+        for _ in range(5):
             assert wait_for_port(SERVER_PORT)
             result = curl_http2(URL)
             assert result.returncode == 0
