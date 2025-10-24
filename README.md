@@ -13,7 +13,9 @@ It is not intended to be a production-ready server!
 ## Progress
 
 * Basic HTTP/2 over TLS
-* Returns 200 OK, empty body, for all requests and then exits
+* For each request:
+    * Returns 200 OK, empty body, for any request
+* Close server using Ctrl+C or SIGTERM
 
 ## Build
 
