@@ -1,5 +1,4 @@
 #include <csignal>
-#include <iostream>
 #include <vector>
 
 #include "http2_conn.h"
@@ -54,13 +53,11 @@ void read_frame(Http2Connection& http) {
         }
         case FRAME_TYPE_HEADERS: {
             spdlog::debug("HEADERS frame received");
-            auto payload = http.read_payload(header.length);
             const bool end_headers_set = (header.flags & FLAG_END_HEADERS) != 0;
             const bool end_stream_set = (header.flags & FLAG_END_STREAM) != 0;
-            spdlog::debug(" - stream ID: {}", header.stream_id);
-            spdlog::debug(" - end headers: {}", end_headers_set);
-            spdlog::debug(" - end stream: {}", end_stream_set);
-            spdlog::debug(" - payload size: {}", header.length);
+            spdlog::debug(" - stream ID: {}, end headers: {}, end stream: {}, length: {}",
+                          header.stream_id, end_headers_set, end_stream_set, header.length);
+            auto payload = http.read_payload(header.length);
             write_response(http);
             break;
         }
@@ -124,7 +121,7 @@ void run_server() {
         } catch (const Http2TimeoutException& e) {
             spdlog::info("connection closed (timeout): {}", e.what());
         } catch (const std::exception& e) {
-            spdlog::error("{}", e.what());
+            spdlog::error(e.what());
             break;
         }
     }
@@ -136,12 +133,13 @@ void run_server() {
 
 int main() {
     spdlog::info("ion started ⚡️");
+    spdlog::set_level(spdlog::level::debug);
 
     try {
         run_server();
         return 0;
     } catch (const std::exception& e) {
-        spdlog::error("[ion] {}", e.what());
+        spdlog::error(e.what());
         return 1;
     }
 }

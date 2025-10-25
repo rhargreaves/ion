@@ -5,6 +5,7 @@
 #include <thread>
 
 #include "http2_except.h"
+#include "spdlog/spdlog.h"
 
 static constexpr uint8_t FRAME_TYPE_HEADERS = 0x01;
 static constexpr uint8_t FRAME_TYPE_SETTINGS = 0x04;
@@ -152,17 +153,16 @@ bool Http2Connection::wait_for_client_disconnect() {
                 // discard any remaining frames
                 const auto header = read_frame_header();
                 auto data = read_payload(header.length);
-                std::cout << "Received frame type " << +header.type << " during shutdown"
-                          << std::endl;
+                spdlog::debug("received frame type {} during shutdown", +header.type);
             } else {
                 std::this_thread::sleep_for(std::chrono::milliseconds(poll_interval_ms));
                 elapsed_ms += poll_interval_ms;
             }
         } catch (const std::exception& e) {
-            std::cout << "Client disconnected: " << e.what() << std::endl;
+            spdlog::debug("client disconnected: {}", e.what());
             return true;
         }
     }
-    std::cout << "Shutdown timeout reached, forcing connection close" << std::endl;
+    spdlog::warn("shutdown timeout reached, forcing connection close");
     return false;
 }

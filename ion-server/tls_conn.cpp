@@ -4,7 +4,6 @@
 #include <netinet/in.h>
 #include <openssl/err.h>
 #include <sys/poll.h>
-#include <sys/socket.h>
 #include <unistd.h>
 
 #include <filesystem>
@@ -12,6 +11,7 @@
 #include <iostream>
 #include <system_error>
 
+#include "spdlog/spdlog.h"
 #include "tls_conn_except.h"
 
 TlsConnection::TlsConnection(TcpConnection& tcp_conn, const std::filesystem::path& cert_path,
@@ -123,15 +123,15 @@ int TlsConnection::alpn_callback(SSL*, const unsigned char** out, unsigned char*
         SSL_select_next_proto(const_cast<unsigned char**>(out), outlen, supported_protos.data(),
                               supported_protos.size(), in, inlen);
     if (result == OPENSSL_NPN_NEGOTIATED) {
-        std::cout << "ALPN negotiated: ";
-        std::cout.write(reinterpret_cast<const char*>(*out), *outlen) << std::endl;
+        spdlog::debug("ALPN negotiated: {}",
+                      std::string(reinterpret_cast<const char*>(*out), *outlen));
         return SSL_TLSEXT_ERR_OK;
     }
 
     *outlen = supported_protos[0];
     *out = supported_protos.data() + 1;
-    std::cout << "ALPN negotiation failed, using default: ";
-    std::cout.write(reinterpret_cast<const char*>(*out), *outlen) << std::endl;
+    spdlog::debug("ALPN negotiation failed, using default: {}",
+                  std::string(reinterpret_cast<const char*>(*out), *outlen));
     return SSL_TLSEXT_ERR_OK;
 }
 
