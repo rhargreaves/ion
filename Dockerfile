@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     curl \
     net-tools \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install CMake 4.0+ (detect architecture)
