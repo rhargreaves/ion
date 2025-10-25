@@ -17,6 +17,10 @@ It is not intended to be a production-ready server!
     * Returns 200 OK, empty body, for any request
 * Close server using Ctrl+C or SIGTERM
 
+<p align="center">
+<img src="docs/screenshot.png" alt="ion screenshot" title="ion screenshot">
+</p>
+
 ## Build
 
 ### macOS
