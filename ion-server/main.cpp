@@ -5,6 +5,7 @@
 #include "http2_conn.h"
 #include "http2_except.h"
 #include "http2_frames.h"
+#include "spdlog/spdlog.h"
 #include "tls_conn.h"
 #include "tls_conn_except.h"
 
@@ -19,7 +20,7 @@ static constexpr uint16_t SERVER_PORT = 8443;
 static volatile sig_atomic_t should_stop = 0;
 
 void signal_handler(int) {
-    std::cout << "Signal received!..." << std::endl;
+    spdlog::info("signal received!...");
     should_stop = 1;
 }
 
@@ -27,7 +28,7 @@ void write_response(Http2Connection& http) {
     // Send 200 response: HPACK index 8 = ":status: 200"
     std::array<uint8_t, 1> headers_data = {0x88};  // 0x80 | 8 = indexed header
     http.write_headers_response(1, headers_data, FLAG_END_HEADERS | FLAG_END_STREAM);
-    std::cout << "200 response sent" << std::endl;
+    spdlog::info("200 response sent");
 }
 
 void read_frame(Http2Connection& http) {
@@ -35,36 +36,36 @@ void read_frame(Http2Connection& http) {
 
     switch (header.type) {
         case FRAME_TYPE_SETTINGS: {
-            std::cout << "SETTINGS frame received" << std::endl;
+            spdlog::debug("SETTINGS frame received");
             const auto settings = http.read_settings_payload(header.length);
-            std::cout << " - Received " << settings.size() << " settings" << std::endl;
+            spdlog::debug(" - received {} settings", settings.size());
 
             if (header.flags == 0x00) {
                 http.write_settings_ack();
-                std::cout << "SETTINGS ACK frame sent" << std::endl;
+                spdlog::debug("SETTINGS ACK frame sent");
             }
             break;
         }
         case FRAME_TYPE_WINDOW_UPDATE: {
-            std::cout << "WINDOW_UPDATE frame received" << std::endl;
+            spdlog::debug("WINDOW_UPDATE frame received");
             auto [window_size_increment] = http.read_window_update(header.length);
-            std::cout << " - Window size increment: " << window_size_increment << std::endl;
+            spdlog::debug(" - window size increment: {}", window_size_increment);
             break;
         }
         case FRAME_TYPE_HEADERS: {
-            std::cout << "HEADERS frame received" << std::endl;
+            spdlog::debug("HEADERS frame received");
             auto payload = http.read_payload(header.length);
             const bool end_headers_set = (header.flags & FLAG_END_HEADERS) != 0;
             const bool end_stream_set = (header.flags & FLAG_END_STREAM) != 0;
-            std::cout << " - Stream ID: " << header.stream_id << std::endl;
-            std::cout << " - End headers: " << end_headers_set << std::endl;
-            std::cout << " - End stream: " << end_stream_set << std::endl;
-            std::cout << " - Payload size: " << header.length << std::endl;
+            spdlog::debug(" - stream ID: {}", header.stream_id);
+            spdlog::debug(" - end headers: {}", end_headers_set);
+            spdlog::debug(" - end stream: {}", end_stream_set);
+            spdlog::debug(" - payload size: {}", header.length);
             write_response(http);
             break;
         }
         default: {
-            std::cout << "Received frame of type " << +header.type << std::endl;
+            spdlog::debug("received frame of type {}", +header.type);
             auto data = http.read_payload(header.length);  // Read and discard
             break;
         }
@@ -78,7 +79,7 @@ void write_settings(Http2Connection& http) {
         {0x0005, 16384}   // MAX_FRAME_SIZE
     };
     http.write_settings(settings);
-    std::cout << "SETTINGS frame sent" << std::endl;
+    spdlog::debug("SETTINGS frame sent");
 }
 
 void run_server() {
@@ -87,22 +88,22 @@ void run_server() {
 
     TcpConnection tcp_conn{SERVER_PORT};
     tcp_conn.listen();
-    std::cout << "[ion] Listening on port " << SERVER_PORT << "..." << std::endl;
+    spdlog::info("listening on port {}...", SERVER_PORT);
 
     while (!should_stop) {
         try {
             if (!tcp_conn.try_accept()) {
                 continue;
             }
-            std::cout << "Client connected." << std::endl;
+            spdlog::info("client connected");
 
             TlsConnection tls_conn{tcp_conn, "cert.pem", "key.pem"};
             tls_conn.handshake();
-            std::cout << "SSL handshake completed successfully." << std::endl;
+            spdlog::info("SSL handshake completed successfully");
 
             Http2Connection http{tls_conn};
             http.read_preface();
-            std::cout << "Valid HTTP/2 preface received!" << std::endl;
+            spdlog::info("valid HTTP/2 preface received!");
 
             write_settings(http);
 
@@ -111,34 +112,36 @@ void run_server() {
             }
 
             http.write_goaway(1);
-            std::cout << "GOAWAY frame sent" << std::endl;
+            spdlog::debug("GOAWAY frame sent");
 
             if (!http.wait_for_client_disconnect()) {
-                std::cout << "Client took too long to disconnect. Forcibly closing" << std::endl;
+                spdlog::warn("client took too long to disconnect, forcibly closing");
             }
-            std::cout << "Connection closed." << std::endl;
+            spdlog::info("connection closed");
 
         } catch (const TlsConnectionClosed& e) {
-            std::cerr << "Connection closed (exception)" << e.what() << std::endl;
+            spdlog::info("connection closed (exception): {}", e.what());
         } catch (const Http2TimeoutException& e) {
-            std::cerr << "Connection closed (timeout)" << e.what() << std::endl;
+            spdlog::info("connection closed (timeout): {}", e.what());
         } catch (const std::exception& e) {
-            std::cerr << "Error: " << e.what() << std::endl;
+            spdlog::error("{}", e.what());
             break;
         }
     }
 
     if (should_stop) {
-        std::cout << "Server shutting down..." << std::endl;
+        spdlog::info("server shutting down...");
     }
 }
 
 int main() {
+    spdlog::info("ion started ⚡️");
+
     try {
         run_server();
         return 0;
     } catch (const std::exception& e) {
-        std::cerr << "[ion] " << e.what() << std::endl;
+        spdlog::error("[ion] {}", e.what());
         return 1;
     }
 }
