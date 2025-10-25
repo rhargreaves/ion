@@ -7,9 +7,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include <filesystem>
-#include <fstream>
-#include <iostream>
 #include <system_error>
 
 void TcpConnection::set_nonblocking_socket() {
@@ -57,31 +54,29 @@ void TcpConnection::listen() const {
     }
 }
 
-void TcpConnection::accept() {
-    // block for now
-    while (true) {
-        constexpr int infinite_timeout = -1;
-        pollfd pfd = {server_fd_, POLLIN, 0};
-        const int result = poll(&pfd, 1, infinite_timeout);
-        if (result < 0) {
-            throw std::system_error(errno, std::system_category(), "poll");
-        }
-
-        if (pfd.revents & POLLIN) {  // connection available
-            sockaddr_in client_addr{};
-            socklen_t client_len = sizeof(client_addr);
-            const int tmp_client_fd =
-                ::accept(server_fd_, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
-            if (tmp_client_fd >= 0) {
-                client_fd_ = SocketFd(tmp_client_fd);
-                break;
-            }
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                continue;  // spurious wakeup, try again
-            }
-            throw std::system_error(errno, std::system_category(), "accept");
-        }
+bool TcpConnection::try_accept() {
+    constexpr int timeout_ms = 100;
+    pollfd pfd = {server_fd_, POLLIN, 0};
+    const int result = poll(&pfd, 1, timeout_ms);
+    if (result < 0) {
+        throw std::system_error(errno, std::system_category(), "poll");
     }
+
+    if (pfd.revents & POLLIN) {  // connection available
+        sockaddr_in client_addr{};
+        socklen_t client_len = sizeof(client_addr);
+        const int tmp_client_fd =
+            ::accept(server_fd_, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
+        if (tmp_client_fd >= 0) {
+            client_fd_ = SocketFd(tmp_client_fd);
+            return true;
+        }
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            return false;
+        }
+        throw std::system_error(errno, std::system_category(), "accept");
+    }
+    return false;
 }
 
 void TcpConnection::close() {

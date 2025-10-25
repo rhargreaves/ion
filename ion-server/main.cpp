@@ -91,7 +91,9 @@ void run_server() {
 
     while (!should_stop) {
         try {
-            tcp_conn.accept();
+            if (!tcp_conn.try_accept()) {
+                continue;
+            }
             std::cout << "Client connected." << std::endl;
 
             TlsConnection tls_conn{tcp_conn, "cert.pem", "key.pem"};

@@ -9,7 +9,7 @@ class TcpConnection {
     ~TcpConnection() = default;
 
     void listen() const;
-    void accept();
+    bool try_accept();
     void close();
     [[nodiscard]] int server_fd() const noexcept { return server_fd_; }
     [[nodiscard]] int client_fd() const noexcept { return client_fd_; }
