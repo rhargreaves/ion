@@ -28,23 +28,24 @@ It is not intended to be a production-ready server!
 Install CMake (4.0+), CLion, Python (3.13+) and GCC/Clang:
 
 ```sh
-brew upgrade cmake
-make build test
+brew install cmake
+
+make build
 ```
 
 ### Linux
 
-Use Docker:
+Docker:
 
 ```sh
 docker build -t ion .
 docker run -p 8443:8443 -it ion
 ```
 
-Use Make:
+Make:
 
 ```sh
-make build test
+make build
 ```
 
 ## Usage
@@ -52,6 +53,22 @@ make build test
 ```sh
 ./ion-server/cmake-build-debug/ion-server &
 curl -k --http2 -v https://localhost:8443/
+```
+
+## Test
+
+### Integration Tests
+
+```
+make test
+```
+
+### HTTP/2 Spec Tests
+
+Using [h2spec](https://github.com/summerwind/h2spec):
+
+```
+./test/run-h2spec.sh
 ```
 
 ## References
