@@ -110,12 +110,6 @@ void run_server() {
 
             http.write_goaway(1);
             spdlog::debug("GOAWAY frame sent");
-
-            if (!http.wait_for_client_disconnect()) {
-                spdlog::warn("client took too long to disconnect, forcibly closing");
-            }
-            spdlog::info("connection closed");
-
         } catch (const TlsConnectionClosed& e) {
             spdlog::info("connection closed (exception): {}", e.what());
         } catch (const Http2TimeoutException& e) {

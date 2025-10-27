@@ -141,28 +141,3 @@ void Http2Connection::write_goaway(uint32_t last_stream_id, uint32_t error_code)
     payload.serialize(payload_bytes);
     tls_conn_.write(payload_bytes);
 }
-
-bool Http2Connection::wait_for_client_disconnect() {
-    constexpr int shutdown_timeout_ms = 1000;
-    constexpr int poll_interval_ms = 100;
-    int elapsed_ms = 0;
-
-    while (elapsed_ms < shutdown_timeout_ms) {
-        try {
-            if (tls_conn_.has_data()) {
-                // discard any remaining frames
-                const auto header = read_frame_header();
-                auto data = read_payload(header.length);
-                spdlog::debug("received frame type {} during shutdown", +header.type);
-            } else {
-                std::this_thread::sleep_for(std::chrono::milliseconds(poll_interval_ms));
-                elapsed_ms += poll_interval_ms;
-            }
-        } catch (const std::exception& e) {
-            spdlog::debug("client disconnected: {}", e.what());
-            return true;
-        }
-    }
-    spdlog::warn("shutdown timeout reached, forcing connection close");
-    return false;
-}
