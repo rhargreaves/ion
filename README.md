@@ -7,7 +7,7 @@ Light-weight HTTP/2 server in C++
 ## Goals
 
 I'm using this as a learning exercise to learn more about HTTP/2 and modern C++.
-As such, I am intentionally using low-level APIs and not libraries.
+As such, I am intentionally using low-level APIs and avoiding libraries for the core flow.
 It is not intended to be a production-ready server!
 
 ## Progress
