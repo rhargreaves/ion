@@ -85,7 +85,7 @@ void run_server() {
 
     TcpConnection tcp_conn{SERVER_PORT};
     tcp_conn.listen();
-    spdlog::info("listening on port {}...", SERVER_PORT);
+    spdlog::info("listening on port {}", SERVER_PORT);
 
     while (!should_stop) {
         try {
@@ -137,9 +137,10 @@ int main() {
 
     try {
         run_server();
+        spdlog::info("exiting");
         return 0;
     } catch (const std::exception& e) {
-        spdlog::error(e.what());
+        spdlog::error("terminating: {}", e.what());
         return 1;
     }
 }

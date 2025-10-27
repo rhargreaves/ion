@@ -18,7 +18,7 @@ class TcpConnection {
     SocketFd server_fd_;
     SocketFd client_fd_;
 
-    void set_nonblocking_socket();
+    static void set_nonblocking_socket(const SocketFd& socket_fd);
     void set_reusable_addr();
     void bind_socket(uint16_t port);
 };

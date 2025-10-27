@@ -106,9 +106,11 @@ TlsConnection::~TlsConnection() {
     if (ssl_) {
         BIO_flush(SSL_get_wbio(ssl_));
         // Bidirectional shutdown
+        spdlog::debug("shutting down SSL (client notify)");
         if (const int ret = SSL_shutdown(ssl_); ret == 0) {
             SSL_shutdown(ssl_);
         }
+        spdlog::debug("freeing OpenSSL");
         SSL_free(ssl_);
         ssl_ = nullptr;
     }

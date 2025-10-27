@@ -9,12 +9,14 @@
 
 #include <system_error>
 
-void TcpConnection::set_nonblocking_socket() {
-    const int flags = fcntl(server_fd_, F_GETFL, 0);
+#include "spdlog/spdlog.h"
+
+void TcpConnection::set_nonblocking_socket(const SocketFd& socket_fd) {
+    const int flags = fcntl(socket_fd, F_GETFL, 0);
     if (flags == -1) {
         throw std::system_error(errno, std::system_category(), "fcntl F_GETFL");
     }
-    if (fcntl(server_fd_, F_SETFL, flags | O_NONBLOCK) == -1) {
+    if (fcntl(socket_fd, F_SETFL, flags | O_NONBLOCK) == -1) {
         throw std::system_error(errno, std::system_category(), "fcntl F_SETFL");
     }
 }
@@ -43,7 +45,7 @@ TcpConnection::TcpConnection(uint16_t port) {
         throw std::system_error(errno, std::system_category(), "socket");
     }
     server_fd_ = SocketFd(server_fd);
-    set_nonblocking_socket();
+    set_nonblocking_socket(server_fd_);
     set_reusable_addr();
     bind_socket(port);
 }
@@ -62,13 +64,15 @@ bool TcpConnection::try_accept() {
         throw std::system_error(errno, std::system_category(), "poll");
     }
 
-    if (pfd.revents & POLLIN) {  // connection available
+    if (pfd.revents & POLLIN) {
         sockaddr_in client_addr{};
         socklen_t client_len = sizeof(client_addr);
         const int tmp_client_fd =
             ::accept(server_fd_, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
         if (tmp_client_fd >= 0) {
             client_fd_ = SocketFd(tmp_client_fd);
+            set_nonblocking_socket(
+                client_fd_);  // required for Linux. macOS inherits from server_fd!
             return true;
         }
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
