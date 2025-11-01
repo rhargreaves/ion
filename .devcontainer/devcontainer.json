@@ -18,6 +18,6 @@
       }
     }
   },
-  "postCreateCommand": "git config --global --add safe.directory /workspace",
+  "postCreateCommand": "git config --global --add safe.directory /workspace && apt-get install -y libicu",
   "remoteUser": "root"
 }
