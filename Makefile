@@ -15,6 +15,10 @@ test: cert.pem
 	python3 -m pytest test/ $(PYTEST_ARGS)
 .PHONY: test
 
+clean:
+	-rm -rf $(BUILD_DIR)
+.PHONY: clean
+
 $(CERT_PEM) $(KEY_PEM):
 	openssl req -x509 -newkey rsa:4096 \
 		-keyout $(KEY_PEM) \
