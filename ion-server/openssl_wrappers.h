@@ -1,9 +1,10 @@
 #pragma once
 #include <openssl/ssl.h>
+
 #include <stdexcept>
 
 class OpenSslContext {
-public:
+   public:
     OpenSslContext() : ctx_(SSL_CTX_new(TLS_server_method())) {
         if (!ctx_) {
             throw std::runtime_error("Failed to create SSL context");
@@ -16,22 +17,20 @@ public:
         }
     }
 
-    // Non-copyable, non-movable
     OpenSslContext(const OpenSslContext&) = delete;
     OpenSslContext& operator=(const OpenSslContext&) = delete;
     OpenSslContext(OpenSslContext&&) = delete;
     OpenSslContext& operator=(OpenSslContext&&) = delete;
 
-    // Conversion to SSL_CTX* for C APIs
     operator SSL_CTX*() const noexcept { return ctx_; }
     SSL_CTX* get() const noexcept { return ctx_; }
 
-private:
+   private:
     SSL_CTX* ctx_;
 };
 
 class OpenSslConnection {
-public:
+   public:
     explicit OpenSslConnection(SSL_CTX* ctx) : ssl_(SSL_new(ctx)) {
         if (!ssl_) {
             throw std::runtime_error("Failed to create SSL object");
@@ -54,6 +53,6 @@ public:
     operator SSL*() const noexcept { return ssl_; }
     SSL* get() const noexcept { return ssl_; }
 
-private:
+   private:
     SSL* ssl_;
 };
