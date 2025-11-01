@@ -14,12 +14,12 @@ build:
 	cmake --build $(BUILD_DIR)
 .PHONY: build
 
-test: cert.pem
+test: $(CERT_PEM) $(KEY_PEM)
 	pip3 install -q -r test/requirements.txt
 	python3 -m pytest test/ $(PYTEST_ARGS)
 .PHONY: test
 
-run: build
+run: build $(CERT_PEM) $(KEY_PEM)
 	$(ION_PATH) $(SERVER_PORT)
 .PHONY: run
 
