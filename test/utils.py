@@ -13,6 +13,18 @@ def run_server(port):
     ], env=env)
 
 
+def run_server_help():
+    return subprocess.run(
+        [
+            os.environ.get('ION_PATH', 'ion-server'),
+            "--help"
+        ],
+        capture_output=True,
+        text=True,
+        timeout=2
+    )
+
+
 def wait_for_port(port, timeout=5):
     print("waiting for port to be open")
     start = time.time()
