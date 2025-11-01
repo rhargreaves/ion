@@ -13,6 +13,7 @@ def run_server(port):
 
 
 def wait_for_port(port, timeout=5):
+    print("waiting for port to be open")
     start = time.time()
     while time.time() - start < timeout:
         try:
@@ -20,23 +21,25 @@ def wait_for_port(port, timeout=5):
                 ["netstat", "-an"],
                 capture_output=True,
                 text=True,
-                timeout=1
+                timeout=2
             )
             for line in result.stdout.splitlines():
                 if ((f".{port}" in line or f"0.0.0.0:{port}" in line) and "LISTEN" in line):
+                    print("port is open")
                     return True
         except (subprocess.TimeoutExpired, subprocess.SubprocessError):
             pass
         time.sleep(0.05)
+    print("port is closed")
     return False
 
 
 def curl_http2(url):
     result = subprocess.run(
-        ["curl", "--http2", "--insecure", "--no-keepalive", "--verbose", url],
+        ["curl", "--http2", "--insecure", "--verbose", url],
         capture_output=True,
         text=True,
-        timeout=10
+        timeout=5
     )
     print(result.stdout)
     print(result.stderr)

@@ -15,6 +15,7 @@ class Http2Connection {
     std::vector<uint8_t> read_payload(uint32_t length);
     std::vector<Http2Setting> read_settings_payload(uint32_t length);
     Http2WindowUpdate read_window_update(uint32_t length);
+    bool try_read_frame();
 
     void write_frame_header(const Http2FrameHeader& header);
     void write_settings(const std::vector<Http2Setting>& settings);
@@ -25,6 +26,8 @@ class Http2Connection {
 
    private:
     const TlsConnection& tls_conn_;
+    std::vector<uint8_t> buffer_;
 
     void read_exact(std::span<uint8_t> buffer);
+    void process_frame(const Http2FrameHeader& header, std::span<const uint8_t> payload);
 };

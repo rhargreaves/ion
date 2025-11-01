@@ -18,6 +18,7 @@ class TlsConnection {
     ssize_t write(std::span<const uint8_t> buffer) const;
     [[nodiscard]] bool has_data() const;
     void handshake() const;
+    void graceful_shutdown() const;
 
    private:
     TcpConnection& tcp_conn_;

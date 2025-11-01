@@ -45,3 +45,5 @@ __pycache__/
 
 cert.pem
 key.pem
+
+ion-server/cmake-build-*

@@ -8,12 +8,6 @@
 #include "tls_conn.h"
 #include "tls_conn_except.h"
 
-static constexpr uint8_t FRAME_TYPE_HEADERS = 0x01;
-static constexpr uint8_t FRAME_TYPE_SETTINGS = 0x04;
-static constexpr uint8_t FRAME_TYPE_WINDOW_UPDATE = 0x08;
-static constexpr uint8_t FLAG_END_HEADERS = 0x04;
-static constexpr uint8_t FLAG_END_STREAM = 0x01;
-
 static constexpr uint16_t SERVER_PORT = 8443;
 
 static volatile sig_atomic_t should_stop = 0;
@@ -21,52 +15,6 @@ static volatile sig_atomic_t should_stop = 0;
 void signal_handler(int) {
     spdlog::info("signal received!...");
     should_stop = 1;
-}
-
-void write_response(Http2Connection& http) {
-    // Send 200 response: HPACK index 8 = ":status: 200"
-    std::array<uint8_t, 1> headers_data = {0x88};  // 0x80 | 8 = indexed header
-    http.write_headers_response(1, headers_data, FLAG_END_HEADERS | FLAG_END_STREAM);
-    spdlog::info("200 response sent");
-}
-
-void read_frame(Http2Connection& http) {
-    const auto header = http.read_frame_header();
-
-    switch (header.type) {
-        case FRAME_TYPE_SETTINGS: {
-            spdlog::debug("SETTINGS frame received");
-            const auto settings = http.read_settings_payload(header.length);
-            spdlog::debug(" - received {} settings", settings.size());
-
-            if (header.flags == 0x00) {
-                http.write_settings_ack();
-                spdlog::debug("SETTINGS ACK frame sent");
-            }
-            break;
-        }
-        case FRAME_TYPE_WINDOW_UPDATE: {
-            spdlog::debug("WINDOW_UPDATE frame received");
-            auto [window_size_increment] = http.read_window_update(header.length);
-            spdlog::debug(" - window size increment: {}", window_size_increment);
-            break;
-        }
-        case FRAME_TYPE_HEADERS: {
-            spdlog::debug("HEADERS frame received");
-            const bool end_headers_set = (header.flags & FLAG_END_HEADERS) != 0;
-            const bool end_stream_set = (header.flags & FLAG_END_STREAM) != 0;
-            spdlog::debug(" - stream ID: {}, end headers: {}, end stream: {}, length: {}",
-                          header.stream_id, end_headers_set, end_stream_set, header.length);
-            auto payload = http.read_payload(header.length);
-            write_response(http);
-            break;
-        }
-        default: {
-            spdlog::debug("received frame of type {}", +header.type);
-            auto data = http.read_payload(header.length);  // Read and discard
-            break;
-        }
-    }
 }
 
 void write_settings(Http2Connection& http) {
@@ -104,19 +52,35 @@ void run_server() {
 
             write_settings(http);
 
-            while (tls_conn.has_data() && !should_stop) {
-                read_frame(http);
+            auto connection_start = std::chrono::steady_clock::now();
+            constexpr auto connection_timeout = std::chrono::seconds(10);
+
+            while (!should_stop) {
+                if (http.try_read_frame()) {
+                    spdlog::debug("Frame processed, continuing...");
+                    connection_start = std::chrono::steady_clock::now();
+                    continue;
+                }
+
+                if (std::chrono::steady_clock::now() - connection_start > connection_timeout) {
+                    spdlog::debug("Connection timeout, closing");
+                    break;
+                }
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
 
             http.write_goaway(1);
             spdlog::debug("GOAWAY frame sent");
+
+            tls_conn.graceful_shutdown();
         } catch (const TlsConnectionClosed& e) {
             spdlog::info("connection closed (exception): {}", e.what());
         } catch (const Http2TimeoutException& e) {
             spdlog::info("connection closed (timeout): {}", e.what());
         } catch (const std::exception& e) {
             spdlog::error(e.what());
-            break;
+            throw;
         }
     }
 

@@ -104,15 +104,19 @@ void TlsConnection::handshake() const {
 
 TlsConnection::~TlsConnection() {
     if (ssl_) {
-        BIO_flush(SSL_get_wbio(ssl_));
-        // Bidirectional shutdown
-        spdlog::debug("shutting down SSL (client notify)");
-        if (const int ret = SSL_shutdown(ssl_); ret == 0) {
-            SSL_shutdown(ssl_);
-        }
         spdlog::debug("freeing OpenSSL");
         SSL_free(ssl_);
         ssl_ = nullptr;
+    }
+}
+
+void TlsConnection::graceful_shutdown() const {
+    BIO_flush(SSL_get_wbio(ssl_));
+    // Bidirectional shutdown
+    spdlog::debug("shutting down SSL (client notify)");
+    if (const int ret = SSL_shutdown(ssl_); ret == 0) {
+        spdlog::debug("shutting down SSL (force)");
+        SSL_shutdown(ssl_);
     }
 }
 
@@ -141,19 +145,22 @@ void TlsConnection::print_debug_to_stderr() { ERR_print_errors_fp(stderr); }
 
 ssize_t TlsConnection::read(std::span<uint8_t> buffer) const {
     const auto bytes_read = SSL_read(ssl_, buffer.data(), static_cast<int>(buffer.size()));
-    if (bytes_read < 0) {
+    if (bytes_read <= 0) {
         const int ssl_error = SSL_get_error(ssl_, bytes_read);
         switch (ssl_error) {
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE:
+                spdlog::debug("SSL want read/write");
                 return 0;  // no data available right now
             case SSL_ERROR_ZERO_RETURN:
+                spdlog::debug("SSL zero return");
                 throw TlsConnectionClosed(TlsConnectionClosed::Reason::CLEAN_SHUTDOWN);
 
             default:
                 throw std::runtime_error("SSL read error: " + std::to_string(ssl_error));
         }
     }
+    spdlog::debug("Successfully read {} bytes from SSL", bytes_read);
     return bytes_read;
 }
 
@@ -162,7 +169,11 @@ ssize_t TlsConnection::write(std::span<const uint8_t> buffer) const {
     if (bytes_written < 0) {
         const int ssl_error = SSL_get_error(ssl_, bytes_written);
         throw std::runtime_error("SSL write error: " + std::to_string(ssl_error));
+    } else if (bytes_written != static_cast<int>(buffer.size())) {
+        spdlog::error("SSL partial write: wrote {} of {} bytes", bytes_written, buffer.size());
+        throw std::runtime_error("SSL write error: partial write");
     }
+    spdlog::debug("Successfully wrote {} bytes to SSL", bytes_written);
     return bytes_written;
 }
 

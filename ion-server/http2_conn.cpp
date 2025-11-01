@@ -10,6 +10,12 @@
 static constexpr uint8_t FRAME_TYPE_HEADERS = 0x01;
 static constexpr uint8_t FRAME_TYPE_SETTINGS = 0x04;
 static constexpr uint8_t FRAME_TYPE_GOAWAY = 0x07;
+static constexpr uint8_t FRAME_TYPE_WINDOW_UPDATE = 0x08;
+
+static constexpr uint8_t FLAG_END_HEADERS = 0x04;
+static constexpr uint8_t FLAG_END_STREAM = 0x01;
+
+static constexpr size_t READ_BUFFER_SIZE = 1024 * 1024;
 
 Http2Connection::Http2Connection(const TlsConnection& conn) : tls_conn_(conn) {}
 
@@ -140,4 +146,95 @@ void Http2Connection::write_goaway(uint32_t last_stream_id, uint32_t error_code)
     std::array<uint8_t, Http2GoAwayPayload::wire_size> payload_bytes{};
     payload.serialize(payload_bytes);
     tls_conn_.write(payload_bytes);
+}
+
+bool Http2Connection::try_read_frame() {
+    std::array<uint8_t, READ_BUFFER_SIZE> temp_buffer{};
+    const auto bytes_read = tls_conn_.read(temp_buffer);
+
+    if (bytes_read > 0) {
+        // Append new data to our buffer
+        buffer_.insert(buffer_.end(), temp_buffer.begin(), temp_buffer.begin() + bytes_read);
+    }
+
+    // Check if we have enough data for at least a frame header
+    if (buffer_.size() < Http2FrameHeader::wire_size) {
+        spdlog::debug("Not enough data");
+        return false;  // Not enough data yet
+    }
+
+    // Parse the frame header from the beginning of the buffer
+    std::span<const uint8_t, Http2FrameHeader::wire_size> header_span{buffer_.data(),
+                                                                      Http2FrameHeader::wire_size};
+    const auto header = Http2FrameHeader::parse(header_span);
+    spdlog::debug("received frame header: type: {}, flag: {:#04x}, length: {}", header.type,
+                  header.flags, header.length);
+
+    // Check if we have the complete frame (header + payload)
+    const size_t total_frame_size = Http2FrameHeader::wire_size + header.length;
+    if (buffer_.size() < total_frame_size) {
+        return false;  // Not enough data for complete frame yet
+    }
+
+    spdlog::debug("received complete frame");
+    process_frame(header, std::span<const uint8_t>{buffer_.data() + Http2FrameHeader::wire_size,
+                                                   header.length});
+    // Remove the processed frame from the buffer
+    buffer_.erase(buffer_.begin(), buffer_.begin() + total_frame_size);
+
+    return true;
+}
+
+void Http2Connection::process_frame(const Http2FrameHeader& header,
+                                    std::span<const uint8_t> payload) {
+    spdlog::debug("Processing frame: type={}, stream_id={}", header.type, header.stream_id);
+
+    switch (header.type) {
+        case FRAME_TYPE_SETTINGS: {
+            if (header.flags & 0x01) {
+                spdlog::debug("Received SETTINGS ACK");
+            } else {
+                // Process settings
+                if (header.length % Http2Setting::wire_size != 0) {
+                    spdlog::error("Invalid SETTINGS frame: data size not a multiple of {}",
+                                  Http2Setting::wire_size);
+                    return;
+                }
+
+                std::vector<Http2Setting> settings;
+                const auto num_settings = payload.size() / Http2Setting::wire_size;
+                settings.reserve(num_settings);
+
+                for (size_t i = 0; i < num_settings; ++i) {
+                    std::span<const uint8_t, Http2Setting::wire_size> entry{
+                        payload.data() + i * Http2Setting::wire_size, Http2Setting::wire_size};
+                    settings.push_back(Http2Setting::parse(entry));
+                }
+                spdlog::debug("Received {} SETTINGS", settings.size());
+
+                write_settings_ack();
+            }
+            break;
+        }
+        case FRAME_TYPE_HEADERS: {
+            spdlog::debug("Received HEADERS frame for stream {}", header.stream_id);
+            const bool end_headers_set = (header.flags & FLAG_END_HEADERS) != 0;
+            const bool end_stream_set = (header.flags & FLAG_END_STREAM) != 0;
+            spdlog::debug(" - stream ID: {}, end headers: {}, end stream: {}, length: {}",
+                          header.stream_id, end_headers_set, end_stream_set, header.length);
+
+            // Send 200 response: HPACK index 8 = ":status: 200"
+            std::array<uint8_t, 1> headers_data = {0x88};  // 0x80 | 8 = indexed header
+            write_headers_response(1, headers_data, FLAG_END_HEADERS | FLAG_END_STREAM);
+            spdlog::info("200 response sent");
+            break;
+        }
+        case FRAME_TYPE_WINDOW_UPDATE: {
+            spdlog::debug("Received WINDOW_UPDATE frame for stream {}", header.stream_id);
+            break;
+        }
+        default:
+            spdlog::debug("Received unknown frame type: {}", header.type);
+            break;
+    }
 }
