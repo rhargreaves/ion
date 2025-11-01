@@ -27,6 +27,8 @@ add_executable(ion-server main.cpp
         socket_fd.h
         tcp_conn.cpp
         tcp_conn.h
+        http2_server.cpp
+        http2_server.h
 )
 
 target_link_libraries(ion-server PRIVATE
