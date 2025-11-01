@@ -1,10 +1,7 @@
 #include "http2_conn.h"
 
 #include <format>
-#include <iostream>
-#include <thread>
 
-#include "http2_except.h"
 #include "spdlog/spdlog.h"
 
 static constexpr uint8_t FRAME_TYPE_HEADERS = 0x01;
@@ -15,83 +12,58 @@ static constexpr uint8_t FRAME_TYPE_WINDOW_UPDATE = 0x08;
 static constexpr uint8_t FLAG_END_HEADERS = 0x04;
 static constexpr uint8_t FLAG_END_STREAM = 0x01;
 
+static constexpr std::string_view CLIENT_PREFACE{"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"};
+
+static constexpr size_t PREFACE_BUFFER_SIZE = CLIENT_PREFACE.size();
 static constexpr size_t READ_BUFFER_SIZE = 1024 * 1024;
 
 Http2Connection::Http2Connection(const TlsConnection& conn) : tls_conn_(conn) {}
 
-void Http2Connection::read_exact(std::span<uint8_t> buffer) {
-    size_t total_read = 0;
-    constexpr auto timeout = std::chrono::milliseconds(500);
-    auto start_time = std::chrono::steady_clock::now();
+bool Http2Connection::try_read_preface() {
+    std::array<uint8_t, PREFACE_BUFFER_SIZE> temp_buffer{};
+    const auto bytes_read = tls_conn_.read(temp_buffer);
 
-    while (total_read < buffer.size()) {
-        if (std::chrono::steady_clock::now() - start_time > timeout) {
-            throw Http2TimeoutException();
-        }
-
-        const auto bytes_read = tls_conn_.read(buffer.subspan(total_read));
-        if (bytes_read > 0) {
-            total_read += bytes_read;
-        } else if (bytes_read == 0) {
-            // No data available - wait briefly
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        } else {
-            throw std::runtime_error("Failed to read from TLS connection");
-        }
-    }
-}
-
-void Http2Connection::read_preface() {
-    constexpr std::string_view client_preface{"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"};
-    std::array<uint8_t, client_preface.length()> buffer{};
-
-    read_exact(buffer);
-    const std::string_view received(reinterpret_cast<const char*>(buffer.data()), buffer.size());
-    if (received != client_preface) {
-        throw std::runtime_error("Invalid HTTP/2 preface");
-    }
-}
-
-Http2FrameHeader Http2Connection::read_frame_header() {
-    std::array<uint8_t, Http2FrameHeader::wire_size> header_bytes{};
-    read_exact(header_bytes);
-    return Http2FrameHeader::parse(header_bytes);
-}
-
-std::vector<uint8_t> Http2Connection::read_payload(uint32_t length) {
-    std::vector<uint8_t> data(length);
-    read_exact(data);
-    return data;
-}
-
-std::vector<Http2Setting> Http2Connection::read_settings_payload(uint32_t length) {
-    if (length % Http2Setting::wire_size != 0) {
-        throw std::runtime_error(std::format(
-            "Invalid SETTINGS frame: data size not a multiple of {}", Http2Setting::wire_size));
+    if (bytes_read > 0) {
+        // Append new data to our buffer
+        buffer_.insert(buffer_.end(), temp_buffer.begin(), temp_buffer.begin() + bytes_read);
     }
 
-    auto data = read_payload(length);
+    // Check if we have enough data for at least a frame header
+    if (buffer_.size() < CLIENT_PREFACE.length()) {
+        spdlog::debug("Not enough data");
+        return false;  // Not enough data yet
+    }
+
+    std::span<const uint8_t, CLIENT_PREFACE.size()> preface_span{buffer_.data(),
+                                                                 CLIENT_PREFACE.size()};
+    const std::string_view received(reinterpret_cast<const char*>(preface_span.data()),
+                                    preface_span.size());
+    if (received != CLIENT_PREFACE) {
+        throw std::runtime_error("invalid HTTP/2 preface");
+    }
+
+    spdlog::debug("received HTTP/2 preface");
+
+    buffer_.erase(buffer_.begin(), buffer_.begin() + CLIENT_PREFACE.size());
+    return true;
+}
+
+void Http2Connection::process_settings_payload(std::span<const uint8_t> payload) {
     std::vector<Http2Setting> settings;
-    const auto num_settings = data.size() / Http2Setting::wire_size;
+    const auto num_settings = payload.size() / Http2Setting::wire_size;
     settings.reserve(num_settings);
 
     for (size_t i = 0; i < num_settings; ++i) {
         std::span<const uint8_t, Http2Setting::wire_size> entry{
-            data.data() + i * Http2Setting::wire_size, Http2Setting::wire_size};
+            payload.data() + i * Http2Setting::wire_size, Http2Setting::wire_size};
         settings.push_back(Http2Setting::parse(entry));
     }
-    return settings;
+    spdlog::debug("Received {} SETTINGS. Sending ACK", settings.size());
+    write_settings_ack();
 }
 
-Http2WindowUpdate Http2Connection::read_window_update(uint32_t length) {
-    if (length != Http2WindowUpdate::wire_size) {
-        throw std::runtime_error(std::format("Invalid WINDOW_UPDATE frame: data size not {}",
-                                             Http2WindowUpdate::wire_size));
-    }
-
-    auto data = read_payload(length);
-    return Http2WindowUpdate::parse(std::span<const uint8_t, Http2WindowUpdate::wire_size>{
-        data.data(), Http2WindowUpdate::wire_size});
+Http2WindowUpdate Http2Connection::process_window_update_payload(std::span<const uint8_t> payload) {
+    return Http2WindowUpdate::parse(payload.subspan<0, Http2WindowUpdate::wire_size>());
 }
 
 void Http2Connection::write_frame_header(const Http2FrameHeader& header) {
@@ -194,25 +166,13 @@ void Http2Connection::process_frame(const Http2FrameHeader& header,
             if (header.flags & 0x01) {
                 spdlog::debug("Received SETTINGS ACK");
             } else {
-                // Process settings
                 if (header.length % Http2Setting::wire_size != 0) {
                     spdlog::error("Invalid SETTINGS frame: data size not a multiple of {}",
                                   Http2Setting::wire_size);
                     return;
                 }
 
-                std::vector<Http2Setting> settings;
-                const auto num_settings = payload.size() / Http2Setting::wire_size;
-                settings.reserve(num_settings);
-
-                for (size_t i = 0; i < num_settings; ++i) {
-                    std::span<const uint8_t, Http2Setting::wire_size> entry{
-                        payload.data() + i * Http2Setting::wire_size, Http2Setting::wire_size};
-                    settings.push_back(Http2Setting::parse(entry));
-                }
-                spdlog::debug("Received {} SETTINGS", settings.size());
-
-                write_settings_ack();
+                process_settings_payload(payload);
             }
             break;
         }
@@ -231,6 +191,7 @@ void Http2Connection::process_frame(const Http2FrameHeader& header,
         }
         case FRAME_TYPE_WINDOW_UPDATE: {
             spdlog::debug("Received WINDOW_UPDATE frame for stream {}", header.stream_id);
+            process_window_update_payload(payload);
             break;
         }
         default:

@@ -47,9 +47,12 @@ void run_server() {
             spdlog::info("SSL handshake completed successfully");
 
             Http2Connection http{tls_conn};
-            http.read_preface();
-            spdlog::info("valid HTTP/2 preface received!");
-
+            while (!should_stop) {
+                if (http.try_read_preface()) {
+                    spdlog::info("valid HTTP/2 preface received!");
+                    break;
+                }
+            }
             write_settings(http);
 
             auto connection_start = std::chrono::steady_clock::now();
