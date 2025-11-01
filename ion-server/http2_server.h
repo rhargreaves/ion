@@ -10,6 +10,5 @@ class Http2Server {
     void stop_server();
 
    private:
-    void write_settings(Http2Connection& http);
     volatile std::sig_atomic_t should_stop_ = 0;
 };

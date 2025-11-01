@@ -29,7 +29,7 @@ void Http2Server::run_server(uint16_t port) {
                     break;
                 }
             }
-            write_settings(http);
+            http.write_settings();
 
             auto connection_start = std::chrono::steady_clock::now();
             constexpr auto connection_timeout = std::chrono::seconds(10);
@@ -69,13 +69,3 @@ void Http2Server::run_server(uint16_t port) {
 }
 
 void Http2Server::stop_server() { should_stop_ = 1; }
-
-void Http2Server::write_settings(Http2Connection& http) {
-    const std::vector<Http2Setting> settings = {
-        {0x0003, 100},    // MAX_CONCURRENT_STREAMS
-        {0x0004, 65535},  // INITIAL_WINDOW_SIZE
-        {0x0005, 16384}   // MAX_FRAME_SIZE
-    };
-    http.write_settings(settings);
-    spdlog::debug("SETTINGS frame sent");
-}

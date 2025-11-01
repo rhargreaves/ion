@@ -120,6 +120,16 @@ void Http2Connection::write_goaway(uint32_t last_stream_id, uint32_t error_code)
     tls_conn_.write(payload_bytes);
 }
 
+void Http2Connection::write_settings() {
+    const std::vector<Http2Setting> settings = {
+        {0x0003, 100},    // MAX_CONCURRENT_STREAMS
+        {0x0004, 65535},  // INITIAL_WINDOW_SIZE
+        {0x0005, 16384}   // MAX_FRAME_SIZE
+    };
+    write_settings(settings);
+    spdlog::debug("SETTINGS frame sent");
+}
+
 bool Http2Connection::try_read_frame() {
     std::array<uint8_t, READ_BUFFER_SIZE> temp_buffer{};
     const auto bytes_read = tls_conn_.read(temp_buffer);
