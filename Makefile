@@ -3,7 +3,9 @@ PYTEST_ARGS=-rP
 #PYTEST_ARGS=
 CERT_PEM=cert.pem
 KEY_PEM=key.pem
-BUILD_DIR=ion-server/cmake-build-debug
+BUILD_DIR=ion-server/cmake-build-make
+
+export ION_PATH=$(BUILD_DIR)/ion-server
 
 build:
 	cmake -S ion-server -B $(BUILD_DIR)
@@ -16,7 +18,7 @@ test: cert.pem
 .PHONY: test
 
 clean:
-	-rm -rf $(BUILD_DIR)
+	-rm -rf $(BUILD_DIR) $(CERT_PEM) $(KEY_PEM)
 .PHONY: clean
 
 $(CERT_PEM) $(KEY_PEM):

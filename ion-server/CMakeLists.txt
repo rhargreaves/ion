@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 4.0)
-project(ion-server)
 set(CMAKE_CXX_STANDARD 23)
-include(FetchContent)
+set(CMAKE_C_COMPILER clang)
+set(CMAKE_CXX_COMPILER clang++)
+project(ion-server)
 
+include(FetchContent)
 FetchContent_Declare(
         spdlog
         GIT_REPOSITORY https://github.com/gabime/spdlog.git
@@ -10,7 +12,6 @@ FetchContent_Declare(
         GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(spdlog)
-
 find_package(OpenSSL REQUIRED)
 
 add_executable(ion-server main.cpp

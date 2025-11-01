@@ -1,7 +1,6 @@
 FROM ubuntu:24.04
-
-# Install dependencies
 RUN apt-get update && apt-get install -y \
+    clang clang-tools libc++-dev libc++abi-dev \
     build-essential \
     libssl-dev \
     python3 \
@@ -15,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install CMake 4.0+ (detect architecture)
+# Install CMake
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "x86_64" ]; then \
         CMAKE_ARCH="linux-x86_64"; \
@@ -28,17 +27,8 @@ RUN ARCH=$(uname -m) && \
     sh /tmp/cmake.sh --skip-license --prefix=/usr/local && \
     rm /tmp/cmake.sh
 
-# Set working directory
 WORKDIR /workspace
 
-# Copy project files
-COPY . .
-
-# Create and activate virtual environment, then build and test
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --upgrade setuptools
-RUN make build
-RUN make test
-
-CMD ["./ion-server/cmake-build-debug/ion-server"]
