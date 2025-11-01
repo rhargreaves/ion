@@ -3,8 +3,8 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_C_COMPILER clang)
 set(CMAKE_CXX_COMPILER clang++)
 project(ion-server)
-
 include(FetchContent)
+
 FetchContent_Declare(
         spdlog
         GIT_REPOSITORY https://github.com/gabime/spdlog.git
@@ -12,6 +12,14 @@ FetchContent_Declare(
         GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(spdlog)
+FetchContent_Declare(
+        CLI11
+        GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
+        GIT_TAG v2.6.1
+        GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(CLI11)
+
 find_package(OpenSSL REQUIRED)
 
 add_executable(ion-server main.cpp
@@ -34,6 +42,7 @@ add_executable(ion-server main.cpp
 target_link_libraries(ion-server PRIVATE
         OpenSSL::SSL OpenSSL::Crypto
         spdlog::spdlog
+        CLI11::CLI11
 )
 
 target_compile_options(ion-server PRIVATE

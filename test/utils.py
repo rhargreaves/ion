@@ -8,6 +8,7 @@ def run_server(port):
     env['SSLKEYLOGFILE'] = '/tmp/tls-keys.log'
     return subprocess.Popen([
         os.environ.get('ION_PATH', 'ion-server'),
+        "-p",
         str(port)
     ], env=env)
 
