@@ -5,6 +5,29 @@
 #include "tls_conn.h"
 #include "tls_conn_except.h"
 
+enum class Http2ConnectionState { Preface, Frames };
+
+bool process_state(Http2ConnectionState state, Http2Connection& http) {
+    switch (state) {
+        case Http2ConnectionState::Preface: {
+            if (http.try_read_preface()) {
+                return true;
+            }
+            return false;
+        }
+        case Http2ConnectionState::Frames: {
+            if (http.try_read_frame()) {
+                spdlog::debug("Frame processed, continuing...");
+                return true;
+            }
+            return false;
+        }
+        default: {
+            throw std::runtime_error("Invalid state");
+        }
+    }
+}
+
 void Http2Server::run_server(uint16_t port) {
     TcpConnection tcp_conn{port};
     tcp_conn.listen();
@@ -21,31 +44,25 @@ void Http2Server::run_server(uint16_t port) {
             tls_conn.handshake();
             spdlog::info("SSL handshake completed successfully");
 
-            Http2Connection http{tls_conn};
-            while (!should_stop_) {
-                if (http.try_read_preface()) {
-                    spdlog::info("valid HTTP/2 preface received!");
-                    break;
-                }
-            }
-            http.write_settings();
-
             auto connection_start = std::chrono::steady_clock::now();
             constexpr auto connection_timeout = std::chrono::seconds(10);
 
+            Http2Connection http{tls_conn};
+            Http2ConnectionState state = Http2ConnectionState::Preface;
+
             while (!should_stop_) {
-                if (http.try_read_frame()) {
-                    spdlog::debug("Frame processed, continuing...");
+                if (process_state(state, http)) {
                     connection_start = std::chrono::steady_clock::now();
-                    continue;
+
+                    if (state == Http2ConnectionState::Preface) {
+                        state = Http2ConnectionState::Frames;
+                    }
                 }
 
                 if (std::chrono::steady_clock::now() - connection_start > connection_timeout) {
                     spdlog::debug("Connection timeout, closing");
                     break;
                 }
-
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
 
             http.write_goaway(1);

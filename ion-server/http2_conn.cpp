@@ -42,7 +42,8 @@ bool Http2Connection::try_read_preface() {
         throw std::runtime_error("invalid HTTP/2 preface");
     }
 
-    spdlog::debug("received HTTP/2 preface");
+    spdlog::info("valid HTTP/2 preface received!");
+    write_settings();
 
     buffer_.erase(buffer_.begin(), buffer_.begin() + CLIENT_PREFACE.size());
     return true;
