@@ -42,6 +42,7 @@ Docker:
 docker build -t ion .
 
 docker run -it \
+  -e BUILD_SUFFIX=docker \
   -p 8443:8443 \
   -w /workspace \
   -v $(pwd):/workspace ion \

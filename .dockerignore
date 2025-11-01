@@ -1,5 +1,4 @@
-ion-server/cmake-build-debug/
-ion-server/cmake-build-release/
+ion-server/cmake-build-*
 .idea/
 .venv/
 .git/
