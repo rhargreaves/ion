@@ -24,7 +24,6 @@ def test_http2_returns_200():
         raise e
 
 
-@pytest.mark.only
 def test_http2_returns_200_many_times_same_server():
     server = run_server(SERVER_PORT)
     try:

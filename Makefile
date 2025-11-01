@@ -4,6 +4,7 @@ PYTEST_ARGS=-rP
 CERT_PEM=cert.pem
 KEY_PEM=key.pem
 BUILD_DIR=ion-server/cmake-build-make
+SERVER_PORT=8443
 
 export ION_PATH=$(BUILD_DIR)/ion-server
 
@@ -16,6 +17,10 @@ test: cert.pem
 	pip3 install -q -r test/requirements.txt
 	python3 -m pytest test/ $(PYTEST_ARGS)
 .PHONY: test
+
+run: build
+	$(ION_PATH) $(SERVER_PORT)
+.PHONY: run
 
 clean:
 	-rm -rf $(BUILD_DIR) $(CERT_PEM) $(KEY_PEM)

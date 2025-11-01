@@ -7,7 +7,8 @@ Light-weight HTTP/2 server in C++
 ## Goals
 
 I'm using this as a learning exercise to learn more about HTTP/2 and modern C++.
-As such, I am intentionally using low-level APIs and avoiding libraries for the core flow (but using modern C++ features to wrap the POSIX interfaces).
+As such, I am intentionally using low-level APIs and avoiding libraries for the core flow (but using modern C++ features
+to wrap the POSIX interfaces).
 It is not intended to be a production-ready server!
 
 ## Progress
@@ -39,7 +40,12 @@ Docker:
 
 ```sh
 docker build -t ion .
-docker run -p 8443:8443 -it ion
+
+docker run -it \
+  -p 8443:8443 \
+  -w /workspace \
+  -v $(pwd):/workspace ion \
+  make run
 ```
 
 Make:
