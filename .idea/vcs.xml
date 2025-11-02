@@ -3,12 +3,7 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/ion-server/cmake-build-debug/_deps/cli11-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ion-server/cmake-build-debug/_deps/spdlog-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/ion-server/cmake-build-docker/_deps/spdlog-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/ion-server/cmake-build-make/_deps/cli11-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/ion-server/cmake-build-make/_deps/spdlog-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/ion-server/cmake-build-release/_deps/cli11-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ion-server/cmake-build-release/_deps/spdlog-src" vcs="Git" />
   </component>
 </project>
