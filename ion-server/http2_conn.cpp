@@ -32,7 +32,7 @@ bool Http2Connection::try_read_preface() {
 
     // Check if we have enough data for at least a frame header
     if (buffer_.size() < CLIENT_PREFACE.length()) {
-        spdlog::trace("Not enough data");
+        spdlog::trace("not enough data");
         return false;  // Not enough data yet
     }
 
@@ -44,7 +44,7 @@ bool Http2Connection::try_read_preface() {
         throw std::runtime_error("invalid HTTP/2 preface");
     }
 
-    spdlog::info("valid HTTP/2 preface received!");
+    spdlog::info("valid HTTP/2 preface received");
     write_settings();
     state_ = Http2ConnectionState::Frames;
 
@@ -62,7 +62,7 @@ void Http2Connection::process_settings_payload(std::span<const uint8_t> payload)
             payload.data() + i * Http2Setting::wire_size, Http2Setting::wire_size};
         settings.push_back(Http2Setting::parse(entry));
     }
-    spdlog::debug("Received {} SETTINGS. Sending ACK", settings.size());
+    spdlog::debug("received {} SETTINGS, sending ACK", settings.size());
     write_settings_ack();
 }
 
@@ -145,7 +145,7 @@ bool Http2Connection::try_read_frame() {
 
     // Check if we have enough data for at least a frame header
     if (buffer_.size() < Http2FrameHeader::wire_size) {
-        spdlog::trace("Not enough data");
+        spdlog::trace("not enough data");
         return false;  // Not enough data yet
     }
 
@@ -173,15 +173,15 @@ bool Http2Connection::try_read_frame() {
 
 void Http2Connection::process_frame(const Http2FrameHeader& header,
                                     std::span<const uint8_t> payload) {
-    spdlog::debug("Processing frame: type={}, stream_id={}", header.type, header.stream_id);
+    spdlog::debug("processing frame: type={}, stream_id={}", header.type, header.stream_id);
 
     switch (header.type) {
         case FRAME_TYPE_SETTINGS: {
             if (header.flags & 0x01) {
-                spdlog::debug("Received SETTINGS ACK");
+                spdlog::debug("received SETTINGS ACK");
             } else {
                 if (header.length % Http2Setting::wire_size != 0) {
-                    spdlog::error("Invalid SETTINGS frame: data size not a multiple of {}",
+                    spdlog::error("invalid SETTINGS frame: data size not a multiple of {}",
                                   Http2Setting::wire_size);
                     state_ = Http2ConnectionState::ProtocolError;
                     return;
@@ -191,7 +191,7 @@ void Http2Connection::process_frame(const Http2FrameHeader& header,
             break;
         }
         case FRAME_TYPE_HEADERS: {
-            spdlog::debug("Received HEADERS frame for stream {}", header.stream_id);
+            spdlog::debug("received HEADERS frame for stream {}", header.stream_id);
             const bool end_headers_set = (header.flags & FLAG_END_HEADERS) != 0;
             const bool end_stream_set = (header.flags & FLAG_END_STREAM) != 0;
             spdlog::debug(" - stream ID: {}, end headers: {}, end stream: {}, length: {}",
@@ -205,17 +205,17 @@ void Http2Connection::process_frame(const Http2FrameHeader& header,
             break;
         }
         case FRAME_TYPE_WINDOW_UPDATE: {
-            spdlog::debug("Received WINDOW_UPDATE frame for stream {}", header.stream_id);
+            spdlog::debug("received WINDOW_UPDATE frame for stream {}", header.stream_id);
             process_window_update_payload(payload);
             break;
         }
         case FRAME_TYPE_GOAWAY: {
-            spdlog::debug("Received GOAWAY frame (stream {})", header.stream_id);
+            spdlog::debug("received GOAWAY frame (stream {})", header.stream_id);
             state_ = Http2ConnectionState::GoAway;
             break;
         }
         default:
-            spdlog::debug("Received unknown frame type: {}", header.type);
+            spdlog::debug("received unknown frame type: {}", header.type);
             break;
     }
 }
@@ -230,7 +230,7 @@ Http2ProcessResult Http2Connection::process_state() {
         }
         case Http2ConnectionState::Frames: {
             if (try_read_frame()) {
-                spdlog::debug("Frame processed, continuing...");
+                spdlog::debug("frame processed, continuing...");
                 return Http2ProcessResult::ProcessedData;
             }
             return Http2ProcessResult::AwaitingData;
@@ -240,10 +240,10 @@ Http2ProcessResult Http2Connection::process_state() {
             return Http2ProcessResult::ClosingCleanly;
         }
         case Http2ConnectionState::ProtocolError: {
-            throw std::runtime_error("Protocol error");
+            throw std::runtime_error("protocol error");
         }
         default: {
-            throw std::runtime_error("Invalid state");
+            throw std::runtime_error("invalid state");
         }
     }
 }

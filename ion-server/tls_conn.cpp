@@ -18,31 +18,31 @@ TlsConnection::TlsConnection(TcpConnection& tcp_conn, const std::filesystem::pat
                              const std::filesystem::path& key_path)
     : tcp_conn_(tcp_conn) {
     if (!exists(cert_path)) {
-        throw std::runtime_error("Certificate file not found");
+        throw std::runtime_error("certificate file not found");
     }
 
     if (!exists(key_path)) {
-        throw std::runtime_error("Private key file not found");
+        throw std::runtime_error("private key file not found");
     }
 
     SSL_CTX* ctx = SSL_CTX_new(TLS_server_method());
     if (!ctx) {
-        throw std::runtime_error("Failed to create SSL context");
+        throw std::runtime_error("failed to create SSL context");
     }
 
     if (SSL_CTX_use_certificate_file(ctx, cert_path.c_str(), SSL_FILETYPE_PEM) <= 0) {
         SSL_CTX_free(ctx);
-        throw std::runtime_error("Failed to load certificate file");
+        throw std::runtime_error("failed to load certificate file");
     }
 
     if (SSL_CTX_use_PrivateKey_file(ctx, key_path.c_str(), SSL_FILETYPE_PEM) <= 0) {
         SSL_CTX_free(ctx);
-        throw std::runtime_error("Failed to load private key file");
+        throw std::runtime_error("failed to load private key file");
     }
 
     if (!SSL_CTX_check_private_key(ctx)) {
         SSL_CTX_free(ctx);
-        throw std::runtime_error("Private key does not match certificate");
+        throw std::runtime_error("private key does not match certificate");
     }
 
     SSL_CTX_set_alpn_select_cb(ctx, alpn_callback, nullptr);
@@ -59,11 +59,11 @@ TlsConnection::TlsConnection(TcpConnection& tcp_conn, const std::filesystem::pat
     ssl_ = SSL_new(ctx);
     if (!ssl_) {
         SSL_CTX_free(ctx);
-        throw std::runtime_error("Failed to create SSL object");
+        throw std::runtime_error("failed to create SSL object");
     }
 
     if (SSL_set_fd(ssl_, tcp_conn_.client_fd()) != 1) {
-        throw std::runtime_error("Failed to set SSL file descriptor");
+        throw std::runtime_error("failed to set SSL file descriptor");
     }
 }
 

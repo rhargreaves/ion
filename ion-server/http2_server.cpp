@@ -31,7 +31,7 @@ void Http2Server::run_server(uint16_t port) {
                         should_stop_ = 2;
                         break;
                     default:
-                        throw std::runtime_error("Invalid state");
+                        throw std::runtime_error("invalid state");
                 }
             }
             tls_conn.graceful_shutdown();
