@@ -7,7 +7,7 @@
 #include "tls_conn.h"
 
 enum class Http2ProcessResult { Incomplete, Complete, ClientClosed };
-enum class Http2ConnectionState { Preface, Frames, GoAway, ProtocolError, ClientClosed };
+enum class Http2ConnectionState { AwaitingPreface, AwaitingFrame, ProtocolError, ClientClosed };
 
 class Http2Connection {
    public:
@@ -18,11 +18,13 @@ class Http2Connection {
    private:
     const TlsConnection& tls_conn_;
     std::vector<uint8_t> buffer_;
-    Http2ConnectionState state_ = Http2ConnectionState::Preface;
+    Http2ConnectionState state_ = Http2ConnectionState::AwaitingPreface;
 
     bool try_read_preface();
     Http2WindowUpdate process_window_update_payload(std::span<const uint8_t> payload);
     bool try_read_frame();
+    void populate_read_buffer();
+    void discard_processed_buffer(size_t length);
 
     void write_frame_header(const Http2FrameHeader& header);
     void write_settings(const std::vector<Http2Setting>& settings);

@@ -16,60 +16,9 @@ static constexpr uint8_t FLAG_END_STREAM = 0x01;
 
 static constexpr std::string_view CLIENT_PREFACE{"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"};
 
-static constexpr size_t PREFACE_BUFFER_SIZE = CLIENT_PREFACE.size();
 static constexpr size_t READ_BUFFER_SIZE = 1024 * 1024;
 
 Http2Connection::Http2Connection(const TlsConnection& conn) : tls_conn_(conn) {}
-
-bool Http2Connection::try_read_preface() {
-    std::array<uint8_t, PREFACE_BUFFER_SIZE> temp_buffer{};
-    const auto result = tls_conn_.read(temp_buffer);
-    if (!result) {
-        switch (result.error()) {
-            case TlsError::WantReadOrWrite:
-                spdlog::trace("TLS want read/write");
-                break;
-            case TlsError::ConnectionClosed:
-                spdlog::debug("TLS connection closed");
-                update_state(Http2ConnectionState::ClientClosed);
-                return false;
-            case TlsError::ProtocolError:
-                spdlog::error("TLS protocol error");
-                update_state(Http2ConnectionState::ProtocolError);
-                return false;
-            case TlsError::OtherError:
-                spdlog::error("TLS other error (presumed non fatal)");
-                break;
-        }
-    }
-    const auto bytes_read = !result ? 0 : result.value();
-
-    if (bytes_read > 0) {
-        // Append new data to our buffer
-        buffer_.insert(buffer_.end(), temp_buffer.begin(), temp_buffer.begin() + bytes_read);
-    }
-
-    // Check if we have enough data for at least a frame header
-    if (buffer_.size() < CLIENT_PREFACE.length()) {
-        spdlog::trace("not enough data");
-        return false;  // Not enough data yet
-    }
-
-    std::span<const uint8_t, CLIENT_PREFACE.size()> preface_span{buffer_.data(),
-                                                                 CLIENT_PREFACE.size()};
-    const std::string_view received(reinterpret_cast<const char*>(preface_span.data()),
-                                    preface_span.size());
-    if (received != CLIENT_PREFACE) {
-        throw std::runtime_error("invalid HTTP/2 preface");
-    }
-
-    spdlog::info("valid HTTP/2 preface received");
-    write_settings();
-    update_state(Http2ConnectionState::Frames);
-
-    buffer_.erase(buffer_.begin(), buffer_.begin() + CLIENT_PREFACE.size());
-    return true;
-}
 
 void Http2Connection::process_settings_payload(std::span<const uint8_t> payload) {
     std::vector<Http2Setting> settings;
@@ -153,58 +102,82 @@ void Http2Connection::write_settings() {
     spdlog::debug("SETTINGS frame sent");
 }
 
-bool Http2Connection::try_read_frame() {
+void Http2Connection::populate_read_buffer() {
     std::array<uint8_t, READ_BUFFER_SIZE> temp_buffer{};
     const auto result = tls_conn_.read(temp_buffer);
+
     if (!result) {
         switch (result.error()) {
             case TlsError::WantReadOrWrite:
+                spdlog::trace("TLS want read/write");
                 break;
             case TlsError::ConnectionClosed:
                 spdlog::debug("TLS connection closed");
                 update_state(Http2ConnectionState::ClientClosed);
-                return false;
+                break;
             case TlsError::ProtocolError:
                 spdlog::error("TLS protocol error");
                 update_state(Http2ConnectionState::ProtocolError);
-                return false;
+                break;
             case TlsError::OtherError:
                 spdlog::error("TLS other error (presumed non fatal)");
                 break;
         }
+        return;
     }
-
-    const auto bytes_read = !result ? 0 : result.value();
+    const auto bytes_read = result.value();
     if (bytes_read > 0) {
-        // Append new data to our buffer
         buffer_.insert(buffer_.end(), temp_buffer.begin(), temp_buffer.begin() + bytes_read);
+        spdlog::trace("read {} bytes, buffer size now {}", bytes_read, buffer_.size());
+    }
+}
+
+void Http2Connection::discard_processed_buffer(size_t length) {
+    buffer_.erase(buffer_.begin(), buffer_.begin() + length);
+}
+
+bool Http2Connection::try_read_preface() {
+    if (buffer_.size() < CLIENT_PREFACE.length()) {
+        spdlog::trace("not enough data for preface ({} < {})", buffer_.size(),
+                      CLIENT_PREFACE.length());
+        return false;
+    }
+    std::span<const uint8_t, CLIENT_PREFACE.size()> preface_span{buffer_.data(),
+                                                                 CLIENT_PREFACE.size()};
+    const std::string_view received(reinterpret_cast<const char*>(preface_span.data()),
+                                    preface_span.size());
+    if (received != CLIENT_PREFACE) {
+        throw std::runtime_error("invalid HTTP/2 preface");
     }
 
-    // Check if we have enough data for at least a frame header
+    spdlog::info("valid HTTP/2 preface received");
+    write_settings();
+    update_state(Http2ConnectionState::AwaitingFrame);
+    discard_processed_buffer(CLIENT_PREFACE.size());
+    return true;
+}
+
+bool Http2Connection::try_read_frame() {
     if (buffer_.size() < Http2FrameHeader::wire_size) {
-        spdlog::trace("not enough data");
-        return false;  // Not enough data yet
+        spdlog::trace("not enough data for frame header ({} < {})", buffer_.size(),
+                      Http2FrameHeader::wire_size);
+        return false;
     }
 
-    // Parse the frame header from the beginning of the buffer
-    std::span<const uint8_t, Http2FrameHeader::wire_size> header_span{buffer_.data(),
-                                                                      Http2FrameHeader::wire_size};
-    const auto header = Http2FrameHeader::parse(header_span);
+    std::span<const uint8_t> buffer{buffer_};
+    const auto header = Http2FrameHeader::parse(buffer.subspan<0, Http2FrameHeader::wire_size>());
     spdlog::debug("received frame header: type: {}, flag: {:#04x}, length: {}", header.type,
                   header.flags, header.length);
 
-    // Check if we have the complete frame (header + payload)
     const size_t total_frame_size = Http2FrameHeader::wire_size + header.length;
     if (buffer_.size() < total_frame_size) {
-        return false;  // Not enough data for complete frame yet
+        spdlog::trace("not enough data for whole frame ({} < {})", buffer_.size(),
+                      total_frame_size);
+        return false;
     }
 
-    spdlog::debug("received complete frame");
-    process_frame(header, std::span<const uint8_t>{buffer_.data() + Http2FrameHeader::wire_size,
-                                                   header.length});
-    // Remove the processed frame from the buffer
-    buffer_.erase(buffer_.begin(), buffer_.begin() + total_frame_size);
-
+    process_frame(header, buffer.subspan(Http2FrameHeader::wire_size, header.length));
+    discard_processed_buffer(total_frame_size);
     return true;
 }
 
@@ -260,12 +233,10 @@ void Http2Connection::process_frame(const Http2FrameHeader& header,
 
 constexpr std::string_view state_to_string(Http2ConnectionState state) {
     switch (state) {
-        case Http2ConnectionState::Preface:
-            return "Preface";
-        case Http2ConnectionState::Frames:
-            return "Frames";
-        case Http2ConnectionState::GoAway:
-            return "GoAway";
+        case Http2ConnectionState::AwaitingPreface:
+            return "AwaitingPreface";
+        case Http2ConnectionState::AwaitingFrame:
+            return "AwaitingFrame";
         case Http2ConnectionState::ProtocolError:
             return "ProtocolError";
         case Http2ConnectionState::ClientClosed:
@@ -275,24 +246,27 @@ constexpr std::string_view state_to_string(Http2ConnectionState state) {
 }
 
 Http2ProcessResult Http2Connection::process_state() {
-    spdlog::trace("processing state: {}", state_to_string(state_));
+    spdlog::debug("processing state: {}", state_to_string(state_));
+
+    if (state_ == Http2ConnectionState::AwaitingPreface ||
+        state_ == Http2ConnectionState::AwaitingFrame) {
+        populate_read_buffer();  // updates connection state on error
+    }
+
     switch (state_) {
-        case Http2ConnectionState::Preface: {
+        case Http2ConnectionState::AwaitingPreface: {
             if (try_read_preface()) {
                 return Http2ProcessResult::Complete;
             }
             return Http2ProcessResult::Incomplete;
         }
-        case Http2ConnectionState::Frames: {
+        case Http2ConnectionState::AwaitingFrame: {
+            populate_read_buffer();
             if (try_read_frame()) {
                 spdlog::debug("frame processed, continuing...");
                 return Http2ProcessResult::Complete;
             }
             return Http2ProcessResult::Incomplete;
-        }
-        case Http2ConnectionState::GoAway: {
-            close();
-            return Http2ProcessResult::ClientClosed;
         }
         case Http2ConnectionState::ProtocolError: {
             throw std::runtime_error("protocol error");
