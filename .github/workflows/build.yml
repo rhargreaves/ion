@@ -11,8 +11,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Build in Docker
-      run: docker build -t ion-server .
+      - name: Build in Docker
+        run: |
+          docker build -t ion-server .
+          docker run -e BUILD_SUFFIX=docker \
+            -i -w /workspace -v $(pwd):/workspace \
+            ion make build test
