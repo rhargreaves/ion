@@ -6,7 +6,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(Catch2)
 
 add_executable(unit-tests
-        test_hpack.cpp
+        test_frame_parsing.cpp
         ../../ion-server/http2_conn.cpp
         ../../ion-server/tcp_conn.cpp
         ../../ion-server/tls_conn.cpp
