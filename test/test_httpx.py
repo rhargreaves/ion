@@ -26,3 +26,19 @@ async def test_httpx_returns_200():
     finally:
         server.terminate()
         server.wait(timeout=10)
+
+
+@pytest.mark.asyncio
+async def test_httpx_returns_200_for_multiple_requests_over_persistent_connection():
+    server = run_server(SERVER_PORT)
+    assert wait_for_port(SERVER_PORT)
+    try:
+        client = httpx.AsyncClient(http2=True, verify=False)
+        for i in range(10):
+            print(f"request {i}:")
+            response = await client.get(URL)
+            assert response.status_code == 200
+
+    finally:
+        server.terminate()
+        server.wait(timeout=10)
