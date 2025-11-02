@@ -28,13 +28,14 @@ void Http2Server::run_server(uint16_t port) {
                     case Http2ProcessResult::ProcessedData:
                         break;
                     case Http2ProcessResult::ClosingCleanly:
-                        tls_conn.graceful_shutdown();
                         should_stop_ = 2;
                         break;
                     default:
                         throw std::runtime_error("Invalid state");
                 }
             }
+            tls_conn.graceful_shutdown();
+
         } catch (const TlsConnectionClosed& e) {
             spdlog::info("connection closed (exception): {}", e.what());
         } catch (const Http2TimeoutException& e) {

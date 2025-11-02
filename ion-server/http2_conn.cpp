@@ -236,8 +236,7 @@ Http2ProcessResult Http2Connection::process_state() {
             return Http2ProcessResult::AwaitingData;
         }
         case Http2ConnectionState::GoAway: {
-            write_goaway(1);
-            spdlog::debug("GOAWAY frame sent");
+            close();
             return Http2ProcessResult::ClosingCleanly;
         }
         case Http2ConnectionState::ProtocolError: {
@@ -247,4 +246,9 @@ Http2ProcessResult Http2Connection::process_state() {
             throw std::runtime_error("Invalid state");
         }
     }
+}
+
+void Http2Connection::close() {
+    write_goaway(1);
+    spdlog::debug("GOAWAY frame sent");
 }
