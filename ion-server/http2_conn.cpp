@@ -249,7 +249,7 @@ void Http2Connection::process_frame(const Http2FrameHeader& header,
         }
         case FRAME_TYPE_GOAWAY: {
             spdlog::debug("received GOAWAY frame (stream {})", header.stream_id);
-            update_state(Http2ConnectionState::GoAway);
+            update_state(Http2ConnectionState::ClientClosed);
             break;
         }
         default:
