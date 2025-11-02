@@ -261,7 +261,6 @@ Http2ProcessResult Http2Connection::process_state() {
             return Http2ProcessResult::Incomplete;
         }
         case Http2ConnectionState::AwaitingFrame: {
-            populate_read_buffer();
             if (try_read_frame()) {
                 spdlog::debug("frame processed, continuing...");
                 return Http2ProcessResult::Complete;
