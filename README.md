@@ -26,7 +26,7 @@ It is not intended to be a production-ready server!
 
 ### macOS
 
-Install CMake (4.0+), CLion, Python (3.13+) and GCC/Clang:
+Install CMake (4.0+), CLion, Python (3.13+) and Clang (17+):
 
 ```sh
 brew install cmake
