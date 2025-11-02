@@ -292,7 +292,7 @@ Http2ProcessResult Http2Connection::process_state() {
         }
         case Http2ConnectionState::GoAway: {
             close();
-            return Http2ProcessResult::ClosingCleanly;
+            return Http2ProcessResult::ClientClosed;
         }
         case Http2ConnectionState::ProtocolError: {
             throw std::runtime_error("protocol error");

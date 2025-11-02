@@ -10,12 +10,14 @@ static std::atomic<Http2Server*> g_server{nullptr};
 
 static void stop_server() {
     if (Http2Server* server = g_server.load()) {
-        spdlog::info("stopping server (signal)...");
         server->stop_server();
     }
 }
 
-void signal_handler(int) { stop_server(); }
+void signal_handler(int) {
+    spdlog::info("stopping server (signal)...");
+    stop_server();
+}
 
 void sigpipe_handler(int) {
     char dummy;
@@ -52,17 +54,15 @@ int main(int argc, char* argv[]) {
     std::signal(SIGPIPE, sigpipe_handler);
 
     spdlog::info("ion started ⚡️");
-    spdlog::set_level(spdlog::level::trace);
+    spdlog::set_level(spdlog::level::debug);
     try {
         Http2Server server{};
         g_server.store(&server);
-
         server.run_server(port);
-
         spdlog::info("exiting");
         return 0;
     } catch (const std::exception& e) {
-        spdlog::error("terminating: {}", e.what());
+        spdlog::error("fatal error: {}", e.what());
         return 1;
     }
 }

@@ -29,19 +29,12 @@ void Http2Server::run_server(uint16_t port) {
                 case Http2ProcessResult::Complete:
                     // TODO: reset timeout clock
                     break;
-                case Http2ProcessResult::ClosingCleanly:
-                    connection_valid = false;
-                    break;
                 case Http2ProcessResult::ClientClosed:
                     spdlog::info("client closed connection");
                     connection_valid = false;
                     break;
-                default:
-                    throw std::runtime_error("invalid state");
             }
         }
-
-        spdlog::info("connection ended, waiting for next client");
     }
 
     spdlog::info("server shutting down...");

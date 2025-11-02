@@ -6,7 +6,7 @@
 #include "http2_frames.h"
 #include "tls_conn.h"
 
-enum class Http2ProcessResult { Incomplete, Complete, ClosingCleanly, ClientClosed };
+enum class Http2ProcessResult { Incomplete, Complete, ClientClosed };
 enum class Http2ConnectionState { Preface, Frames, GoAway, ProtocolError, ClientClosed };
 
 class Http2Connection {
