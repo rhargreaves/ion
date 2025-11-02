@@ -15,12 +15,12 @@ build:
 .PHONY: build
 
 test: $(CERT_PEM) $(KEY_PEM)
-	pip3 install -q -r test/requirements.txt
-	python3 -m pytest test/ $(PYTEST_ARGS)
+	pip3 install -q -r test/system/requirements.txt
+	python3 -m pytest test/system/ $(PYTEST_ARGS)
 .PHONY: test
 
 test-h2spec:
-	./test/test_h2spec.sh
+	./test/system/test_h2spec.sh
 PHONY: test-h2spec
 
 run: build $(CERT_PEM) $(KEY_PEM)

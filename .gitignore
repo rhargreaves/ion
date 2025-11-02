@@ -46,4 +46,4 @@ __pycache__/
 cert.pem
 key.pem
 
-ion-server/build/
+**/build/
