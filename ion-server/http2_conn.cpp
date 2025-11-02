@@ -32,11 +32,11 @@ bool Http2Connection::try_read_preface() {
             case TlsError::ConnectionClosed:
                 spdlog::debug("TLS connection closed");
                 update_state(Http2ConnectionState::ClientClosed);
-                break;
+                return false;
             case TlsError::ProtocolError:
                 spdlog::error("TLS protocol error");
                 update_state(Http2ConnectionState::ProtocolError);
-                break;
+                return false;
             case TlsError::OtherError:
                 spdlog::error("TLS other error (presumed non fatal)");
                 break;
@@ -163,11 +163,11 @@ bool Http2Connection::try_read_frame() {
             case TlsError::ConnectionClosed:
                 spdlog::debug("TLS connection closed");
                 update_state(Http2ConnectionState::ClientClosed);
-                break;
+                return false;
             case TlsError::ProtocolError:
                 spdlog::error("TLS protocol error");
                 update_state(Http2ConnectionState::ProtocolError);
-                break;
+                return false;
             case TlsError::OtherError:
                 spdlog::error("TLS other error (presumed non fatal)");
                 break;
