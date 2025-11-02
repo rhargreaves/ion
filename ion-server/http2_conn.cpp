@@ -30,7 +30,7 @@ bool Http2Connection::try_read_preface() {
 
     // Check if we have enough data for at least a frame header
     if (buffer_.size() < CLIENT_PREFACE.length()) {
-        spdlog::debug("Not enough data");
+        spdlog::trace("Not enough data");
         return false;  // Not enough data yet
     }
 
@@ -142,7 +142,7 @@ bool Http2Connection::try_read_frame() {
 
     // Check if we have enough data for at least a frame header
     if (buffer_.size() < Http2FrameHeader::wire_size) {
-        spdlog::debug("Not enough data");
+        spdlog::trace("Not enough data");
         return false;  // Not enough data yet
     }
 

@@ -150,7 +150,7 @@ ssize_t TlsConnection::read(std::span<uint8_t> buffer) const {
         switch (ssl_error) {
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE:
-                spdlog::debug("SSL want read/write");
+                spdlog::trace("SSL want read/write");
                 return 0;  // no data available right now
             case SSL_ERROR_ZERO_RETURN:
                 spdlog::debug("SSL zero return");
