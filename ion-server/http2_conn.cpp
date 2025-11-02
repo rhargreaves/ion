@@ -236,7 +236,9 @@ Http2ProcessResult Http2Connection::process_state() {
             return Http2ProcessResult::AwaitingData;
         }
         case Http2ConnectionState::GoAway: {
-            return Http2ProcessResult::Ending;
+            write_goaway(1);
+            spdlog::debug("GOAWAY frame sent");
+            return Http2ProcessResult::ClosingCleanly;
         }
         case Http2ConnectionState::ProtocolError: {
             throw std::runtime_error("Protocol error");

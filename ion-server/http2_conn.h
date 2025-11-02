@@ -6,7 +6,7 @@
 #include "http2_frames.h"
 #include "tls_conn.h"
 
-enum class Http2ProcessResult { AwaitingData, ProcessedData, Ending };
+enum class Http2ProcessResult { AwaitingData, ProcessedData, ClosingCleanly };
 enum class Http2ConnectionState { Preface, Frames, GoAway, ProtocolError };
 
 class Http2Connection {
