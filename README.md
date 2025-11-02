@@ -58,7 +58,7 @@ make build
 ## Usage
 
 ```sh
-./ion-server/cmake-build-debug/ion-server &
+./ion-server/build/make/ion-server &
 curl -k --http2 -v https://localhost:8443/
 ```
 

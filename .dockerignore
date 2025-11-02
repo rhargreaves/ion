@@ -1,4 +1,4 @@
-ion-server/cmake-build-*
+ion-server/build/
 .idea/
 .venv/
 .git/

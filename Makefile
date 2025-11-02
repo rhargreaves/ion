@@ -4,7 +4,7 @@ PYTEST_ARGS=
 CERT_PEM=cert.pem
 KEY_PEM=key.pem
 BUILD_SUFFIX?=make
-BUILD_DIR=ion-server/cmake-build-$(BUILD_SUFFIX)
+BUILD_DIR=ion-server/build/$(BUILD_SUFFIX)
 SERVER_PORT=8443
 
 export ION_PATH=$(BUILD_DIR)/ion-server
