@@ -19,6 +19,10 @@ test: $(CERT_PEM) $(KEY_PEM)
 	python3 -m pytest test/ $(PYTEST_ARGS)
 .PHONY: test
 
+test-h2spec:
+	./test/test_h2spec.sh
+PHONY: test-h2spec
+
 run: build $(CERT_PEM) $(KEY_PEM)
 	$(ION_PATH) $(SERVER_PORT)
 .PHONY: run
