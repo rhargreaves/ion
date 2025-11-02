@@ -246,7 +246,7 @@ constexpr std::string_view state_to_string(Http2ConnectionState state) {
 }
 
 Http2ProcessResult Http2Connection::process_state() {
-    spdlog::debug("processing state: {}", state_to_string(state_));
+    spdlog::trace("processing state: {}", state_to_string(state_));
 
     if (state_ == Http2ConnectionState::AwaitingPreface ||
         state_ == Http2ConnectionState::AwaitingFrame) {

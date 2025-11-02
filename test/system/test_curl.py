@@ -15,13 +15,10 @@ def test_http2_returns_200():
 
         assert result.returncode == 0
         assert_curl_response_ok(result)
-
-        server.send_signal(signal.SIGTERM)
-        server.wait(timeout=10)
-    except Exception as e:
+    finally:
         server.terminate()
-        server.wait()
-        raise e
+        server.wait(timeout=10)
+        assert server.returncode == 0
 
 
 def test_http2_returns_200_many_times_same_server():
@@ -33,13 +30,10 @@ def test_http2_returns_200_many_times_same_server():
             result = curl_http2(URL)
             assert result.returncode == 0
             assert_curl_response_ok(result)
-
-        server.send_signal(signal.SIGTERM)
-        server.wait(timeout=20)
-    except Exception as e:
+    finally:
         server.terminate()
-        server.wait()
-        raise e
+        server.wait(timeout=10)
+        assert server.returncode == 0
 
 
 def test_http2_test_server_closes_connection_cleanly():

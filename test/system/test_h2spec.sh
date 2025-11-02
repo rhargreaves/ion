@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ION_SERVER=ion-server/build/make/ion-server
+ION_SERVER=$ION_PATH
 SERVER_HOST=host.docker.internal
 SERVER_PORT=8443
 ION_LOG=/tmp/ion-h2spec.log

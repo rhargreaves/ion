@@ -1,17 +1,17 @@
-#PYTEST_ARGS=-rP
+PYTEST_ARGS=-rP
 #PYTEST_ARGS=--log-cli-level=DEBUG
-PYTEST_ARGS=
+#PYTEST_ARGS=
 CERT_PEM=cert.pem
 KEY_PEM=key.pem
 BUILD_SUFFIX?=make
-BUILD_DIR=ion-server/build/$(BUILD_SUFFIX)
+BUILD_DIR=build/$(BUILD_SUFFIX)
 SERVER_PORT=8443
 
-export ION_PATH=$(BUILD_DIR)/ion-server
+export ION_PATH=$(BUILD_DIR)/ion-server/ion-server
 
 build:
-	cmake -S ion-server -B $(BUILD_DIR)
-	cmake --build $(BUILD_DIR)
+	cmake -S . -B $(BUILD_DIR)
+	cmake --build $(BUILD_DIR) --parallel
 .PHONY: build
 
 test: $(CERT_PEM) $(KEY_PEM)
