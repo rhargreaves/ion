@@ -153,14 +153,14 @@ ssize_t TlsConnection::read(std::span<uint8_t> buffer) const {
                 spdlog::trace("SSL want read/write");
                 return 0;  // no data available right now
             case SSL_ERROR_ZERO_RETURN:
-                spdlog::debug("SSL zero return");
+                spdlog::debug("TLS connection closed");
                 throw TlsConnectionClosed(TlsConnectionClosed::Reason::CLEAN_SHUTDOWN);
 
             default:
                 throw std::runtime_error("SSL read error: " + std::to_string(ssl_error));
         }
     }
-    spdlog::debug("Successfully read {} bytes from SSL", bytes_read);
+    spdlog::trace("Successfully read {} bytes from SSL", bytes_read);
     return bytes_read;
 }
 
@@ -169,11 +169,12 @@ ssize_t TlsConnection::write(std::span<const uint8_t> buffer) const {
     if (bytes_written < 0) {
         const int ssl_error = SSL_get_error(ssl_, bytes_written);
         throw std::runtime_error("SSL write error: " + std::to_string(ssl_error));
-    } else if (bytes_written != static_cast<int>(buffer.size())) {
+    }
+    if (bytes_written != static_cast<int>(buffer.size())) {
         spdlog::error("SSL partial write: wrote {} of {} bytes", bytes_written, buffer.size());
         throw std::runtime_error("SSL write error: partial write");
     }
-    spdlog::debug("Successfully wrote {} bytes to SSL", bytes_written);
+    spdlog::trace("Successfully wrote {} bytes to SSL", bytes_written);
     return bytes_written;
 }
 
