@@ -16,7 +16,7 @@ jobs:
 
       - name: Build in Docker
         run: |
-          docker build -t ion-server .
+          docker build -t ion .
           docker run -e BUILD_SUFFIX=docker \
             -i -w /workspace -v $(pwd):/workspace \
             ion make build test
