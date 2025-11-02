@@ -15,6 +15,8 @@ void signal_handler(int) {
     }
 }
 
+void sigpipe_handler(int) { spdlog::warn("SIGPIPE received - client disconnected"); }
+
 int main(int argc, char* argv[]) {
     CLI::App app{"ion: the light-weight HTTP/2 server ⚡️"};
 
@@ -31,6 +33,7 @@ int main(int argc, char* argv[]) {
 
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
+    std::signal(SIGPIPE, sigpipe_handler);
 
     spdlog::info("ion started ⚡️");
     spdlog::set_level(spdlog::level::debug);

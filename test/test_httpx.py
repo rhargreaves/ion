@@ -26,6 +26,7 @@ async def test_httpx_returns_200():
     finally:
         server.terminate()
         server.wait(timeout=10)
+        assert server.returncode == 0
 
 
 @pytest.mark.asyncio
@@ -42,3 +43,4 @@ async def test_httpx_returns_200_for_multiple_requests_over_persistent_connectio
     finally:
         server.terminate()
         server.wait(timeout=10)
+        assert server.returncode == 0

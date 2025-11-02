@@ -155,7 +155,8 @@ ssize_t TlsConnection::read(std::span<uint8_t> buffer) const {
             case SSL_ERROR_ZERO_RETURN:
                 spdlog::debug("TLS connection closed");
                 throw TlsConnectionClosed(TlsConnectionClosed::Reason::CLEAN_SHUTDOWN);
-
+            case SSL_ERROR_SSL:
+                throw std::runtime_error("SSL protocol error (SSL_ERROR_SSL)");
             default:
                 throw std::runtime_error("SSL read error: " + std::to_string(ssl_error));
         }

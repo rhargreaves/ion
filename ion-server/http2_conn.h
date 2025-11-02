@@ -6,10 +6,14 @@
 #include "http2_frames.h"
 #include "tls_conn.h"
 
+enum class Http2ProcessResult { AwaitingData, ProcessedData, Ending };
+enum class Http2ConnectionState { Preface, Frames, GoAway, ProtocolError };
+
 class Http2Connection {
    public:
     explicit Http2Connection(const TlsConnection& tls_conn);
 
+    Http2ProcessResult process_state();
     bool try_read_preface();
     Http2WindowUpdate process_window_update_payload(std::span<const uint8_t> payload);
     bool try_read_frame();
@@ -25,6 +29,7 @@ class Http2Connection {
    private:
     const TlsConnection& tls_conn_;
     std::vector<uint8_t> buffer_;
+    Http2ConnectionState state_ = Http2ConnectionState::Preface;
 
     void process_settings_payload(std::span<const uint8_t> payload);
     void process_frame(const Http2FrameHeader& header, std::span<const uint8_t> payload);

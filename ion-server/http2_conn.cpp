@@ -1,5 +1,7 @@
 #include "http2_conn.h"
 
+#include <sys/stat.h>
+
 #include <format>
 
 #include "spdlog/spdlog.h"
@@ -44,6 +46,7 @@ bool Http2Connection::try_read_preface() {
 
     spdlog::info("valid HTTP/2 preface received!");
     write_settings();
+    state_ = Http2ConnectionState::Frames;
 
     buffer_.erase(buffer_.begin(), buffer_.begin() + CLIENT_PREFACE.size());
     return true;
@@ -180,9 +183,9 @@ void Http2Connection::process_frame(const Http2FrameHeader& header,
                 if (header.length % Http2Setting::wire_size != 0) {
                     spdlog::error("Invalid SETTINGS frame: data size not a multiple of {}",
                                   Http2Setting::wire_size);
+                    state_ = Http2ConnectionState::ProtocolError;
                     return;
                 }
-
                 process_settings_payload(payload);
             }
             break;
@@ -206,8 +209,40 @@ void Http2Connection::process_frame(const Http2FrameHeader& header,
             process_window_update_payload(payload);
             break;
         }
+        case FRAME_TYPE_GOAWAY: {
+            spdlog::debug("Received GOAWAY frame (stream {})", header.stream_id);
+            state_ = Http2ConnectionState::GoAway;
+            break;
+        }
         default:
             spdlog::debug("Received unknown frame type: {}", header.type);
             break;
+    }
+}
+
+Http2ProcessResult Http2Connection::process_state() {
+    switch (state_) {
+        case Http2ConnectionState::Preface: {
+            if (try_read_preface()) {
+                return Http2ProcessResult::ProcessedData;
+            }
+            return Http2ProcessResult::AwaitingData;
+        }
+        case Http2ConnectionState::Frames: {
+            if (try_read_frame()) {
+                spdlog::debug("Frame processed, continuing...");
+                return Http2ProcessResult::ProcessedData;
+            }
+            return Http2ProcessResult::AwaitingData;
+        }
+        case Http2ConnectionState::GoAway: {
+            return Http2ProcessResult::Ending;
+        }
+        case Http2ConnectionState::ProtocolError: {
+            throw std::runtime_error("Protocol error");
+        }
+        default: {
+            throw std::runtime_error("Invalid state");
+        }
     }
 }

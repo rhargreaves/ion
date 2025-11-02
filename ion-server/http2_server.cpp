@@ -5,29 +5,6 @@
 #include "tls_conn.h"
 #include "tls_conn_except.h"
 
-enum class Http2ConnectionState { Preface, Frames };
-
-bool process_state(Http2ConnectionState state, Http2Connection& http) {
-    switch (state) {
-        case Http2ConnectionState::Preface: {
-            if (http.try_read_preface()) {
-                return true;
-            }
-            return false;
-        }
-        case Http2ConnectionState::Frames: {
-            if (http.try_read_frame()) {
-                spdlog::debug("Frame processed, continuing...");
-                return true;
-            }
-            return false;
-        }
-        default: {
-            throw std::runtime_error("Invalid state");
-        }
-    }
-}
-
 void Http2Server::run_server(uint16_t port) {
     TcpConnection tcp_conn{port};
     tcp_conn.listen();
@@ -44,24 +21,17 @@ void Http2Server::run_server(uint16_t port) {
             tls_conn.handshake();
             spdlog::info("SSL handshake completed successfully");
 
-            auto connection_start = std::chrono::steady_clock::now();
-            constexpr auto connection_timeout = std::chrono::seconds(10);
-
             Http2Connection http{tls_conn};
-            Http2ConnectionState state = Http2ConnectionState::Preface;
-
             while (!should_stop_) {
-                if (process_state(state, http)) {
-                    connection_start = std::chrono::steady_clock::now();
-
-                    if (state == Http2ConnectionState::Preface) {
-                        state = Http2ConnectionState::Frames;
-                    }
-                }
-
-                if (std::chrono::steady_clock::now() - connection_start > connection_timeout) {
-                    spdlog::debug("Connection timeout, closing");
-                    break;
+                switch (http.process_state()) {
+                    case Http2ProcessResult::AwaitingData:
+                    case Http2ProcessResult::ProcessedData:
+                        break;
+                    case Http2ProcessResult::Ending:
+                        should_stop_ = 2;
+                        break;
+                    default:
+                        throw std::runtime_error("Invalid state");
                 }
             }
 
