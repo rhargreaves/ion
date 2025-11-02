@@ -10,5 +10,5 @@ class Http2Server {
     void stop_server();
 
    private:
-    volatile std::sig_atomic_t should_stop_ = 0;
+    volatile std::sig_atomic_t user_req_termination_ = 0;
 };

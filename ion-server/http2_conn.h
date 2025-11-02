@@ -6,8 +6,8 @@
 #include "http2_frames.h"
 #include "tls_conn.h"
 
-enum class Http2ProcessResult { AwaitingData, ProcessedData, ClosingCleanly };
-enum class Http2ConnectionState { Preface, Frames, GoAway, ProtocolError };
+enum class Http2ProcessResult { Incomplete, Complete, ClosingCleanly, ClientClosed };
+enum class Http2ConnectionState { Preface, Frames, GoAway, ProtocolError, ClientClosed };
 
 class Http2Connection {
    public:
@@ -33,4 +33,5 @@ class Http2Connection {
     void write_settings();
     void process_settings_payload(std::span<const uint8_t> payload);
     void process_frame(const Http2FrameHeader& header, std::span<const uint8_t> payload);
+    void update_state(Http2ConnectionState new_state);
 };

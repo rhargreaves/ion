@@ -12,7 +12,6 @@
 #include <system_error>
 
 #include "spdlog/spdlog.h"
-#include "tls_conn_except.h"
 
 TlsConnection::TlsConnection(TcpConnection& tcp_conn, const std::filesystem::path& cert_path,
                              const std::filesystem::path& key_path)
@@ -143,22 +142,24 @@ int TlsConnection::alpn_callback(SSL*, const unsigned char** out, unsigned char*
 
 void TlsConnection::print_debug_to_stderr() { ERR_print_errors_fp(stderr); }
 
-ssize_t TlsConnection::read(std::span<uint8_t> buffer) const {
+std::expected<ssize_t, TlsError> TlsConnection::read(std::span<uint8_t> buffer) const {
+    spdlog::trace("reading from SSL");
     const auto bytes_read = SSL_read(ssl_, buffer.data(), static_cast<int>(buffer.size()));
     if (bytes_read <= 0) {
-        const int ssl_error = SSL_get_error(ssl_, bytes_read);
-        switch (ssl_error) {
+        switch (const int ssl_error = SSL_get_error(ssl_, bytes_read)) {
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE:
                 spdlog::trace("SSL want read/write");
-                return 0;  // no data available right now
+                return std::unexpected(TlsError::WantReadOrWrite);
             case SSL_ERROR_ZERO_RETURN:
                 spdlog::debug("TLS connection closed");
-                throw TlsConnectionClosed(TlsConnectionClosed::Reason::CLEAN_SHUTDOWN);
+                return std::unexpected(TlsError::ConnectionClosed);
             case SSL_ERROR_SSL:
-                throw std::runtime_error("SSL protocol error (SSL_ERROR_SSL)");
+                spdlog::error("TLS protocol error (SSL_ERROR_SSL)");
+                return std::unexpected(TlsError::ProtocolError);
             default:
-                throw std::runtime_error("SSL read error: " + std::to_string(ssl_error));
+                spdlog::error("TLS read error (SSL_ERROR_*): {}", ssl_error);
+                return std::unexpected(TlsError::OtherError);
         }
     }
     spdlog::trace("successfully read {} bytes from SSL", bytes_read);

@@ -23,7 +23,26 @@ Http2Connection::Http2Connection(const TlsConnection& conn) : tls_conn_(conn) {}
 
 bool Http2Connection::try_read_preface() {
     std::array<uint8_t, PREFACE_BUFFER_SIZE> temp_buffer{};
-    const auto bytes_read = tls_conn_.read(temp_buffer);
+    const auto result = tls_conn_.read(temp_buffer);
+    if (!result) {
+        switch (result.error()) {
+            case TlsError::WantReadOrWrite:
+                spdlog::trace("TLS want read/write");
+                break;
+            case TlsError::ConnectionClosed:
+                spdlog::debug("TLS connection closed");
+                update_state(Http2ConnectionState::ClientClosed);
+                break;
+            case TlsError::ProtocolError:
+                spdlog::error("TLS protocol error");
+                update_state(Http2ConnectionState::ProtocolError);
+                break;
+            case TlsError::OtherError:
+                spdlog::error("TLS other error (presumed non fatal)");
+                break;
+        }
+    }
+    const auto bytes_read = !result ? 0 : result.value();
 
     if (bytes_read > 0) {
         // Append new data to our buffer
@@ -46,7 +65,7 @@ bool Http2Connection::try_read_preface() {
 
     spdlog::info("valid HTTP/2 preface received");
     write_settings();
-    state_ = Http2ConnectionState::Frames;
+    update_state(Http2ConnectionState::Frames);
 
     buffer_.erase(buffer_.begin(), buffer_.begin() + CLIENT_PREFACE.size());
     return true;
@@ -62,7 +81,7 @@ void Http2Connection::process_settings_payload(std::span<const uint8_t> payload)
             payload.data() + i * Http2Setting::wire_size, Http2Setting::wire_size};
         settings.push_back(Http2Setting::parse(entry));
     }
-    spdlog::debug("received {} SETTINGS, sending ACK", settings.size());
+    spdlog::debug("read {} settings, sending ACK", settings.size());
     write_settings_ack();
 }
 
@@ -136,8 +155,26 @@ void Http2Connection::write_settings() {
 
 bool Http2Connection::try_read_frame() {
     std::array<uint8_t, READ_BUFFER_SIZE> temp_buffer{};
-    const auto bytes_read = tls_conn_.read(temp_buffer);
+    const auto result = tls_conn_.read(temp_buffer);
+    if (!result) {
+        switch (result.error()) {
+            case TlsError::WantReadOrWrite:
+                break;
+            case TlsError::ConnectionClosed:
+                spdlog::debug("TLS connection closed");
+                update_state(Http2ConnectionState::ClientClosed);
+                break;
+            case TlsError::ProtocolError:
+                spdlog::error("TLS protocol error");
+                update_state(Http2ConnectionState::ProtocolError);
+                break;
+            case TlsError::OtherError:
+                spdlog::error("TLS other error (presumed non fatal)");
+                break;
+        }
+    }
 
+    const auto bytes_read = !result ? 0 : result.value();
     if (bytes_read > 0) {
         // Append new data to our buffer
         buffer_.insert(buffer_.end(), temp_buffer.begin(), temp_buffer.begin() + bytes_read);
@@ -173,17 +210,17 @@ bool Http2Connection::try_read_frame() {
 
 void Http2Connection::process_frame(const Http2FrameHeader& header,
                                     std::span<const uint8_t> payload) {
-    spdlog::debug("processing frame: type={}, stream_id={}", header.type, header.stream_id);
-
     switch (header.type) {
         case FRAME_TYPE_SETTINGS: {
+            spdlog::debug("received SETTINGS frame (stream={} flags={})", header.stream_id,
+                          header.flags);
             if (header.flags & 0x01) {
                 spdlog::debug("received SETTINGS ACK");
             } else {
                 if (header.length % Http2Setting::wire_size != 0) {
                     spdlog::error("invalid SETTINGS frame: data size not a multiple of {}",
                                   Http2Setting::wire_size);
-                    state_ = Http2ConnectionState::ProtocolError;
+                    update_state(Http2ConnectionState::ProtocolError);
                     return;
                 }
                 process_settings_payload(payload);
@@ -206,12 +243,13 @@ void Http2Connection::process_frame(const Http2FrameHeader& header,
         }
         case FRAME_TYPE_WINDOW_UPDATE: {
             spdlog::debug("received WINDOW_UPDATE frame for stream {}", header.stream_id);
-            process_window_update_payload(payload);
+            const auto [window_size_increment] = process_window_update_payload(payload);
+            spdlog::debug("window size increment = {}", window_size_increment);
             break;
         }
         case FRAME_TYPE_GOAWAY: {
             spdlog::debug("received GOAWAY frame (stream {})", header.stream_id);
-            state_ = Http2ConnectionState::GoAway;
+            update_state(Http2ConnectionState::GoAway);
             break;
         }
         default:
@@ -220,20 +258,37 @@ void Http2Connection::process_frame(const Http2FrameHeader& header,
     }
 }
 
+constexpr std::string_view state_to_string(Http2ConnectionState state) {
+    switch (state) {
+        case Http2ConnectionState::Preface:
+            return "Preface";
+        case Http2ConnectionState::Frames:
+            return "Frames";
+        case Http2ConnectionState::GoAway:
+            return "GoAway";
+        case Http2ConnectionState::ProtocolError:
+            return "ProtocolError";
+        case Http2ConnectionState::ClientClosed:
+            return "ClientClosed";
+    }
+    return "Unknown";
+}
+
 Http2ProcessResult Http2Connection::process_state() {
+    spdlog::trace("processing state: {}", state_to_string(state_));
     switch (state_) {
         case Http2ConnectionState::Preface: {
             if (try_read_preface()) {
-                return Http2ProcessResult::ProcessedData;
+                return Http2ProcessResult::Complete;
             }
-            return Http2ProcessResult::AwaitingData;
+            return Http2ProcessResult::Incomplete;
         }
         case Http2ConnectionState::Frames: {
             if (try_read_frame()) {
                 spdlog::debug("frame processed, continuing...");
-                return Http2ProcessResult::ProcessedData;
+                return Http2ProcessResult::Complete;
             }
-            return Http2ProcessResult::AwaitingData;
+            return Http2ProcessResult::Incomplete;
         }
         case Http2ConnectionState::GoAway: {
             close();
@@ -241,6 +296,9 @@ Http2ProcessResult Http2Connection::process_state() {
         }
         case Http2ConnectionState::ProtocolError: {
             throw std::runtime_error("protocol error");
+        }
+        case Http2ConnectionState::ClientClosed: {
+            return Http2ProcessResult::ClientClosed;
         }
         default: {
             throw std::runtime_error("invalid state");
@@ -251,4 +309,13 @@ Http2ProcessResult Http2Connection::process_state() {
 void Http2Connection::close() {
     write_goaway(1);
     spdlog::debug("GOAWAY frame sent");
+    tls_conn_.graceful_shutdown();
+}
+
+void Http2Connection::update_state(Http2ConnectionState new_state) {
+    if (new_state != state_) {
+        spdlog::debug("connection state changed from {} to {}", state_to_string(state_),
+                      state_to_string(new_state));
+        state_ = new_state;
+    }
 }

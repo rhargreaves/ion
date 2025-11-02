@@ -2,10 +2,13 @@
 #include <openssl/ssl.h>
 #include <unistd.h>
 
+#include <expected>
 #include <filesystem>
 #include <span>
 
 #include "tcp_conn.h"
+
+enum class TlsError { WantReadOrWrite, ConnectionClosed, ProtocolError, OtherError };
 
 class TlsConnection {
    public:
@@ -14,7 +17,7 @@ class TlsConnection {
     ~TlsConnection();
 
     static void print_debug_to_stderr();
-    ssize_t read(std::span<uint8_t> buffer) const;
+    std::expected<ssize_t, TlsError> read(std::span<uint8_t> buffer) const;
     ssize_t write(std::span<const uint8_t> buffer) const;
     [[nodiscard]] bool has_data() const;
     void handshake() const;

@@ -1,8 +1,17 @@
 cmake_minimum_required(VERSION 4.0)
-set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_C_COMPILER clang)
 set(CMAKE_CXX_COMPILER clang++)
+set(CMAKE_CXX_FLAGS "-stdlib=libc++")
+set(CMAKE_EXE_LINKER_FLAGS "-stdlib=libc++")
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 project(ion-server)
+
+# Link libc++abi on Linux
+if (UNIX AND NOT APPLE)
+    link_libraries(c++abi)
+endif ()
+
 include(FetchContent)
 
 FetchContent_Declare(
@@ -29,9 +38,6 @@ add_executable(ion-server main.cpp
         http2_conn.cpp
         http2_conn.h
         http2_conn.cpp
-        tls_conn_except.cpp
-        tls_conn_except.h
-        http2_except.h
         socket_fd.h
         tcp_conn.cpp
         tcp_conn.h

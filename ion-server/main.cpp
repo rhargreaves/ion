@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
     std::signal(SIGPIPE, sigpipe_handler);
 
     spdlog::info("ion started ⚡️");
-    spdlog::set_level(spdlog::level::debug);
+    spdlog::set_level(spdlog::level::trace);
     try {
         Http2Server server{};
         g_server.store(&server);

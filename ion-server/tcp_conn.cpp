@@ -61,6 +61,11 @@ bool TcpConnection::try_accept() {
     pollfd pfd = {server_fd_, POLLIN, 0};
     const int result = poll(&pfd, 1, timeout_ms);
     if (result < 0) {
+        if (errno == EINTR) {
+            spdlog::warn("poll interrupted by signal (ignoring)");
+            return false;
+        }
+
         throw std::system_error(errno, std::system_category(), "poll");
     }
 
