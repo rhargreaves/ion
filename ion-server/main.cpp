@@ -1,10 +1,9 @@
 #include <CLI/CLI.hpp>
 #include <csignal>
 
+#include "args.h"
 #include "http2_server.h"
 #include "spdlog/spdlog.h"
-
-static constexpr uint16_t DEFAULT_PORT = 8443;
 
 static std::atomic<Http2Server*> g_server{nullptr};
 
@@ -37,11 +36,9 @@ void sigpipe_handler(int) {
 
 int main(int argc, char* argv[]) {
     CLI::App app{"ion: the light-weight HTTP/2 server ⚡️"};
-
-    uint16_t port = DEFAULT_PORT;
-    app.add_option("--port,-p", port, "Port to listen on")
-        ->default_val(DEFAULT_PORT)
-        ->check(CLI::Range(1, 65535));
+    uint16_t port{Args::DEFAULT_PORT};
+    std::string log_level{Args::DEFAULT_LOG_LEVEL};
+    Args::register_opts(app, port, log_level);
 
     try {
         app.parse(argc, argv);
@@ -53,8 +50,8 @@ int main(int argc, char* argv[]) {
     std::signal(SIGTERM, signal_handler);
     std::signal(SIGPIPE, sigpipe_handler);
 
+    spdlog::set_level(Args::parse_log_level(log_level));
     spdlog::info("ion started ⚡️");
-    spdlog::set_level(spdlog::level::debug);
     try {
         Http2Server server{};
         g_server.store(&server);

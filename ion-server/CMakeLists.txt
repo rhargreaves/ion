@@ -10,6 +10,8 @@ add_executable(ion-server main.cpp
         tcp_conn.h
         http2_server.cpp
         http2_server.h
+        args.cpp
+        args.h
 )
 
 target_link_libraries(ion-server PRIVATE
