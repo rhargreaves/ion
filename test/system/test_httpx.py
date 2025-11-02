@@ -1,7 +1,6 @@
-from utils import wait_for_port, run_server
+from utils import wait_for_port, run_server, stop_server
 import httpx
 import pytest
-import signal
 import logging
 
 SERVER_PORT = 8443
@@ -24,9 +23,7 @@ async def test_httpx_returns_200():
 
         assert response.status_code == 200
     finally:
-        server.terminate()
-        server.wait(timeout=10)
-        assert server.returncode == 0
+        stop_server(server)
 
 
 @pytest.mark.asyncio
@@ -39,8 +36,5 @@ async def test_httpx_returns_200_for_multiple_requests_over_persistent_connectio
             print(f"request {i}:")
             response = await client.get(URL)
             assert response.status_code == 200
-
     finally:
-        server.terminate()
-        server.wait(timeout=10)
-        assert server.returncode == 0
+        stop_server(server)

@@ -1,7 +1,6 @@
 import pytest
 
-from utils import wait_for_port, curl_http2, assert_curl_response_ok, run_server
-import signal
+from utils import wait_for_port, curl_http2, assert_curl_response_ok, run_server, stop_server
 
 SERVER_PORT = 8443
 URL = f"https://localhost:{SERVER_PORT}"
@@ -16,9 +15,7 @@ def test_http2_returns_200():
         assert result.returncode == 0
         assert_curl_response_ok(result)
     finally:
-        server.terminate()
-        server.wait(timeout=10)
-        assert server.returncode == 0
+        stop_server(server)
 
 
 def test_http2_returns_200_many_times_same_server():
@@ -31,9 +28,7 @@ def test_http2_returns_200_many_times_same_server():
             assert result.returncode == 0
             assert_curl_response_ok(result)
     finally:
-        server.terminate()
-        server.wait(timeout=10)
-        assert server.returncode == 0
+        stop_server(server)
 
 
 def test_http2_test_server_closes_connection_cleanly():

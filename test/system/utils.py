@@ -15,6 +15,18 @@ def run_server(port):
     return p
 
 
+def stop_server(server):
+    server.terminate()
+    try:
+        server.wait(timeout=10)
+        assert server.returncode == 0
+    except subprocess.TimeoutExpired as e:
+        server.kill()
+        raise e
+    except ProcessLookupError:
+        pass
+
+
 def run_server_help():
     return subprocess.run(
         [
