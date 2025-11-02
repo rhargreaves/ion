@@ -75,7 +75,7 @@ make test
 Using [h2spec](https://github.com/summerwind/h2spec):
 
 ```
-./test/run-h2spec.sh
+./test/test_h2spec.sh
 ```
 
 ## References

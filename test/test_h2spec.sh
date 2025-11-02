@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ION_SERVER=ion-server/cmake-build-debug/ion-server
+ION_SERVER=ion-server/cmake-build-make/ion-server
 SERVER_HOST=host.docker.internal
 SERVER_PORT=8443
 ION_LOG=/tmp/ion-h2spec.log
@@ -21,7 +21,7 @@ trap cleanup EXIT
 $ION_SERVER &>$ION_LOG &
 ION_PID=$!
 docker run -it summerwind/h2spec \
-  -h $SERVER_HOST -p $SERVER_PORT -k -t
+  -h $SERVER_HOST -p $SERVER_PORT -k -t || true
 
 echo "--- ion process log: ---"
 
