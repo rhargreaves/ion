@@ -161,7 +161,7 @@ ssize_t TlsConnection::read(std::span<uint8_t> buffer) const {
                 throw std::runtime_error("SSL read error: " + std::to_string(ssl_error));
         }
     }
-    spdlog::trace("Successfully read {} bytes from SSL", bytes_read);
+    spdlog::trace("successfully read {} bytes from SSL", bytes_read);
     return bytes_read;
 }
 
@@ -175,7 +175,7 @@ ssize_t TlsConnection::write(std::span<const uint8_t> buffer) const {
         spdlog::error("SSL partial write: wrote {} of {} bytes", bytes_written, buffer.size());
         throw std::runtime_error("SSL write error: partial write");
     }
-    spdlog::trace("Successfully wrote {} bytes to SSL", bytes_written);
+    spdlog::trace("successfully wrote {} bytes to SSL", bytes_written);
     return bytes_written;
 }
 
