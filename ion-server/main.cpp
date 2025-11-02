@@ -8,14 +8,30 @@ static constexpr uint16_t DEFAULT_PORT = 8443;
 
 static std::atomic<Http2Server*> g_server{nullptr};
 
-void signal_handler(int) {
+static void stop_server() {
     if (Http2Server* server = g_server.load()) {
         spdlog::info("stopping server (signal)...");
         server->stop_server();
     }
 }
 
-void sigpipe_handler(int) { spdlog::warn("SIGPIPE received - client disconnected"); }
+void signal_handler(int) { stop_server(); }
+
+void sigpipe_handler(int) {
+    char dummy;
+
+    if (write(STDOUT_FILENO, &dummy, 0) < 0 && errno == EPIPE) {
+        spdlog::error("stdout pipe broken, terminating");
+        stop_server();
+    }
+
+    if (write(STDERR_FILENO, &dummy, 0) < 0 && errno == EPIPE) {
+        spdlog::error("stderr pipe broken, terminating");
+        stop_server();
+    }
+
+    spdlog::debug("SIGPIPE from network connection, ignoring");
+}
 
 int main(int argc, char* argv[]) {
     CLI::App app{"ion: the light-weight HTTP/2 server ⚡️"};
