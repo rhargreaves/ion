@@ -5,6 +5,8 @@ import certifi
 import h2.connection
 import h2.events
 
+from time import sleep
+
 SERVER_NAME = 'localhost'
 
 
@@ -31,6 +33,7 @@ def close_connection(conn):
     c.close_connection()  # send GOAWAY
     s.sendall(c.data_to_send())
     s.close()
+    sleep(0.05)
 
 
 def send_request(conn, stream_id):
