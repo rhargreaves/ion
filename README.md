@@ -37,8 +37,6 @@ Development is typically done using JetBrains CLion.
 ### macOS
 
 ```sh
-brew install cmake
-
 make build
 ```
 
