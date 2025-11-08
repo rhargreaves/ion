@@ -25,9 +25,16 @@ It is not intended to be a production-ready server!
 
 ## Build
 
-### macOS
+Requirements:
 
-Install CMake (4.0+), CLion, Python (3.13+) and Clang (17+):
+* CMake 4.0+
+* Clang 17+
+* OpenSSL 3+
+* Python 3.13+
+
+Development is typically done using JetBrains CLion.
+
+### macOS
 
 ```sh
 brew install cmake
