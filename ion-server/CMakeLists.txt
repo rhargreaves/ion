@@ -1,4 +1,4 @@
-add_executable(ion-server main.cpp
+add_library(ion
         tls_conn.cpp
         tls_conn.h
         http2_frames.h
@@ -16,11 +16,16 @@ add_executable(ion-server main.cpp
         header_block_decoder.h
 )
 
-target_link_libraries(ion-server PRIVATE
-        OpenSSL::SSL OpenSSL::Crypto
+target_include_directories(ion PUBLIC .)
+target_link_libraries(ion PUBLIC
+        OpenSSL::SSL
+        OpenSSL::Crypto
         spdlog::spdlog
         CLI11::CLI11
 )
+
+add_executable(ion-server main.cpp)
+target_link_libraries(ion-server PRIVATE ion)
 
 target_compile_options(ion-server PRIVATE
         -Wall -Wextra -Wpedantic -Werror
