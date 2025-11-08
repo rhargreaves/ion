@@ -9,20 +9,23 @@ TEST_CASE("headers: decodes static table entries") {
     auto decoder = HeaderBlockDecoder{};
     auto hdrs = decoder.decode(data);
 
+    auto checkHeader = [&](size_t index, const std::string& expectedName,
+                           const std::string& expectedValue) {
+        REQUIRE(hdrs[index].name == expectedName);
+        REQUIRE(hdrs[index].value == expectedValue);
+    };
+
     REQUIRE(hdrs.size() == 3);  // skip over non-static table entries
 
-    SECTION("parses :method: GET") {
-        REQUIRE(hdrs[0].name == ":method");
-        REQUIRE(hdrs[0].value == "GET");
+    SECTION ("parses :method: GET") {
+        checkHeader(0, ":method", "GET");
     }
 
-    SECTION("parses :path: /") {
-        REQUIRE(hdrs[1].name == ":path");
-        REQUIRE(hdrs[1].value == "/");
+    SECTION ("parses :path: /") {
+        checkHeader(1, ":path", "/");
     }
 
-    SECTION("parses :scheme: https") {
-        REQUIRE(hdrs[2].name == ":scheme");
-        REQUIRE(hdrs[2].value == "https");
+    SECTION ("parses :scheme: https") {
+        checkHeader(2, ":scheme", "https");
     }
 }
