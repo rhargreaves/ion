@@ -14,10 +14,17 @@ build:
 	cmake --build $(BUILD_DIR) --parallel
 .PHONY: build
 
-test: $(CERT_PEM) $(KEY_PEM)
+test: test-unit test-system
+.PHONY: test
+
+test-unit:
+	$(BUILD_DIR)/test/unit/unit-test
+.PHONY: test-unit
+
+test-system: $(CERT_PEM) $(KEY_PEM)
 	pip3 install -q -r test/system/requirements.txt
 	python3 -m pytest test/system/ $(PYTEST_ARGS)
-.PHONY: test
+.PHONY: test-system
 
 test-h2spec:
 	./test/system/test_h2spec.sh

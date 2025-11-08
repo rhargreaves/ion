@@ -12,6 +12,8 @@ add_executable(ion-server main.cpp
         http2_server.h
         args.cpp
         args.h
+        header_block_decoder.cpp
+        header_block_decoder.h
 )
 
 target_link_libraries(ion-server PRIVATE
