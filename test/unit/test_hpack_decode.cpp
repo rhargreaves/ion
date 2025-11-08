@@ -46,3 +46,10 @@ TEST_CASE("headers: decodes static table entries (boundaries)") {
         check_header(hdrs, 1, "www-authenticate", "");
     }
 }
+
+TEST_CASE("headers: ignores out-of-bounds static table entries") {
+    std::array<uint8_t, 2> data = {0x80, 0xbe};
+
+    auto decoder = HeaderBlockDecoder{};
+    REQUIRE(decoder.decode(data).empty());
+}
