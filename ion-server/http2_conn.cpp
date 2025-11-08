@@ -4,6 +4,7 @@
 
 #include <format>
 
+#include "header_block_decoder.h"
 #include "spdlog/spdlog.h"
 
 static constexpr uint8_t FRAME_TYPE_HEADERS = 0x01;
@@ -206,6 +207,13 @@ void Http2Connection::process_frame(const Http2FrameHeader& header,
             const bool end_stream_set = (header.flags & FLAG_END_STREAM) != 0;
             spdlog::debug(" - stream ID: {}, end headers: {}, end stream: {}, length: {}",
                           header.stream_id, end_headers_set, end_stream_set, header.length);
+
+            // read header block fragment
+            HeaderBlockDecoder decoder{};
+            auto hdrs = decoder.decode(payload);
+            for (const auto& hdr : hdrs) {
+                spdlog::debug(" - request header: {}: {}", hdr.name, hdr.value);
+            }
 
             // Send 200 response: HPACK index 8 = ":status: 200"
             std::array<uint8_t, 1> headers_data = {0x88};  // 0x80 | 8 = indexed header
