@@ -15,7 +15,8 @@ It is not intended to be a production-ready server!
 
 * Basic HTTP/2 over TLS
 * For each request:
-    * Returns 200 OK, empty body, for any request
+    * Prints headers received (static entries only, no HPACK decoding yet)
+    * Returns 200 OK, empty body
 * Close server using Ctrl+C or SIGTERM
 
 <p align="center">
@@ -64,10 +65,22 @@ curl -k --http2 -v https://localhost:8443/
 
 ## Test
 
-### Integration Tests
+Run all tests using `make test`
+
+### Unit Tests
+
+C++-based Catch2 tests:
 
 ```
-make test
+make test-unit
+```
+
+### System Tests
+
+Python-based tests employing `curl`, `hyperh2` & `httpx` to test the server end-to-end:
+
+```
+make test-system
 ```
 
 ### HTTP/2 Spec Tests
