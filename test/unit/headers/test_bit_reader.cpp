@@ -4,7 +4,7 @@
 
 TEST_CASE("bit reader reads bits correctly") {
     constexpr std::array<const uint8_t, 2> encoded = {0x9f, 0xfa};
-    BitReader br{encoded};
+    ion::BitReader br{encoded};
 
     constexpr std::array expected_bits = {
         true, false, false, true, true, true,  true, true,   // 0x9f

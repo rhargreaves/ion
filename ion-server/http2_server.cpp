@@ -4,6 +4,8 @@
 
 #include "tls_conn.h"
 
+namespace ion {
+
 void Http2Server::run_server(uint16_t port) {
     TcpConnection tcp_conn{port};
     tcp_conn.listen();
@@ -44,3 +46,5 @@ void Http2Server::run_server(uint16_t port) {
 void Http2Server::stop_server() {
     user_req_termination_ = 1;
 }
+
+}  // namespace ion

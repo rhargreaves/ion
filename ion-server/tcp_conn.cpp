@@ -10,6 +10,8 @@
 
 #include <system_error>
 
+namespace ion {
+
 void TcpConnection::set_nonblocking_socket(const SocketFd& socket_fd) {
     const int flags = fcntl(socket_fd, F_GETFL, 0);
     if (flags == -1) {
@@ -91,3 +93,5 @@ void TcpConnection::close() {
     client_fd_.close();
     server_fd_.close();
 }
+
+}  // namespace ion

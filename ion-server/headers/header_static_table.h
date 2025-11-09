@@ -1,6 +1,8 @@
 #pragma once
 #include <array>
 
+namespace ion {
+
 struct StaticHttpHeader {
     std::string_view name;
     std::string_view value;
@@ -73,3 +75,5 @@ constexpr std::array<StaticHttpHeader, 61> STATIC_TABLE = {  //
      {"vary", ""},
      {"via", ""},
      {"www-authenticate", ""}}};
+
+}  // namespace ion

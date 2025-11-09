@@ -2,6 +2,8 @@
 #include <span>
 #include <vector>
 
+namespace ion {
+
 struct HttpHeader {
     std::string name;
     std::string value;
@@ -14,3 +16,5 @@ class HeaderBlockDecoder {
    private:
     std::vector<HttpHeader> dynamic_table_;
 };
+
+}  // namespace ion

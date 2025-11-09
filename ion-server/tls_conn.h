@@ -8,6 +8,8 @@
 
 #include "tcp_conn.h"
 
+namespace ion {
+
 enum class TlsError { WantReadOrWrite, ConnectionClosed, ProtocolError, OtherError };
 
 class TlsConnection {
@@ -30,3 +32,5 @@ class TlsConnection {
     static int alpn_callback(SSL* ssl, const unsigned char** out, unsigned char* outlen,
                              const unsigned char* in, unsigned int inlen, void* arg);
 };
+
+}  // namespace ion

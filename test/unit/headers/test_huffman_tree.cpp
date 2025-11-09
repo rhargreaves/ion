@@ -9,7 +9,7 @@
 #include "headers/huffman_tree.h"
 
 TEST_CASE("huffman tree builds & decodes correctly") {
-    HuffmanTree tree{};
+    ion::HuffmanTree tree{};
 
     SECTION ("basic inserts & decodes (2 symbols)") {
         tree.insert_symbol(0, 0b1111'1111'1100'0, 13);
@@ -27,7 +27,7 @@ TEST_CASE("huffman tree builds & decodes correctly") {
     SECTION ("handles symbol with all zeros (space symbol)") {
         tree.insert_symbol(48, 0x00, 5);
 
-        BitWriter writer;
+        ion::BitWriter writer;
         writer.write_bits(0x00, 5);
         auto test_data = writer.finalize();
 
@@ -38,16 +38,16 @@ TEST_CASE("huffman tree builds & decodes correctly") {
     }
 
     SECTION ("handles all HPACK-defined codes") {
-        BitWriter writer;
-        for (size_t i = 0; i < HUFFMAN_CODES.size(); i++) {
-            const auto& code = HUFFMAN_CODES[i];
+        ion::BitWriter writer;
+        for (size_t i = 0; i < ion::HUFFMAN_CODES.size(); i++) {
+            const auto& code = ion::HUFFMAN_CODES[i];
             tree.insert_symbol(static_cast<int16_t>(i), code.lsb_aligned_code, code.code_len);
             writer.write_bits(code.lsb_aligned_code, code.code_len);
         }
         auto bitstream = writer.finalize();
         auto symbols = tree.decode(bitstream);
 
-        REQUIRE(symbols.size() == HUFFMAN_CODES.size());
+        REQUIRE(symbols.size() == ion::HUFFMAN_CODES.size());
     }
 
     SECTION ("throws on invalid code that isn't padding") {

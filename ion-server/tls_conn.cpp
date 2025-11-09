@@ -12,6 +12,8 @@
 #include <iostream>
 #include <system_error>
 
+namespace ion {
+
 TlsConnection::TlsConnection(TcpConnection& tcp_conn, const std::filesystem::path& cert_path,
                              const std::filesystem::path& key_path)
     : tcp_conn_(tcp_conn) {
@@ -191,3 +193,5 @@ bool TlsConnection::has_data() const {
     const int result = poll(&pfd, 1, timeout_ms);
     return result > 0 && (pfd.revents & POLLIN);
 }
+
+}  // namespace ion

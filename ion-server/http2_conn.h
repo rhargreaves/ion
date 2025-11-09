@@ -7,6 +7,8 @@
 #include "http2_frames.h"
 #include "tls_conn.h"
 
+namespace ion {
+
 enum class Http2ProcessResult { Incomplete, Complete, ClientClosed };
 enum class Http2ConnectionState { AwaitingPreface, AwaitingFrame, ProtocolError, ClientClosed };
 
@@ -39,3 +41,5 @@ class Http2Connection {
     void process_frame(const Http2FrameHeader& header, std::span<const uint8_t> payload);
     void update_state(Http2ConnectionState new_state);
 };
+
+}  // namespace ion

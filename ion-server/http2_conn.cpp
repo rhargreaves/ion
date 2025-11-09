@@ -6,6 +6,8 @@
 
 #include "headers/header_block_decoder.h"
 
+namespace ion {
+
 static constexpr uint8_t FRAME_TYPE_HEADERS = 0x01;
 static constexpr uint8_t FRAME_TYPE_SETTINGS = 0x04;
 static constexpr uint8_t FRAME_TYPE_GOAWAY = 0x07;
@@ -298,3 +300,5 @@ void Http2Connection::update_state(Http2ConnectionState new_state) {
         state_ = new_state;
     }
 }
+
+}  // namespace ion

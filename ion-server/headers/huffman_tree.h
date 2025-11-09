@@ -4,6 +4,8 @@
 #include <span>
 #include <vector>
 
+namespace ion {
+
 struct HuffmanNode {
     std::unique_ptr<HuffmanNode> left;
     std::unique_ptr<HuffmanNode> right;
@@ -25,3 +27,5 @@ class HuffmanTree {
    private:
     std::unique_ptr<HuffmanNode> root_ = std::make_unique<HuffmanNode>();
 };
+
+}  // namespace ion

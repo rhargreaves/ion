@@ -4,6 +4,8 @@
 
 #include "bit_reader.h"
 
+namespace ion {
+
 void HuffmanTree::insert_symbol(int16_t symbol, uint32_t lsb_aligned_code, uint8_t code_len) {
     if (code_len == 0 || code_len > 31) {
         throw std::runtime_error("Invalid code length: " + std::to_string(code_len));
@@ -65,3 +67,5 @@ std::vector<uint8_t> HuffmanTree::decode(std::span<const uint8_t> data) {
 
     return result;
 }
+
+}  // namespace ion

@@ -8,10 +8,10 @@
 #include "args.h"
 #include "http2_server.h"
 
-static std::atomic<Http2Server*> g_server{nullptr};
+static std::atomic<ion::Http2Server*> g_server{nullptr};
 
 static void stop_server() {
-    if (Http2Server* server = g_server.load()) {
+    if (ion::Http2Server* server = g_server.load()) {
         server->stop_server();
     }
 }
@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
     spdlog::set_level(Args::parse_log_level(log_level));
     spdlog::info("ion started ⚡️");
     try {
-        Http2Server server{};
+        ion::Http2Server server{};
         g_server.store(&server);
         server.run_server(port);
         spdlog::info("exiting");

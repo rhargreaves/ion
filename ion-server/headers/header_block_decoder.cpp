@@ -8,6 +8,8 @@
 #include "huffman_codes.h"
 #include "huffman_tree.h"
 
+namespace ion {
+
 std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data) {
     HuffmanTree huffmanTree{};
     for (uint16_t i = 0; i < static_cast<uint16_t>(HUFFMAN_CODES.size()); i++) {
@@ -67,3 +69,5 @@ std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data
     }
     return hdrs;
 }
+
+}  // namespace ion

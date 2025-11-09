@@ -2,6 +2,8 @@
 #include <cstdint>
 #include <span>
 
+namespace ion {
+
 inline uint16_t load_uint16_be(std::span<const uint8_t, 2> data) {
     return static_cast<uint16_t>(data[0]) << 8 | static_cast<uint16_t>(data[1]);
 }
@@ -110,3 +112,5 @@ struct Http2WindowUpdate {
         store_uint32_be(window_size_increment & 0x7FFFFFFF, data);
     }
 };
+
+}  // namespace ion

@@ -3,14 +3,14 @@
 #include "headers/header_block_decoder.h"
 #include "http2_frames.h"
 
-void check_header(std::vector<HttpHeader>& hdrs, size_t index, const std::string& expectedName,
+void check_header(std::vector<ion::HttpHeader>& hdrs, size_t index, const std::string& expectedName,
                   const std::string& expectedValue) {
     REQUIRE(hdrs[index].name == expectedName);
     REQUIRE(hdrs[index].value == expectedValue);
 };
 
 TEST_CASE("headers: decodes static table entries") {
-    auto decoder = HeaderBlockDecoder{};
+    auto decoder = ion::HeaderBlockDecoder{};
 
     SECTION ("static table entries only") {
         std::array<uint8_t, 4> data = {0x82, 0x84, 0xbe, 0x87};

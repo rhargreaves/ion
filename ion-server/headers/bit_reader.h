@@ -1,5 +1,7 @@
 #include <span>
 
+namespace ion {
+
 class BitReader {
     std::span<const uint8_t> data_;
     size_t bit_pos_ = 0;
@@ -21,3 +23,5 @@ class BitReader {
         return bit_pos_ < data_.size() * 8;
     }
 };
+
+}  // namespace ion

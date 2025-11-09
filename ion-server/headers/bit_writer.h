@@ -1,6 +1,8 @@
 #pragma once
 #include <vector>
 
+namespace ion {
+
 class BitWriter {
    public:
     void write_bits(uint32_t value, uint8_t bit_count) {
@@ -43,3 +45,5 @@ class BitWriter {
     uint8_t current_byte_ = 0;
     uint8_t bits_in_current_ = 0;
 };
+
+}  // namespace ion

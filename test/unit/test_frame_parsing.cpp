@@ -11,7 +11,7 @@ TEST_CASE("HTTP/2 frame header parsing", "[frames]") {
             0x00, 0x00, 0x00, 0x00  // Stream ID: 0
         };
 
-        auto header = Http2FrameHeader::parse(data);
+        auto header = ion::Http2FrameHeader::parse(data);
 
         REQUIRE(header.length == 12);
         REQUIRE(header.type == 4);

@@ -4,6 +4,8 @@
 
 #include "http2_conn.h"
 
+namespace ion {
+
 class Http2Server {
    public:
     void run_server(uint16_t port);
@@ -12,3 +14,5 @@ class Http2Server {
    private:
     volatile std::sig_atomic_t user_req_termination_ = 0;
 };
+
+}  // namespace ion
