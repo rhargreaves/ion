@@ -9,7 +9,6 @@ add_executable(unit-test
         test_frame_parsing.cpp
         headers/test_header_block_decoder.cpp
         headers/test_huffman_tree.cpp
-        ../../ion-server/headers/bit_writer.h
         headers/test_bit_reader.cpp
 )
 

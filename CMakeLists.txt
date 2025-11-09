@@ -31,7 +31,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(CLI11)
 
-add_subdirectory(ion-server)
+add_subdirectory(lib)
+add_subdirectory(app)
 add_subdirectory(test/unit)
 
 enable_testing()

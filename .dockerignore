@@ -1,4 +1,4 @@
-ion-server/build/
+build/
 .idea/
 .venv/
 .git/

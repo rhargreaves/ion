@@ -10,8 +10,6 @@ add_library(ion
         tcp_conn.h
         http2_server.cpp
         http2_server.h
-        args.cpp
-        args.h
         headers/header_block_decoder.cpp
         headers/header_block_decoder.h
         headers/huffman_tree.cpp
@@ -25,23 +23,6 @@ target_link_libraries(ion PUBLIC
         OpenSSL::SSL
         OpenSSL::Crypto
         spdlog::spdlog
-        CLI11::CLI11
 )
 
-add_executable(ion-server main.cpp)
-target_link_libraries(ion-server PRIVATE ion)
-
-target_compile_options(ion-server PRIVATE
-        -Wall -Wextra -Wpedantic -Werror
-)
-
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(ion-server PRIVATE
-            -fsanitize=address
-            -fno-omit-frame-pointer
-            -g
-    )
-    target_link_options(ion-server PRIVATE
-            -fsanitize=address
-    )
-endif ()
+target_compile_features(ion PUBLIC cxx_std_23)

@@ -5,8 +5,8 @@
 #include <CLI/Formatter.hpp>
 #include <csignal>
 
+#include "../lib/http2_server.h"
 #include "args.h"
-#include "http2_server.h"
 
 static std::atomic<ion::Http2Server*> g_server{nullptr};
 

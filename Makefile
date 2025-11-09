@@ -7,7 +7,7 @@ BUILD_SUFFIX?=make
 BUILD_DIR=build/$(BUILD_SUFFIX)
 SERVER_PORT=8443
 
-export ION_PATH=$(BUILD_DIR)/ion-server/ion-server
+export ION_PATH=$(BUILD_DIR)/app/ion-server
 
 build:
 	cmake -S . -B $(BUILD_DIR)
