@@ -19,6 +19,8 @@ class HeaderBlockDecoder {
    private:
     std::vector<HttpHeader> dynamic_table_;
     HuffmanTree huffman_tree_{};
+
+    std::string read_string(bool is_huffman, ssize_t size, std::span<const uint8_t> data);
 };
 
 }  // namespace ion

@@ -21,6 +21,17 @@ HeaderBlockDecoder::HeaderBlockDecoder() {
     populate_huffman_tree(huffman_tree_);
 }
 
+std::string HeaderBlockDecoder::read_string(bool is_huffman, ssize_t size,
+                                            std::span<const uint8_t> data) {
+    if (is_huffman) {
+        auto raw_bytes = huffman_tree_.decode(data.subspan(0, size));
+        return {raw_bytes.begin(), raw_bytes.end()};
+    } else {
+        auto raw_data = data.subspan(0, size);
+        return {raw_data.begin(), raw_data.end()};
+    }
+}
+
 std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data) {
     auto hdrs = std::vector<HttpHeader>{};
     for (size_t i = 0; i < data.size(); i++) {
@@ -56,33 +67,16 @@ std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data
             if (index == 0) {
                 // - new name
                 // get name
-                bool name_is_huffman = data[i] & 0x80;
                 auto name_size = data[i] & 0x7F;
-                i++;
-                std::string hdr_name;
-                if (name_is_huffman) {
-                    auto hdr_name_bytes = huffman_tree_.decode(data.subspan(i, name_size));
-                    hdr_name = std::string(hdr_name_bytes.begin(), hdr_name_bytes.end());
-                } else {
-                    spdlog::error("non-huffman names not supported yet");
-                }
-                i += name_size;
+                auto name = read_string(data[i] & 0x80, name_size, data.subspan(i + 1));
+                i += name_size + 1;
 
                 // get value
-                bool value_is_huffman = data[i] & 0x80;
                 auto value_size = data[i] & 0x7F;
-                i++;
-                std::string hdr_value;
-                if (value_is_huffman) {
-                    auto hdr_value_bytes = huffman_tree_.decode(data.subspan(i, value_size));
-                    hdr_value = std::string(hdr_value_bytes.begin(), hdr_value_bytes.end());
-                } else {
-                    auto raw_data = data.subspan(i, value_size);
-                    hdr_value = std::string(raw_data.begin(), raw_data.end());
-                }
-                i += value_size;
+                auto val = read_string(data[i] & 0x80, value_size, data.subspan(i + 1));
+                i += value_size - 1;
 
-                auto hdr = HttpHeader{hdr_name, hdr_value};
+                auto hdr = HttpHeader{name, val};
                 hdrs.push_back(hdr);
                 dynamic_table_.push_back(hdr);
             } else {
