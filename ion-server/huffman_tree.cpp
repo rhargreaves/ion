@@ -2,7 +2,9 @@
 
 #include "bit_reader.h"
 
-void HuffmanTree::insert_symbol(int16_t symbol, uint32_t code, uint8_t bit_len) {
+void HuffmanTree::insert_symbol(int16_t symbol, uint32_t lsb_aligned_code, uint8_t bit_len) {
+    const uint32_t code = lsb_aligned_code << (32 - bit_len);
+
     auto code_span =
         std::array{static_cast<uint8_t>(code >> 24 & 0xFF), static_cast<uint8_t>(code >> 16 & 0xFF),
                    static_cast<uint8_t>(code >> 8 & 0xFF), static_cast<uint8_t>(code & 0xFF)};

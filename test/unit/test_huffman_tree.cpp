@@ -9,8 +9,8 @@
 TEST_CASE("huffman_tree: builds tree and decodes correctly") {
     HuffmanTree tree{};
 
-    tree.insert_symbol(0, 0b1111'1111'1100'0000'0000'0000'0000'0000, 13);
-    tree.insert_symbol(35, 0b1111'1111'1010'0000'0000'0000'0000'0000, 12);
+    tree.insert_symbol(0, 0x1ff8, 13);
+    tree.insert_symbol(35, 0xffa, 12);
 
     std::array<uint8_t, 4> encoded = {0b11111111, 0b11000'111, 0b11111101, 0x0};
 
@@ -22,7 +22,7 @@ TEST_CASE("huffman_tree: builds tree and decodes correctly") {
 TEST_CASE("huffman_tree: throws on invalid code") {
     HuffmanTree tree{};
 
-    tree.insert_symbol(0, 0b1000'0000'0000'0000'0000'0000'0000'0000, 1);
+    tree.insert_symbol(0, 0x1, 1);
 
     std::array<uint8_t, 1> encoded = {0x0};
 
