@@ -31,7 +31,7 @@ test-h2spec:
 PHONY: test-h2spec
 
 run: build $(CERT_PEM) $(KEY_PEM)
-	$(ION_PATH) $(SERVER_PORT)
+	$(ION_PATH) -p $(SERVER_PORT)
 .PHONY: run
 
 clean:
