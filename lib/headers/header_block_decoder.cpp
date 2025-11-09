@@ -88,22 +88,18 @@ std::optional<HttpHeader> HeaderBlockDecoder::try_decode_indexed_field(uint8_t f
     return try_read_indexed_header(index);
 }
 
-HttpHeader HeaderBlockDecoder::decode_literal_field(uint8_t first_byte, ByteReader& reader) {
+std::optional<HttpHeader> HeaderBlockDecoder::try_decode_literal_field(uint8_t first_byte,
+                                                                       ByteReader& reader) {
     auto index = static_cast<uint8_t>(first_byte & 0x3F);
     bool is_new_name = index == 0;
-    std::string name;
-    if (is_new_name) {
-        name = read_length_and_string(reader);
-    } else {
-        auto try_name = try_read_indexed_header_name(index);
-        if (!try_name) {
-            spdlog::error("invalid header name index ({})", index);
-            throw std::runtime_error("invalid header name index");
-        }
-        name = *try_name;
+    const std::optional<std::string> name =
+        is_new_name ? read_length_and_string(reader) : try_read_indexed_header_name(index);
+    if (!name) {
+        return std::nullopt;
     }
+
     auto value = read_length_and_string(reader);
-    auto hdr = HttpHeader{name, value};
+    auto hdr = HttpHeader{name.value(), value};
 
     // update dynamic table
     dynamic_table_.push_back(hdr);
@@ -124,7 +120,9 @@ std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data
             }
         } else if (first_byte & 0x40) {
             // literal header field
-            hdrs.push_back(decode_literal_field(first_byte, reader));
+            if (auto hdr = try_decode_literal_field(first_byte, reader)) {
+                hdrs.push_back(hdr.value());
+            }
         }
     }
     return hdrs;
