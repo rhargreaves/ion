@@ -69,8 +69,12 @@ TEST_CASE("headers: decodes dynamic table entries") {
     auto decoder = ion::HeaderBlockDecoder{};
 
     SECTION ("stores and returns dynamic header with static header name") {
-        constexpr auto req1 = std::to_array<uint8_t>(
-            {0x82, 0x84, 0x41, 0x86, 0xa0, 0xe4, 0x1d, 0x13, 0x9d, 0x9, 0x87});
+        constexpr auto req1 = std::to_array<uint8_t>({
+            /* :method: GET */ 0x82,                                                    //
+            /* :path: / */ 0x84,                                                        //
+            /* :authority: localhost */ 0x41, 0x86, 0xa0, 0xe4, 0x1d, 0x13, 0x9d, 0x9,  //
+            /* :scheme: https */ 0x87                                                   //
+        });
         auto hdrs1 = decoder.decode(req1);
 
         REQUIRE(hdrs1.size() == 4);
