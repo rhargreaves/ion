@@ -17,6 +17,7 @@ add_library(ion
         huffman_tree.cpp
         huffman_tree.h
         huffman_codes.h
+        header_static_table.h
 )
 
 target_include_directories(ion PUBLIC .)
