@@ -18,6 +18,19 @@ def test_http2_returns_200():
         stop_server(server)
 
 
+@pytest.mark.only
+def test_http2_request_sends_custom_header():
+    server = run_server(SERVER_PORT)
+    assert wait_for_port(SERVER_PORT)
+    try:
+        result = curl_http2(URL, ["--header", "x-foo: bar"])
+
+        assert result.returncode == 0
+        assert_curl_response_ok(result)
+    finally:
+        stop_server(server)
+
+
 def test_http2_returns_200_many_times_same_server():
     server = run_server(SERVER_PORT)
     try:

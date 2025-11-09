@@ -92,4 +92,14 @@ TEST_CASE("headers: decodes dynamic table entries") {
             REQUIRE(hdrs1[i].value == hdrs2[i].value);
         }
     }
+
+    SECTION ("literal header field - new name") {
+        constexpr auto foo_hdr =
+            std::to_array<uint8_t>({0x40, 0x84, 0xf2, 0xb4, 0xa7, 0x3f, 0x3, 0x62, 0x61, 0x72});
+
+        auto hdrs = decoder.decode(foo_hdr);
+
+        REQUIRE(hdrs.size() == 1);
+        check_header(hdrs, 0, "x-foo", "bar");
+    }
 }

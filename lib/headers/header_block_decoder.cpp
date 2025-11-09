@@ -50,26 +50,60 @@ std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data
             }
 
         } else if (first_byte & 0x40) {
-            // literal header field with incremental index
+            // literal header field
             auto index = static_cast<uint8_t>(first_byte & 0x3F);
             i++;
+            if (index == 0) {
+                // - new name
+                // get name
+                bool name_is_huffman = data[i] & 0x80;
+                auto name_size = data[i] & 0x7F;
+                i++;
+                std::string hdr_name;
+                if (name_is_huffman) {
+                    auto hdr_name_bytes = huffman_tree_.decode(data.subspan(i, name_size));
+                    hdr_name = std::string(hdr_name_bytes.begin(), hdr_name_bytes.end());
+                } else {
+                    spdlog::error("non-huffman names not supported yet");
+                }
+                i += name_size;
 
-            bool is_huffman = data[i] & 0x80;
-            auto value_size = data[i] & 0x7F;
-            i++;
+                // get value
+                bool value_is_huffman = data[i] & 0x80;
+                auto value_size = data[i] & 0x7F;
+                i++;
+                std::string hdr_value;
+                if (value_is_huffman) {
+                    auto hdr_value_bytes = huffman_tree_.decode(data.subspan(i, value_size));
+                    hdr_value = std::string(hdr_value_bytes.begin(), hdr_value_bytes.end());
+                } else {
+                    auto raw_data = data.subspan(i, value_size);
+                    hdr_value = std::string(raw_data.begin(), raw_data.end());
+                }
+                i += value_size;
 
-            if (is_huffman) {
-                auto hdr_name = STATIC_TABLE[index - 1].name;
-                auto decoded = huffman_tree_.decode(data.subspan(i, value_size));
-                const std::string hdr_value(decoded.begin(), decoded.end());
-
-                auto hdr = HttpHeader{std::string(hdr_name), hdr_value};
+                auto hdr = HttpHeader{hdr_name, hdr_value};
                 hdrs.push_back(hdr);
                 dynamic_table_.push_back(hdr);
             } else {
-                spdlog::error("non-huffman strings not supported yet");
+                // - incremental index
+                bool is_huffman = data[i] & 0x80;
+                auto value_size = data[i] & 0x7F;
+                i++;
+
+                if (is_huffman) {
+                    auto hdr_name = STATIC_TABLE[index - 1].name;
+                    auto decoded = huffman_tree_.decode(data.subspan(i, value_size));
+                    const std::string hdr_value(decoded.begin(), decoded.end());
+
+                    auto hdr = HttpHeader{std::string(hdr_name), hdr_value};
+                    hdrs.push_back(hdr);
+                    dynamic_table_.push_back(hdr);
+                } else {
+                    spdlog::error("non-huffman strings not supported yet");
+                }
+                i += value_size - 1;
             }
-            i += value_size - 1;
         }
     }
     return hdrs;
