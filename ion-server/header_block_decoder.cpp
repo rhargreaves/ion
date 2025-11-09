@@ -103,7 +103,7 @@ std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data
 
             if (is_huffman) {
                 auto hdr_name = STATIC_TABLE[index - 1].name;
-                auto hdr_value = huffmanTree.decode(data.subspan(i, value_size), value_size * 8);
+                auto hdr_value = huffmanTree.decode(data.subspan(i, value_size));
                 std::string result;
                 result.reserve(hdr_value.size());
 

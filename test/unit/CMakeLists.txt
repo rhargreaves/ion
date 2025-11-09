@@ -9,6 +9,7 @@ add_executable(unit-test
         test_frame_parsing.cpp
         test_hpack_decode.cpp
         test_huffman_tree.cpp
+        bit_writer.h
 )
 
 target_link_libraries(unit-test

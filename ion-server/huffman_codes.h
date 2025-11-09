@@ -2,7 +2,7 @@
 #include <array>
 
 struct HuffmanCode {
-    int32_t lsb_aligned_code;
+    uint32_t lsb_aligned_code;
     uint8_t code_len;
 };
 
