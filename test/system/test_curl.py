@@ -18,8 +18,7 @@ def test_http2_returns_200():
         stop_server(server)
 
 
-@pytest.mark.only
-def test_http2_request_sends_custom_header():
+def test_http2_request_sends_custom_header_with_short_value():
     server = run_server(SERVER_PORT)
     assert wait_for_port(SERVER_PORT)
     try:
