@@ -63,6 +63,22 @@ std::optional<HttpHeader> HeaderBlockDecoder::try_read_indexed_header(uint8_t in
     return dynamic_table_[dynamic_index];
 }
 
+std::optional<std::string> HeaderBlockDecoder::try_read_indexed_header_name(uint8_t index) {
+    auto table_index = index - 1;
+    if (table_index < STATIC_TABLE.size()) {
+        // static lookup
+        return std::string(STATIC_TABLE[table_index].name);
+    }
+
+    // dynamic lookup
+    auto dynamic_index = table_index - STATIC_TABLE.size();
+    if (dynamic_index >= dynamic_table_.size()) {
+        spdlog::error("invalid dynamic table index ({})", index);
+        return std::nullopt;
+    }
+    return dynamic_table_[dynamic_index].name;
+}
+
 std::optional<HttpHeader> HeaderBlockDecoder::try_decode_indexed_field(uint8_t first_byte) {
     auto index = static_cast<uint8_t>(first_byte & 0x7F);
     if (index < 1) {
@@ -75,8 +91,17 @@ std::optional<HttpHeader> HeaderBlockDecoder::try_decode_indexed_field(uint8_t f
 HttpHeader HeaderBlockDecoder::decode_literal_field(uint8_t first_byte, ByteReader& reader) {
     auto index = static_cast<uint8_t>(first_byte & 0x3F);
     bool is_new_name = index == 0;
-    auto name =
-        is_new_name ? read_length_and_string(reader) : std::string(STATIC_TABLE[index - 1].name);
+    std::string name;
+    if (is_new_name) {
+        name = read_length_and_string(reader);
+    } else {
+        auto try_name = try_read_indexed_header_name(index);
+        if (!try_name) {
+            spdlog::error("invalid header name index ({})", index);
+            throw std::runtime_error("invalid header name index");
+        }
+        name = *try_name;
+    }
     auto value = read_length_and_string(reader);
     auto hdr = HttpHeader{name, value};
 

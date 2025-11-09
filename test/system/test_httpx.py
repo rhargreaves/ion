@@ -14,6 +14,21 @@ logging.basicConfig(
 
 
 @pytest.mark.asyncio
+async def test_httpx_sends_custom_header_two_different_values():  # support dynamic table name lookup & decoded value
+    server = run_server(SERVER_PORT)
+    assert wait_for_port(SERVER_PORT)
+    try:
+        client = httpx.AsyncClient(http2=True, verify=False)
+        resp1 = await client.get(URL, headers={"foo": "bar"})
+        assert resp1.status_code == 200
+
+        resp2 = await client.get(URL, headers={"foo": "bar baz bar baz bar baz"})
+        assert resp2.status_code == 200
+    finally:
+        stop_server(server)
+
+
+@pytest.mark.asyncio
 async def test_httpx_returns_200():
     server = run_server(SERVER_PORT)
     assert wait_for_port(SERVER_PORT)
