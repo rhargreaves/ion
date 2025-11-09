@@ -7,10 +7,10 @@ FetchContent_MakeAvailable(Catch2)
 
 add_executable(unit-test
         test_frame_parsing.cpp
-        test_header_block_decoder.cpp
-        test_huffman_tree.cpp
-        ../../ion-server/bit_writer.h
-        test_bit_reader.cpp
+        headers/test_header_block_decoder.cpp
+        headers/test_huffman_tree.cpp
+        ../../ion-server/headers/bit_writer.h
+        headers/test_bit_reader.cpp
 )
 
 target_link_libraries(unit-test

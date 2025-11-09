@@ -3,7 +3,7 @@
 #include <span>
 #include <vector>
 
-#include "header_block_decoder.h"
+#include "headers/header_block_decoder.h"
 #include "http2_frames.h"
 #include "tls_conn.h"
 

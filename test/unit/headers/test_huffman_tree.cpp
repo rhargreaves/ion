@@ -4,9 +4,9 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <iostream>
 
-#include "../../ion-server/bit_writer.h"
-#include "huffman_codes.h"
-#include "huffman_tree.h"
+#include "headers/bit_writer.h"
+#include "headers/huffman_codes.h"
+#include "headers/huffman_tree.h"
 
 TEST_CASE("huffman tree builds & decodes correctly") {
     HuffmanTree tree{};

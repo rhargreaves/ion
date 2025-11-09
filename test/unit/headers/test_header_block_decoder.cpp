@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "header_block_decoder.h"
+#include "headers/header_block_decoder.h"
 #include "http2_frames.h"
 
 void check_header(std::vector<HttpHeader>& hdrs, size_t index, const std::string& expectedName,

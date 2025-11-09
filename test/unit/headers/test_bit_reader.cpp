@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "bit_reader.h"
+#include "headers/bit_reader.h"
 
 TEST_CASE("bit reader reads bits correctly") {
     constexpr std::array<const uint8_t, 2> encoded = {0x9f, 0xfa};

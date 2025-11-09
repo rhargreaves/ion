@@ -12,12 +12,12 @@ add_library(ion
         http2_server.h
         args.cpp
         args.h
-        header_block_decoder.cpp
-        header_block_decoder.h
-        huffman_tree.cpp
-        huffman_tree.h
-        huffman_codes.h
-        header_static_table.h
+        headers/header_block_decoder.cpp
+        headers/header_block_decoder.h
+        headers/huffman_tree.cpp
+        headers/huffman_tree.h
+        headers/huffman_codes.h
+        headers/header_static_table.h
 )
 
 target_include_directories(ion PUBLIC .)
