@@ -46,3 +46,15 @@ std::vector<int16_t> HuffmanTree::decode(std::span<const uint8_t> data, size_t b
 
     return result;
 }
+
+void HuffmanTree::delete_tree(HuffmanNode* node) {
+    if (!node)
+        return;
+    delete_tree(node->left);
+    delete_tree(node->right);
+    delete node;
+}
+
+HuffmanTree::~HuffmanTree() {
+    delete_tree(root_);
+}
