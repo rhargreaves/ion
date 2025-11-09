@@ -1,6 +1,7 @@
 #pragma once
-#include "CLI/App.hpp"
-#include "spdlog/common.h"
+#include <spdlog/common.h>
+
+#include <CLI/App.hpp>
 
 class Args {
    public:

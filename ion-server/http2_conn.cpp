@@ -1,11 +1,10 @@
 #include "http2_conn.h"
 
-#include <sys/stat.h>
+#include <spdlog/spdlog.h>
 
 #include <format>
 
 #include "header_block_decoder.h"
-#include "spdlog/spdlog.h"
 
 static constexpr uint8_t FRAME_TYPE_HEADERS = 0x01;
 static constexpr uint8_t FRAME_TYPE_SETTINGS = 0x04;

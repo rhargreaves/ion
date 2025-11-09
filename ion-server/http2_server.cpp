@@ -1,6 +1,7 @@
 #include "http2_server.h"
 
-#include "spdlog/spdlog.h"
+#include <spdlog/spdlog.h>
+
 #include "tls_conn.h"
 
 void Http2Server::run_server(uint16_t port) {
@@ -40,4 +41,6 @@ void Http2Server::run_server(uint16_t port) {
     spdlog::info("server shutting down...");
 }
 
-void Http2Server::stop_server() { user_req_termination_ = 1; }
+void Http2Server::stop_server() {
+    user_req_termination_ = 1;
+}

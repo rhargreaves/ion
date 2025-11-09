@@ -1,9 +1,12 @@
-#include <CLI/CLI.hpp>
+#include <spdlog/spdlog.h>
+
+#include <CLI/App.hpp>
+#include <CLI/Config.hpp>
+#include <CLI/Formatter.hpp>
 #include <csignal>
 
 #include "args.h"
 #include "http2_server.h"
-#include "spdlog/spdlog.h"
 
 static std::atomic<Http2Server*> g_server{nullptr};
 

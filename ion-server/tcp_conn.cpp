@@ -3,13 +3,12 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <openssl/err.h>
+#include <spdlog/spdlog.h>
 #include <sys/poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
 #include <system_error>
-
-#include "spdlog/spdlog.h"
 
 void TcpConnection::set_nonblocking_socket(const SocketFd& socket_fd) {
     const int flags = fcntl(socket_fd, F_GETFL, 0);

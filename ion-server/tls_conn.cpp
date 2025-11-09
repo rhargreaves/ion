@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <openssl/err.h>
+#include <spdlog/spdlog.h>
 #include <sys/poll.h>
 #include <unistd.h>
 
@@ -10,8 +11,6 @@
 #include <fstream>
 #include <iostream>
 #include <system_error>
-
-#include "spdlog/spdlog.h"
 
 TlsConnection::TlsConnection(TcpConnection& tcp_conn, const std::filesystem::path& cert_path,
                              const std::filesystem::path& key_path)
@@ -140,7 +139,9 @@ int TlsConnection::alpn_callback(SSL*, const unsigned char** out, unsigned char*
     return SSL_TLSEXT_ERR_OK;
 }
 
-void TlsConnection::print_debug_to_stderr() { ERR_print_errors_fp(stderr); }
+void TlsConnection::print_debug_to_stderr() {
+    ERR_print_errors_fp(stderr);
+}
 
 std::expected<ssize_t, TlsError> TlsConnection::read(std::span<uint8_t> buffer) const {
     spdlog::trace("reading from SSL");
