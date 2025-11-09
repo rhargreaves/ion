@@ -64,3 +64,28 @@ TEST_CASE("headers: decodes static table entries") {
         REQUIRE(decoder.decode(data).empty());
     }
 }
+
+TEST_CASE("headers: decodes dynamic table entries") {
+    auto decoder = ion::HeaderBlockDecoder{};
+
+    SECTION ("stores and returns dynamic header with static header name") {
+        constexpr std::array<uint8_t, 11> req1 = {0x82, 0x84, 0x41, 0x86, 0xa0, 0xe4,
+                                                  0x1d, 0x13, 0x9d, 0x9,  0x87};
+
+        auto hdrs1 = decoder.decode(req1);
+        REQUIRE(hdrs1.size() == 4);
+        check_header(hdrs1, 0, ":method", "GET");
+        check_header(hdrs1, 1, ":path", "/");
+        check_header(hdrs1, 2, ":authority", "localhost");
+        check_header(hdrs1, 3, ":scheme", "https");
+
+        constexpr std::array<uint8_t, 11> req2 = {0x82, 0x84, 0xbe, 0x87};
+
+        auto hdrs2 = decoder.decode(req2);
+        REQUIRE(hdrs2.size() == 4);
+        check_header(hdrs2, 0, ":method", "GET");
+        check_header(hdrs2, 1, ":path", "/");
+        check_header(hdrs2, 2, ":authority", "localhost");
+        check_header(hdrs2, 3, ":scheme", "https");
+    }
+}

@@ -64,7 +64,7 @@ std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data
             } else {
                 spdlog::error("non-huffman strings not supported yet");
             }
-            i += value_size;
+            i += value_size - 1;
         }
     }
     return hdrs;
