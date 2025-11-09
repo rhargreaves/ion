@@ -22,11 +22,26 @@ std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data
         if (first_byte & 0x80) {
             // indexed
             auto index = static_cast<uint8_t>(first_byte & 0x7F);
-            if (index < 1 || index > STATIC_TABLE.size()) {
+            if (index < 1) {
+                spdlog::error("invalid header index (<1)");
                 continue;
             }
-            auto hdr = STATIC_TABLE[index - 1];
-            hdrs.push_back(hdr.to_http_header());
+            auto table_index = index - 1;
+            if (table_index < STATIC_TABLE.size()) {
+                // static lookup
+                auto hdr = STATIC_TABLE[table_index];
+                hdrs.push_back(hdr.to_http_header());
+            } else {
+                // dynamic lookup
+                auto dynamic_index = table_index - STATIC_TABLE.size();
+                if (dynamic_index >= dynamic_table_.size()) {
+                    spdlog::error("invalid dynamic table index ({})", index);
+                    continue;
+                }
+                auto hdr = dynamic_table_[dynamic_index];
+                hdrs.push_back(hdr);
+            }
+
         } else if (first_byte & 0x40) {
             // literal header field with incremental index
             auto index = static_cast<uint8_t>(first_byte & 0x3F);
@@ -43,6 +58,7 @@ std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data
 
                 auto hdr = HttpHeader{std::string(hdr_name), hdr_value};
                 hdrs.push_back(hdr);
+                dynamic_table_.push_back(hdr);
             } else {
                 spdlog::error("non-huffman strings not supported yet");
             }

@@ -10,4 +10,7 @@ struct HttpHeader {
 class HeaderBlockDecoder {
    public:
     std::vector<HttpHeader> decode(std::span<const uint8_t> data);
+
+   private:
+    std::vector<HttpHeader> dynamic_table_;
 };

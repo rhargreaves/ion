@@ -208,8 +208,7 @@ void Http2Connection::process_frame(const Http2FrameHeader& header,
                           header.stream_id, end_headers_set, end_stream_set, header.length);
 
             // read header block fragment
-            HeaderBlockDecoder decoder{};
-            auto hdrs = decoder.decode(payload);
+            auto hdrs = decoder_.decode(payload);
             for (const auto& hdr : hdrs) {
                 spdlog::debug(" - request header: {}: {}", hdr.name, hdr.value);
             }

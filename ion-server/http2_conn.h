@@ -3,6 +3,7 @@
 #include <span>
 #include <vector>
 
+#include "header_block_decoder.h"
 #include "http2_frames.h"
 #include "tls_conn.h"
 
@@ -19,6 +20,7 @@ class Http2Connection {
     const TlsConnection& tls_conn_;
     std::vector<uint8_t> buffer_;
     Http2ConnectionState state_ = Http2ConnectionState::AwaitingPreface;
+    HeaderBlockDecoder decoder_{};
 
     bool try_read_preface();
     Http2WindowUpdate process_window_update_payload(std::span<const uint8_t> payload);
