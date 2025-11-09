@@ -1,9 +1,9 @@
 #include <array>
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_predicate.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_exception.hpp>
 
 #include "bit_reader.h"
-#include "catch2/matchers/catch_matchers.hpp"
 #include "huffman_tree.h"
 
 TEST_CASE("huffman_tree: builds tree and decodes correctly") {
@@ -26,11 +26,8 @@ TEST_CASE("huffman_tree: throws on invalid code") {
 
     std::array<uint8_t, 1> encoded = {0x0};
 
-    CHECK_THROWS_MATCHES(
-        tree.decode(encoded, 1), std::runtime_error,
-        Catch::Matchers::Predicate<std::runtime_error>([](std::runtime_error const& err) -> bool {
-            return std::string_view{err.what()} == "Invalid Huffman code";
-        }));
+    CHECK_THROWS_MATCHES(tree.decode(encoded, 1), std::runtime_error,
+                         Catch::Matchers::Message("Invalid Huffman code"));
 }
 
 TEST_CASE("bit_reader: reads bits correctly") {
