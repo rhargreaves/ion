@@ -12,6 +12,8 @@ void check_header(std::vector<HttpHeader>& hdrs, size_t index, const std::string
 TEST_CASE("headers: decodes static table entries") {
     std::array<uint8_t, 4> data = {0x82, 0x84, 0xbe, 0x87};
 
+    // 0xbe == 0b1011'1110
+
     auto decoder = HeaderBlockDecoder{};
     auto hdrs = decoder.decode(data);
 
@@ -52,4 +54,17 @@ TEST_CASE("headers: ignores out-of-bounds static table entries") {
 
     auto decoder = HeaderBlockDecoder{};
     REQUIRE(decoder.decode(data).empty());
+}
+
+TEST_CASE("headers: decodes literal header field with indexed name") {
+    std::array<uint8_t, 8> data = {0x41, 0x86, 0xa0, 0xe4, 0x1d, 0x13, 0x9d, 0x9};
+
+    auto decoder = HeaderBlockDecoder{};
+    auto hdrs = decoder.decode(data);
+
+    REQUIRE(hdrs.size() == 1);
+
+    SECTION ("parses :authority: localhost") {
+        check_header(hdrs, 0, ":authority", "localhost");
+    }
 }

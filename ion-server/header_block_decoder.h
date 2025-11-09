@@ -3,11 +3,17 @@
 #include <vector>
 
 struct HttpHeader {
+    std::string name;
+    std::string value;
+};
+
+struct StaticHttpHeader {
     std::string_view name;
     std::string_view value;
 
-    constexpr HttpHeader(const char* n, const char* v) : name(n), value(v) {}
-    HttpHeader(const std::string& n, const std::string& v) : name(n), value(v) {}
+    [[nodiscard]] HttpHeader to_http_header() const {
+        return HttpHeader{std::string(name), std::string(value)};
+    }
 };
 
 class HeaderBlockDecoder {
