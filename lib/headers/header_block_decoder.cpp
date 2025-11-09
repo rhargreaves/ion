@@ -10,13 +10,18 @@
 
 namespace ion {
 
-std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data) {
-    HuffmanTree huffmanTree{};
+static void populate_huffman_tree(HuffmanTree& tree) {
     for (uint16_t i = 0; i < static_cast<uint16_t>(HUFFMAN_CODES.size()); i++) {
         auto code = HUFFMAN_CODES[i];
-        huffmanTree.insert_symbol(i, code.lsb_aligned_code, code.code_len);
+        tree.insert_symbol(static_cast<uint8_t>(i), code.lsb_aligned_code, code.code_len);
     }
+}
 
+HeaderBlockDecoder::HeaderBlockDecoder() {
+    populate_huffman_tree(huffman_tree_);
+}
+
+std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data) {
     auto hdrs = std::vector<HttpHeader>{};
     for (size_t i = 0; i < data.size(); i++) {
         uint8_t first_byte = data[i];
@@ -55,7 +60,7 @@ std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data
 
             if (is_huffman) {
                 auto hdr_name = STATIC_TABLE[index - 1].name;
-                auto decoded = huffmanTree.decode(data.subspan(i, value_size));
+                auto decoded = huffman_tree_.decode(data.subspan(i, value_size));
                 const std::string hdr_value(decoded.begin(), decoded.end());
 
                 auto hdr = HttpHeader{std::string(hdr_name), hdr_value};
