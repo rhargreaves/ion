@@ -38,17 +38,10 @@ std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data
 
             if (is_huffman) {
                 auto hdr_name = STATIC_TABLE[index - 1].name;
-                auto hdr_value = huffmanTree.decode(data.subspan(i, value_size));
-                std::string result;
-                result.reserve(hdr_value.size());
+                auto decoded = huffmanTree.decode(data.subspan(i, value_size));
+                const std::string hdr_value(decoded.begin(), decoded.end());
 
-                for (int16_t symbol : hdr_value) {
-                    if (symbol >= 0 && symbol <= 255) {  // Valid ASCII/UTF-8
-                        result.push_back(static_cast<char>(symbol));
-                    }
-                }
-
-                auto hdr = HttpHeader{std::string(hdr_name), result};
+                auto hdr = HttpHeader{std::string(hdr_name), hdr_value};
                 hdrs.push_back(hdr);
             } else {
                 spdlog::error("non-huffman strings not supported yet");
