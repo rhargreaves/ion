@@ -47,6 +47,22 @@ std::string HeaderBlockDecoder::read_string(bool is_huffman, ssize_t size,
     return {raw_data.begin(), raw_data.end()};
 }
 
+std::optional<HttpHeader> HeaderBlockDecoder::try_read_indexed_header(uint8_t index) {
+    auto table_index = index - 1;
+    if (table_index < STATIC_TABLE.size()) {
+        // static lookup
+        return STATIC_TABLE[table_index].to_http_header();
+    }
+
+    // dynamic lookup
+    auto dynamic_index = table_index - STATIC_TABLE.size();
+    if (dynamic_index >= dynamic_table_.size()) {
+        spdlog::error("invalid dynamic table index ({})", index);
+        return std::nullopt;
+    }
+    return dynamic_table_[dynamic_index];
+}
+
 std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data) {
     auto hdrs = std::vector<HttpHeader>{};
     ByteReader reader(data);
@@ -55,28 +71,15 @@ std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data
         uint8_t first_byte = reader.read_byte();
 
         if (first_byte & 0x80) {
-            // indexed
+            // indexed field (static or dynamic)
             auto index = static_cast<uint8_t>(first_byte & 0x7F);
             if (index < 1) {
                 spdlog::error("invalid header index (<1)");
                 continue;
             }
-            auto table_index = index - 1;
-            if (table_index < STATIC_TABLE.size()) {
-                // static lookup
-                auto hdr = STATIC_TABLE[table_index];
-                hdrs.push_back(hdr.to_http_header());
-            } else {
-                // dynamic lookup
-                auto dynamic_index = table_index - STATIC_TABLE.size();
-                if (dynamic_index >= dynamic_table_.size()) {
-                    spdlog::error("invalid dynamic table index ({})", index);
-                    continue;
-                }
-                auto hdr = dynamic_table_[dynamic_index];
-                hdrs.push_back(hdr);
+            if (auto hdr = try_read_indexed_header(index)) {
+                hdrs.push_back(hdr.value());
             }
-
         } else if (first_byte & 0x40) {
             // literal header field
             auto index = static_cast<uint8_t>(first_byte & 0x3F);
@@ -86,6 +89,8 @@ std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data
             auto value = read_length_and_string(reader);
             auto hdr = HttpHeader{name, value};
             hdrs.push_back(hdr);
+
+            // update dynamic table
             dynamic_table_.push_back(hdr);
         }
     }
