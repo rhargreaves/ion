@@ -17,8 +17,8 @@ It is not intended to be a production-ready server!
 * For each request:
     * Prints headers received, supporting:
         * Static table entries
-        * Dynamic table entries that use static table entry names
-        * Huffman encoded strings
+        * Dynamic table entries
+        * Huffman encoded & plain text strings
     * Returns 200 OK, empty body
 * Close server using Ctrl+C (`SIGINT`) or `SIGTERM`
 
