@@ -22,7 +22,19 @@ def test_http2_request_sends_custom_header_with_short_value():
     server = run_server(SERVER_PORT)
     assert wait_for_port(SERVER_PORT)
     try:
-        result = curl_http2(URL, ["--header", "x-foo: bar"])
+        result = curl_http2(URL, ["--header", "x-foo: bar"])  # non-huffman compressed value
+
+        assert result.returncode == 0
+        assert_curl_response_ok(result)
+    finally:
+        stop_server(server)
+
+
+def test_http2_request_sends_custom_header_with_long_value():
+    server = run_server(SERVER_PORT)
+    assert wait_for_port(SERVER_PORT)
+    try:
+        result = curl_http2(URL, ["--header", "x-foo: foo bar baz foo bar baz foo bar baz"])  # huffman compressed value
 
         assert result.returncode == 0
         assert_curl_response_ok(result)
