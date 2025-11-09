@@ -27,12 +27,12 @@ void HuffmanTree::insert_symbol(int16_t symbol, uint32_t code, uint8_t bit_len) 
     current->symbol = symbol;
 }
 
-std::vector<int16_t> HuffmanTree::decode(std::span<const uint8_t> data) {
+std::vector<int16_t> HuffmanTree::decode(std::span<const uint8_t> data, size_t bit_len) {
     std::vector<int16_t> result;
 
     BitReader br{data};
     HuffmanNode* current = root_;
-    while (br.has_more()) {
+    while (br.has_more() && bit_len--) {
         bool current_bit = br.read_bit();
         if (!current_bit) {
             current = current->left;

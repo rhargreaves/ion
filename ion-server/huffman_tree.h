@@ -16,5 +16,5 @@ class HuffmanTree {
 
    public:
     void insert_symbol(int16_t symbol, uint32_t code, uint8_t bit_len);
-    std::vector<int16_t> decode(std::span<const uint8_t> data);
+    std::vector<int16_t> decode(std::span<const uint8_t> data, size_t bit_len);
 };
