@@ -27,8 +27,7 @@ std::vector<int16_t> HuffmanTree::decode(std::span<const uint8_t> data, size_t b
     BitReader br{data};
     const HuffmanNode* current = root_.get();
     while (br.has_more() && bit_len--) {
-        bool current_bit = br.read_bit();
-        if (!current_bit) {
+        if (!br.read_bit()) {
             current = current->left.get();
         } else {
             current = current->right.get();
