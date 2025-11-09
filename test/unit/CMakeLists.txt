@@ -8,6 +8,7 @@ FetchContent_MakeAvailable(Catch2)
 add_executable(unit-test
         test_frame_parsing.cpp
         test_hpack_decode.cpp
+        test_huffman_tree.cpp
 )
 
 target_link_libraries(unit-test

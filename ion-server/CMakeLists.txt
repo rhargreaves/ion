@@ -14,6 +14,8 @@ add_library(ion
         args.h
         header_block_decoder.cpp
         header_block_decoder.h
+        huffman_tree.cpp
+        huffman_tree.h
 )
 
 target_include_directories(ion PUBLIC .)
