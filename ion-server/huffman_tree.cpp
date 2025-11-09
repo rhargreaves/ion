@@ -2,18 +2,11 @@
 
 #include "bit_reader.h"
 
-void HuffmanTree::insert_symbol(int16_t symbol, uint32_t lsb_aligned_code, uint8_t bit_len) {
-    const uint32_t code = lsb_aligned_code << (32 - bit_len);
-
-    auto code_span =
-        std::array{static_cast<uint8_t>(code >> 24 & 0xFF), static_cast<uint8_t>(code >> 16 & 0xFF),
-                   static_cast<uint8_t>(code >> 8 & 0xFF), static_cast<uint8_t>(code & 0xFF)};
-    BitReader br{code_span};
-
+void HuffmanTree::insert_symbol(int16_t symbol, uint32_t lsb_aligned_code, uint8_t code_len) {
     HuffmanNode* current = root_;
-    while (br.has_more() && bit_len--) {
-        bool current_bit = br.read_bit();
-        if (!current_bit) {
+    while (code_len--) {
+        bool bit = (lsb_aligned_code >> code_len) & 1;
+        if (!bit) {
             if (!current->left) {
                 current->left = new HuffmanNode();
             }
@@ -25,7 +18,6 @@ void HuffmanTree::insert_symbol(int16_t symbol, uint32_t lsb_aligned_code, uint8
             current = current->right;
         }
     }
-
     current->symbol = symbol;
 }
 
