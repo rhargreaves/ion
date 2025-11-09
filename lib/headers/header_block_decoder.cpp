@@ -22,6 +22,21 @@ HeaderBlockDecoder::HeaderBlockDecoder() {
     populate_huffman_tree(huffman_tree_);
 }
 
+std::string HeaderBlockDecoder::read_length_and_string(ByteReader& reader) {
+    if (!reader.has_bytes()) {
+        throw std::runtime_error("Unexpected end of data while reading header length & string");
+    }
+
+    uint8_t length_byte = reader.read_byte();
+    bool is_huffman = length_byte & 0x80;
+    auto str_size = length_byte & 0x7F;
+
+    if (!reader.has_bytes(str_size)) {
+        throw std::runtime_error("Insufficient data for string");
+    }
+    return read_string(is_huffman, str_size, reader.read_bytes(str_size));
+}
+
 std::string HeaderBlockDecoder::read_string(bool is_huffman, ssize_t size,
                                             std::span<const uint8_t> data) {
     if (is_huffman) {
@@ -65,67 +80,13 @@ std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data
         } else if (first_byte & 0x40) {
             // literal header field
             auto index = static_cast<uint8_t>(first_byte & 0x3F);
-            if (index == 0) {
-                // - new name
-                // check bytes
-                if (!reader.has_bytes()) {
-                    spdlog::error("Unexpected end of data while reading name length");
-                    break;
-                }
-
-                // get name
-                uint8_t name_length_byte = reader.read_byte();
-                auto name_size = name_length_byte & 0x7F;
-                bool name_is_huffman = name_length_byte & 0x80;
-                auto name = read_string(name_is_huffman, name_size, reader.read_bytes(name_size));
-
-                // check bytes
-                if (!reader.has_bytes()) {
-                    spdlog::error("Unexpected end of data while reading value length");
-                    break;
-                }
-
-                // get value
-                uint8_t value_length_byte = reader.read_byte();
-                auto value_size = value_length_byte & 0x7F;
-                bool value_is_huffman = value_length_byte & 0x80;
-
-                if (!reader.has_bytes(value_size)) {
-                    spdlog::error("Insufficient data for value field");
-                    break;
-                }
-                auto value_bytes = reader.read_bytes(value_size);
-                auto val = read_string(value_is_huffman, value_size, value_bytes);
-
-                auto hdr = HttpHeader{name, val};
-                hdrs.push_back(hdr);
-                dynamic_table_.push_back(hdr);
-            } else {
-                // - incremental index
-                // get name
-                auto name = std::string(STATIC_TABLE[index - 1].name);
-
-                // get value
-                if (!reader.has_bytes()) {
-                    spdlog::error("Unexpected end of data while reading value length");
-                    break;
-                }
-
-                uint8_t value_length_byte = reader.read_byte();
-                auto value_size = value_length_byte & 0x7F;
-                bool value_is_huffman = value_length_byte & 0x80;
-
-                if (!reader.has_bytes(value_size)) {
-                    spdlog::error("Insufficient data for value field");
-                    break;
-                }
-                auto value_bytes = reader.read_bytes(value_size);
-                auto val = read_string(value_is_huffman, value_size, value_bytes);
-
-                auto hdr = HttpHeader{name, val};
-                hdrs.push_back(hdr);
-                dynamic_table_.push_back(hdr);
-            }
+            bool is_new_name = index == 0;
+            auto name = is_new_name ? read_length_and_string(reader)
+                                    : std::string(STATIC_TABLE[index - 1].name);
+            auto value = read_length_and_string(reader);
+            auto hdr = HttpHeader{name, value};
+            hdrs.push_back(hdr);
+            dynamic_table_.push_back(hdr);
         }
     }
     return hdrs;

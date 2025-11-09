@@ -2,6 +2,7 @@
 #include <span>
 #include <vector>
 
+#include "byte_reader.h"
 #include "huffman_tree.h"
 
 namespace ion {
@@ -21,6 +22,7 @@ class HeaderBlockDecoder {
     HuffmanTree huffman_tree_{};
 
     std::string read_string(bool is_huffman, ssize_t size, std::span<const uint8_t> data);
+    std::string read_length_and_string(ByteReader& reader);
 };
 
 }  // namespace ion
