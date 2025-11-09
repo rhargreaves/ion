@@ -16,6 +16,7 @@ add_library(ion
         headers/huffman_tree.h
         headers/huffman_codes.h
         headers/header_static_table.h
+        headers/byte_reader.h
 )
 
 target_include_directories(ion PUBLIC .)
