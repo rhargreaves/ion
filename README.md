@@ -15,9 +15,12 @@ It is not intended to be a production-ready server!
 
 * Basic HTTP/2 over TLS
 * For each request:
-    * Prints headers received (static entries only, no HPACK decoding yet)
+    * Prints headers received, supporting:
+        * Static table entries
+        * Dynamic table entries that use static table entry names
+        * Huffman encoded strings
     * Returns 200 OK, empty body
-* Close server using Ctrl+C or SIGTERM
+* Close server using Ctrl+C (`SIGINT`) or `SIGTERM`
 
 <p align="center">
 <img src="docs/screenshot.png" alt="ion screenshot" title="ion screenshot">
@@ -64,7 +67,7 @@ make build
 ## Usage
 
 ```sh
-./build/make/ion-server/ion-server &
+./build/make/app/ion-server &
 curl -k --http2 -v https://localhost:8443/
 ```
 
