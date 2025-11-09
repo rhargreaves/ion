@@ -25,14 +25,14 @@ void HuffmanTree::insert_symbol(int16_t symbol, uint32_t lsb_aligned_code, uint8
         }
     }
 
-    if (current->symbol != -1) {
+    if (current->symbol) {
         throw std::runtime_error("Duplicate symbol: " + std::to_string(symbol));
     }
     current->symbol = symbol;
 }
 
-std::vector<int16_t> HuffmanTree::decode(std::span<const uint8_t> data) {
-    std::vector<int16_t> result;
+std::vector<uint8_t> HuffmanTree::decode(std::span<const uint8_t> data) {
+    std::vector<uint8_t> result;
 
     BitReader br{data};
     const HuffmanNode* current = root_.get();
@@ -46,12 +46,19 @@ std::vector<int16_t> HuffmanTree::decode(std::span<const uint8_t> data) {
         bits_processed++;
 
         if (!current) {
-            throw std::runtime_error(
-                std::format("Invalid Huffman code: (bit pos = {})", bits_processed));
+            while (br.has_more()) {
+                if (!br.read_bit()) {
+                    throw std::runtime_error(std::format(
+                        "remaining unmatched Huffman code is not padding: (bit pos = {})",
+                        bits_processed));
+                }
+                bits_processed++;
+            }
+            return result;
         }
 
         if (current->is_terminal()) {
-            result.push_back(current->symbol);
+            result.push_back(*current->symbol);
             current = root_.get();
         }
     }

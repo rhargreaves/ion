@@ -1,15 +1,16 @@
 #pragma once
 #include <memory>
+#include <optional>
 #include <span>
 #include <vector>
 
 struct HuffmanNode {
     std::unique_ptr<HuffmanNode> left;
     std::unique_ptr<HuffmanNode> right;
-    int16_t symbol = -1;
+    std::optional<uint8_t> symbol;
 
     bool is_terminal() const {
-        return symbol != -1;
+        return symbol.has_value();
     }
 };
 
@@ -19,7 +20,7 @@ class HuffmanTree {
     ~HuffmanTree() = default;
 
     void insert_symbol(int16_t symbol, uint32_t lsb_aligned_code, uint8_t code_len);
-    std::vector<int16_t> decode(std::span<const uint8_t> data);
+    std::vector<uint8_t> decode(std::span<const uint8_t> data);
 
    private:
     std::unique_ptr<HuffmanNode> root_ = std::make_unique<HuffmanNode>();

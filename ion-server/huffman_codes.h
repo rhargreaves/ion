@@ -6,7 +6,7 @@ struct HuffmanCode {
     uint8_t code_len;
 };
 
-constexpr std::array<HuffmanCode, 257> HUFFMAN_CODES = {
+constexpr std::array<HuffmanCode, 256> HUFFMAN_CODES = {
     {{0x1ff8, 13},     {0x7fffd8, 23},  {0xfffffe2, 28},  {0xfffffe3, 28},  {0xfffffe4, 28},
      {0xfffffe5, 28},  {0xfffffe6, 28}, {0xfffffe7, 28},  {0xfffffe8, 28},  {0xffffea, 24},
      {0x3ffffffc, 30}, {0xfffffe9, 28}, {0xfffffea, 28},  {0x3ffffffd, 30}, {0xfffffeb, 28},
@@ -58,4 +58,4 @@ constexpr std::array<HuffmanCode, 257> HUFFMAN_CODES = {
      {0x3ffffeb, 26},  {0x7ffffe6, 27}, {0x3ffffec, 26},  {0x3ffffed, 26},  {0x7ffffe7, 27},
      {0x7ffffe8, 27},  {0x7ffffe9, 27}, {0x7ffffea, 27},  {0x7ffffeb, 27},  {0xffffffe, 28},
      {0x7ffffec, 27},  {0x7ffffed, 27}, {0x7ffffee, 27},  {0x7ffffef, 27},  {0x7fffff0, 27},
-     {0x3ffffee, 26},  {0x3fffffff, 30}}};
+     {0x3ffffee, 26}}};

@@ -50,11 +50,10 @@ std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data
 
                 auto hdr = HttpHeader{std::string(hdr_name), result};
                 hdrs.push_back(hdr);
-                i += value_size;
             } else {
                 spdlog::error("non-huffman strings not supported yet");
-                i += value_size;
             }
+            i += value_size;
         }
     }
     return hdrs;

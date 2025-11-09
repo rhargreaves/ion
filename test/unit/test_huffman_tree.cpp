@@ -14,7 +14,6 @@ TEST_CASE("huffman_tree: builds tree and decodes correctly") {
 
     tree.insert_symbol(0, 0b1111'1111'1100'0, 13);
     tree.insert_symbol(35, 0b1111'1111'1010, 12);
-    tree.insert_symbol(256, 0x3fffffff, 30);  // EOS
 
     std::array<uint8_t, 4> encoded = {0b1111'1111, 0b1100'0111, 0b1111'1101, 0b0111'1111};
 
@@ -27,7 +26,6 @@ TEST_CASE("huffman_tree: builds tree and decodes correctly (space)") {
     HuffmanTree tree{};
 
     tree.insert_symbol(48, 0x00, 5);
-    tree.insert_symbol(256, 0x3fffffff, 30);  // EOS
 
     BitWriter writer;
     writer.write_bits(0x00, 5);
@@ -60,12 +58,12 @@ TEST_CASE("huffman_tree: throws on invalid code") {
     HuffmanTree tree{};
 
     tree.insert_symbol(0, 0x1, 1);
-    tree.insert_symbol(256, 0x3fffffff, 30);  // EOS
 
     std::array<uint8_t, 1> encoded = {0x0};
 
-    CHECK_THROWS_MATCHES(tree.decode(encoded), std::runtime_error,
-                         Catch::Matchers::Message("Invalid Huffman code: (bit pos = 1)"));
+    CHECK_THROWS_MATCHES(
+        tree.decode(encoded), std::runtime_error,
+        Catch::Matchers::Message("remaining unmatched Huffman code is not padding: (bit pos = 1)"));
 }
 
 TEST_CASE("bit_reader: reads bits correctly") {
