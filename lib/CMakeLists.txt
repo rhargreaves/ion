@@ -21,6 +21,8 @@ add_library(ion
         headers/static_http_header.h
         headers/dynamic_table.cpp
         headers/dynamic_table.h
+        headers/header_block_encoder.cpp
+        headers/header_block_encoder.h
 )
 
 target_include_directories(ion PUBLIC .)

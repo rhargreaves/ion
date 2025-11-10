@@ -2,12 +2,12 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "catch2/matchers/catch_matchers.hpp"
-#include "headers/header_block_decoder.h"
+#include "headers/header_block_encoder.h"
 #include "http2_frames.h"
 
 TEST_CASE("headers: encodes static table entries") {
     auto dynamic_table = ion::DynamicTable{};
-    auto encoder = ion::HeaderBlockDecoder{dynamic_table};
+    auto encoder = ion::HeaderBlockEncoder{dynamic_table};
 
     SECTION ("static table entries only (request headers)") {
         const auto hdrs = std::vector<ion::HttpHeader>{

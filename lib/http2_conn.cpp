@@ -215,7 +215,7 @@ void Http2Connection::process_frame(const Http2FrameHeader& header,
                 spdlog::debug(" - request header: {}: {}", hdr.name, hdr.value);
             }
 
-            auto hdrs_bytes = decoder_.encode(std::vector<HttpHeader>{{":status", "200"}});
+            auto hdrs_bytes = encoder_.encode(std::vector<HttpHeader>{{":status", "200"}});
             write_headers_response(header.stream_id, hdrs_bytes,
                                    FLAG_END_HEADERS | FLAG_END_STREAM);
             spdlog::info("200 response sent");

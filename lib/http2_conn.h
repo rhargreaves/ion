@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "headers/header_block_decoder.h"
+#include "headers/header_block_encoder.h"
 #include "http2_frames.h"
 #include "tls_conn.h"
 
@@ -24,6 +25,7 @@ class Http2Connection {
     Http2ConnectionState state_ = Http2ConnectionState::AwaitingPreface;
     DynamicTable dynamic_table_{};
     HeaderBlockDecoder decoder_{dynamic_table_};
+    HeaderBlockEncoder encoder_{dynamic_table_};
 
     bool try_read_preface();
     Http2WindowUpdate process_window_update_payload(std::span<const uint8_t> payload);
