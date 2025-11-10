@@ -8,9 +8,20 @@ namespace ion {
 HeaderBlockEncoder::HeaderBlockEncoder(DynamicTable& dynamic_table)
     : dynamic_table_(dynamic_table) {}
 
+std::vector<uint8_t> HeaderBlockEncoder::write_length_and_string(const std::string& str) {
+    std::vector<uint8_t> bytes{};
+    const auto length = str.size() & 0x7F;  // no huffman encoding
+    bytes.push_back(static_cast<uint8_t>(length));
+    for (const char c : str) {
+        bytes.push_back(c);
+    }
+    return bytes;
+}
+
 std::vector<uint8_t> HeaderBlockEncoder::encode(const std::vector<HttpHeader>& headers) {
     std::vector<uint8_t> bytes{};
     for (auto& hdr : headers) {
+        // is static header?
         const auto st_it = std::find_if(
             STATIC_TABLE.begin(), STATIC_TABLE.end(), [hdr](const StaticHttpHeader& header) {
                 return header.name == hdr.name && header.value == hdr.value;
@@ -21,6 +32,22 @@ std::vector<uint8_t> HeaderBlockEncoder::encode(const std::vector<HttpHeader>& h
             const size_t table_index = std::distance(STATIC_TABLE.begin(), st_it);
             const size_t index = table_index + 1;
             bytes.push_back(static_cast<uint8_t>(index | 0x80));
+            continue;
+        }
+
+        // is static field header name?
+        const auto st_name_it =
+            std::find_if(STATIC_TABLE.begin(), STATIC_TABLE.end(),
+                         [hdr](const StaticHttpHeader& header) { return header.name == hdr.name; });
+
+        if (st_name_it != STATIC_TABLE.end()) {
+            const size_t table_index = std::distance(STATIC_TABLE.begin(), st_name_it);
+            const size_t index = table_index + 1;
+            bytes.push_back(static_cast<uint8_t>(index | 0x40));
+
+            // encode string
+            const auto len_and_str_bytes = write_length_and_string(hdr.value);
+            bytes.insert(bytes.end(), len_and_str_bytes.begin(), len_and_str_bytes.end());
         }
     }
     return bytes;

@@ -29,3 +29,16 @@ TEST_CASE("headers: encodes static table entries") {
         REQUIRE(bytes == std::vector<uint8_t>{0x88});
     }
 }
+
+TEST_CASE("headers: encodes dynamic table entries") {
+    auto dynamic_table = ion::DynamicTable{};
+    auto decoder = ion::HeaderBlockEncoder{dynamic_table};
+
+    SECTION ("stores and returns dynamic header with static header name (not huffman)") {
+        auto bytes = decoder.encode(std::vector<ion::HttpHeader>{
+            {":authority", "foo"},
+        });
+
+        REQUIRE(bytes == std::vector<uint8_t>{0x41, 0x03, 0x66, 0x6f, 0x6f});
+    }
+}

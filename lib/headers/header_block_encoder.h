@@ -9,6 +9,8 @@ class HeaderBlockEncoder {
     std::vector<uint8_t> encode(const std::vector<HttpHeader>& headers);
 
    private:
+    std::vector<uint8_t> write_length_and_string(const std::string& str);
+
     DynamicTable& dynamic_table_;
 };
 
