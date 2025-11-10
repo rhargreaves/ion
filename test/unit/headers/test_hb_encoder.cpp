@@ -34,7 +34,7 @@ TEST_CASE("headers: encodes dynamic table entries") {
     auto dynamic_table = ion::DynamicTable{};
     auto decoder = ion::HeaderBlockEncoder{dynamic_table};
 
-    SECTION ("stores and returns dynamic header with static header name (not huffman)") {
+    SECTION ("returns dynamic header with static header name (not huffman)") {
         auto bytes = decoder.encode(std::vector<ion::HttpHeader>{
             {":authority", "foo"},
         });
@@ -42,11 +42,25 @@ TEST_CASE("headers: encodes dynamic table entries") {
         REQUIRE(bytes == std::vector<uint8_t>{0x41, 0x03, 0x66, 0x6f, 0x6f});
     }
 
-    SECTION ("stores and returns dynamic header with static header name (huffman)") {
+    SECTION ("returns dynamic header with static header name (huffman)") {
         auto bytes = decoder.encode(std::vector<ion::HttpHeader>{
             {":authority", "localhost"},
         });
 
         REQUIRE(bytes == std::vector<uint8_t>{0x41, 0x86, 0xa0, 0xe4, 0x1d, 0x13, 0x9d, 0x9});
+    }
+
+    SECTION ("stores and returns dynamic header") {
+        auto hdrs = std::vector<ion::HttpHeader>{
+            {":authority", "foo"},
+        };
+
+        auto bytes = decoder.encode(hdrs);
+
+        REQUIRE(bytes == std::vector<uint8_t>{0x41, 0x03, 0x66, 0x6f, 0x6f});
+
+        auto bytes2 = decoder.encode(hdrs);
+
+        REQUIRE(bytes2 == std::vector<uint8_t>{0xbe});
     }
 }

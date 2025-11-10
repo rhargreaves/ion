@@ -53,6 +53,13 @@ std::vector<uint8_t> HeaderBlockEncoder::encode(const std::vector<HttpHeader>& h
             continue;
         }
 
+        // check dynamic headers too
+        if (auto dyn_table_index = dynamic_table_.find(hdr)) {
+            const size_t index = STATIC_TABLE.size() + dyn_table_index.value() + 1;
+            bytes.push_back(static_cast<uint8_t>(index | 0x80));
+            continue;
+        }
+
         // is static field header name?
         const auto st_name_it =
             std::find_if(STATIC_TABLE.begin(), STATIC_TABLE.end(),
@@ -66,6 +73,9 @@ std::vector<uint8_t> HeaderBlockEncoder::encode(const std::vector<HttpHeader>& h
             // encode string
             const auto len_and_str_bytes = write_length_and_string(hdr.value);
             bytes.insert(bytes.end(), len_and_str_bytes.begin(), len_and_str_bytes.end());
+
+            // insert into dynamic table
+            dynamic_table_.insert(hdr);
         }
     }
     return bytes;
