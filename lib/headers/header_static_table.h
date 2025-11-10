@@ -1,16 +1,9 @@
 #pragma once
 #include <array>
 
+#include "static_http_header.h"
+
 namespace ion {
-
-struct StaticHttpHeader {
-    std::string_view name;
-    std::string_view value;
-
-    [[nodiscard]] HttpHeader to_http_header() const {
-        return HttpHeader{std::string(name), std::string(value)};
-    }
-};
 
 // https://datatracker.ietf.org/doc/html/rfc7541#appendix-A
 constexpr std::array<StaticHttpHeader, 61> STATIC_TABLE = {  //

@@ -3,14 +3,10 @@
 #include <vector>
 
 #include "byte_reader.h"
+#include "http_header.h"
 #include "huffman_tree.h"
 
 namespace ion {
-
-struct HttpHeader {
-    std::string name;
-    std::string value;
-};
 
 class HeaderBlockDecoder {
    public:
