@@ -60,7 +60,7 @@ std::optional<HttpHeader> HeaderBlockDecoder::try_read_indexed_header(uint8_t in
         spdlog::error("invalid dynamic table index ({})", index);
         return std::nullopt;
     }
-    return dynamic_table_[dynamic_index];
+    return dynamic_table_.get(dynamic_index);
 }
 
 std::optional<std::string> HeaderBlockDecoder::try_read_indexed_header_name(uint8_t index) {
@@ -76,7 +76,7 @@ std::optional<std::string> HeaderBlockDecoder::try_read_indexed_header_name(uint
         spdlog::error("invalid dynamic table index ({})", index);
         return std::nullopt;
     }
-    return dynamic_table_[dynamic_index].name;
+    return dynamic_table_.get(dynamic_index).name;
 }
 
 std::optional<HttpHeader> HeaderBlockDecoder::try_decode_indexed_field(uint8_t first_byte) {
@@ -102,7 +102,7 @@ std::optional<HttpHeader> HeaderBlockDecoder::try_decode_literal_field(uint8_t f
     auto hdr = HttpHeader{name.value(), value};
 
     // update dynamic table
-    dynamic_table_.push_back(hdr);
+    dynamic_table_.insert(hdr);
 
     return hdr;
 }

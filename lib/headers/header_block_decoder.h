@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "byte_reader.h"
+#include "dynamic_table.h"
 #include "http_header.h"
 #include "huffman_tree.h"
 
@@ -15,7 +16,7 @@ class HeaderBlockDecoder {
     std::vector<uint8_t> encode(const std::vector<HttpHeader>& headers);
 
    private:
-    std::vector<HttpHeader> dynamic_table_;
+    DynamicTable dynamic_table_;
     HuffmanTree huffman_tree_{};
 
     std::string read_string(bool is_huffman, ssize_t size, std::span<const uint8_t> data);

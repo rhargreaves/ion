@@ -19,6 +19,8 @@ add_library(ion
         headers/byte_reader.h
         headers/http_header.h
         headers/static_http_header.h
+        headers/dynamic_table.cpp
+        headers/dynamic_table.h
 )
 
 target_include_directories(ion PUBLIC .)
