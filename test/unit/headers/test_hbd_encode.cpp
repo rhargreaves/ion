@@ -6,7 +6,8 @@
 #include "http2_frames.h"
 
 TEST_CASE("headers: encodes static table entries") {
-    auto encoder = ion::HeaderBlockDecoder{};
+    auto dynamic_table = ion::DynamicTable{};
+    auto encoder = ion::HeaderBlockDecoder{dynamic_table};
 
     SECTION ("static table entries only (request headers)") {
         const auto hdrs = std::vector<ion::HttpHeader>{

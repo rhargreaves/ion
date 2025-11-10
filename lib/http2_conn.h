@@ -22,7 +22,8 @@ class Http2Connection {
     const TlsConnection& tls_conn_;
     std::vector<uint8_t> buffer_;
     Http2ConnectionState state_ = Http2ConnectionState::AwaitingPreface;
-    HeaderBlockDecoder decoder_{};
+    DynamicTable dynamic_table_{};
+    HeaderBlockDecoder decoder_{dynamic_table_};
 
     bool try_read_preface();
     Http2WindowUpdate process_window_update_payload(std::span<const uint8_t> payload);

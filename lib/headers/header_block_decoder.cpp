@@ -18,7 +18,8 @@ static void populate_huffman_tree(HuffmanTree& tree) {
     }
 }
 
-HeaderBlockDecoder::HeaderBlockDecoder() {
+HeaderBlockDecoder::HeaderBlockDecoder(DynamicTable& dynamic_table)
+    : dynamic_table_(dynamic_table) {
     populate_huffman_tree(huffman_tree_);
 }
 

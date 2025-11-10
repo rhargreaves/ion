@@ -10,7 +10,8 @@ void check_header(std::vector<ion::HttpHeader>& hdrs, size_t index, const std::s
 };
 
 TEST_CASE("headers: decodes static table entries") {
-    auto decoder = ion::HeaderBlockDecoder{};
+    auto dynamic_table = ion::DynamicTable{};
+    auto decoder = ion::HeaderBlockDecoder{dynamic_table};
 
     SECTION ("static table entries only") {
         std::array<uint8_t, 4> data = {0x82, 0x84, 0xbe, 0x87};
@@ -66,7 +67,8 @@ TEST_CASE("headers: decodes static table entries") {
 }
 
 TEST_CASE("headers: decodes dynamic table entries") {
-    auto decoder = ion::HeaderBlockDecoder{};
+    auto dynamic_table = ion::DynamicTable{};
+    auto decoder = ion::HeaderBlockDecoder{dynamic_table};
 
     SECTION ("stores and returns dynamic header with static header name") {
         constexpr auto req1 = std::to_array<uint8_t>({

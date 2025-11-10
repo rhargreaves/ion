@@ -11,12 +11,13 @@ namespace ion {
 
 class HeaderBlockDecoder {
    public:
-    HeaderBlockDecoder();
+    explicit HeaderBlockDecoder(DynamicTable& dynamic_table);
+
     std::vector<HttpHeader> decode(std::span<const uint8_t> data);
     std::vector<uint8_t> encode(const std::vector<HttpHeader>& headers);
 
    private:
-    DynamicTable dynamic_table_;
+    DynamicTable& dynamic_table_;
     HuffmanTree huffman_tree_{};
 
     std::string read_string(bool is_huffman, ssize_t size, std::span<const uint8_t> data);
