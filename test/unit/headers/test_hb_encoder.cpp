@@ -63,4 +63,23 @@ TEST_CASE("headers: encodes dynamic table entries") {
 
         REQUIRE(bytes2 == std::vector<uint8_t>{0xbe});
     }
+
+    SECTION ("stores and returns dynamic header with indexed name when value changes") {
+        auto hdrs1 = std::vector<ion::HttpHeader>{
+            {"foo", "bar"},
+        };
+
+        auto bytes = decoder.encode(hdrs1);
+
+        REQUIRE(bytes ==
+                std::vector<uint8_t>{0x40, 0x03, 0x66, 0x6f, 0x6f, 0x03, 0x62, 0x61, 0x72});
+
+        auto hdrs2 = std::vector<ion::HttpHeader>{
+            {"foo", "baz"},
+        };
+
+        auto bytes2 = decoder.encode(hdrs2);
+
+        REQUIRE(bytes2 == std::vector<uint8_t>{0x7e, 0x03, 0x62, 0x61, 0x7a});
+    }
 }

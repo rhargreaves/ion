@@ -76,7 +76,32 @@ std::vector<uint8_t> HeaderBlockEncoder::encode(const std::vector<HttpHeader>& h
 
             // insert into dynamic table
             dynamic_table_.insert(hdr);
+            continue;
         }
+
+        // is dynamic field header name?
+        if (auto dyn_table_index = dynamic_table_.find_name(hdr.name)) {
+            const size_t index = STATIC_TABLE.size() + dyn_table_index.value() + 1;
+            bytes.push_back(static_cast<uint8_t>(index | 0x40));
+
+            // encode string
+            const auto len_and_str_bytes = write_length_and_string(hdr.value);
+            bytes.insert(bytes.end(), len_and_str_bytes.begin(), len_and_str_bytes.end());
+
+            // insert into dynamic table
+            dynamic_table_.insert(hdr);
+            continue;
+        }
+
+        // new name
+        const auto name_len_and_str_bytes = write_length_and_string(hdr.name);
+        const auto value_len_and_str_bytes = write_length_and_string(hdr.value);
+        bytes.push_back(0x40);
+        bytes.insert(bytes.end(), name_len_and_str_bytes.begin(), name_len_and_str_bytes.end());
+        bytes.insert(bytes.end(), value_len_and_str_bytes.begin(), value_len_and_str_bytes.end());
+
+        // insert into dynamic table
+        dynamic_table_.insert(hdr);
     }
     return bytes;
 }
