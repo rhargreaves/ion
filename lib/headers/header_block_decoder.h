@@ -12,6 +12,7 @@ class HeaderBlockDecoder {
    public:
     HeaderBlockDecoder();
     std::vector<HttpHeader> decode(std::span<const uint8_t> data);
+    std::vector<uint8_t> encode(const std::vector<HttpHeader>& headers);
 
    private:
     std::vector<HttpHeader> dynamic_table_;

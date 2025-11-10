@@ -128,4 +128,22 @@ std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data
     return hdrs;
 }
 
+std::vector<uint8_t> HeaderBlockDecoder::encode(const std::vector<HttpHeader>& headers) {
+    std::vector<uint8_t> bytes{};
+    for (auto& hdr : headers) {
+        const auto st_it = std::find_if(
+            STATIC_TABLE.begin(), STATIC_TABLE.end(), [hdr](const StaticHttpHeader& header) {
+                return header.name == hdr.name && header.value == hdr.value;
+            });
+
+        if (st_it != STATIC_TABLE.end()) {
+            // found static header
+            const size_t table_index = std::distance(STATIC_TABLE.begin(), st_it);
+            const size_t index = table_index + 1;
+            bytes.push_back(static_cast<uint8_t>(index | 0x80));
+        }
+    }
+    return bytes;
+}
+
 }  // namespace ion
