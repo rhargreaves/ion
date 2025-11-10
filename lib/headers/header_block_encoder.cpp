@@ -7,13 +7,15 @@
 
 namespace ion {
 
+constexpr size_t MAX_PLAIN_TEXT_STRING_LENGTH = 3;
+
 HeaderBlockEncoder::HeaderBlockEncoder(DynamicTable& dynamic_table)
     : dynamic_table_(dynamic_table) {}
 
 std::vector<uint8_t> HeaderBlockEncoder::write_length_and_string(const std::string& str) {
     std::vector<uint8_t> bytes{};
 
-    if (str.size() > 3) {
+    if (str.size() > MAX_PLAIN_TEXT_STRING_LENGTH) {
         // use huffman coding
         BitWriter bw{};
         for (const char c : str) {
