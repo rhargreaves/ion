@@ -7,10 +7,10 @@ FetchContent_MakeAvailable(Catch2)
 
 add_executable(unit-test
         test_frame_parsing.cpp
-        headers/test_hbd_decode.cpp
+        headers/test_hb_decoder.cpp
         headers/test_huffman_tree.cpp
         headers/test_bit_reader.cpp
-        headers/test_hbd_encode.cpp
+        headers/test_hb_encoder.cpp
 )
 
 target_link_libraries(unit-test
