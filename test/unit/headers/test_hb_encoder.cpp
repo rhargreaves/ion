@@ -41,4 +41,12 @@ TEST_CASE("headers: encodes dynamic table entries") {
 
         REQUIRE(bytes == std::vector<uint8_t>{0x41, 0x03, 0x66, 0x6f, 0x6f});
     }
+
+    SECTION ("stores and returns dynamic header with static header name (huffman)") {
+        auto bytes = decoder.encode(std::vector<ion::HttpHeader>{
+            {":authority", "localhost"},
+        });
+
+        REQUIRE(bytes == std::vector<uint8_t>{0x41, 0x86, 0xa0, 0xe4, 0x1d, 0x13, 0x9d, 0x9});
+    }
 }

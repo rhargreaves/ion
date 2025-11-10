@@ -1,7 +1,9 @@
 #include "header_block_encoder.h"
 
+#include "bit_writer.h"
 #include "header_block_decoder.h"
 #include "header_static_table.h"
+#include "huffman_codes.h"
 
 namespace ion {
 
@@ -10,10 +12,24 @@ HeaderBlockEncoder::HeaderBlockEncoder(DynamicTable& dynamic_table)
 
 std::vector<uint8_t> HeaderBlockEncoder::write_length_and_string(const std::string& str) {
     std::vector<uint8_t> bytes{};
-    const auto length = str.size() & 0x7F;  // no huffman encoding
-    bytes.push_back(static_cast<uint8_t>(length));
-    for (const char c : str) {
-        bytes.push_back(c);
+
+    if (str.size() > 3) {
+        // use huffman coding
+        BitWriter bw{};
+        for (const char c : str) {
+            auto huffman_code = HUFFMAN_CODES[c];
+            bw.write_bits(huffman_code.lsb_aligned_code, huffman_code.code_len);
+        }
+        auto bitstream = bw.finalize();
+        bytes.push_back(0x80 | (bitstream.size() & 0x7F));
+        bytes.insert(bytes.end(), bitstream.begin(), bitstream.end());
+    } else {
+        // non huffman
+        const auto length = str.size() & 0x7F;  // no huffman encoding
+        bytes.push_back(static_cast<uint8_t>(length));
+        for (const char c : str) {
+            bytes.push_back(c);
+        }
     }
     return bytes;
 }
