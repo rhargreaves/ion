@@ -215,9 +215,8 @@ void Http2Connection::process_frame(const Http2FrameHeader& header,
                 spdlog::debug(" - request header: {}: {}", hdr.name, hdr.value);
             }
 
-            // Send 200 response: HPACK index 8 = ":status: 200"
-            std::array<uint8_t, 1> headers_data = {0x88};  // 0x80 | 8 = indexed header
-            write_headers_response(header.stream_id, headers_data,
+            auto hdrs_bytes = decoder_.encode(std::vector<HttpHeader>{{":status", "200"}});
+            write_headers_response(header.stream_id, hdrs_bytes,
                                    FLAG_END_HEADERS | FLAG_END_STREAM);
             spdlog::info("200 response sent");
             break;
