@@ -210,12 +210,16 @@ void Http2Connection::process_frame(const Http2FrameHeader& header,
                           header.stream_id, end_headers_set, end_stream_set, header.length);
 
             // read header block fragment
+            log_dynamic_tables();
             auto hdrs = decoder_.decode(payload);
             for (const auto& hdr : hdrs) {
                 spdlog::debug(" - request header: {}: {}", hdr.name, hdr.value);
             }
 
-            auto hdrs_bytes = encoder_.encode(std::vector<HttpHeader>{{":status", "200"}});
+            log_dynamic_tables();
+            auto hdrs_bytes = encoder_.encode(
+                std::vector<HttpHeader>{{":status", "200"}, {"server", "ion/0.1.0"}});
+            log_dynamic_tables();
             write_headers_response(header.stream_id, hdrs_bytes,
                                    FLAG_END_HEADERS | FLAG_END_STREAM);
             spdlog::info("200 response sent");
@@ -298,6 +302,13 @@ void Http2Connection::update_state(Http2ConnectionState new_state) {
                       state_to_string(new_state));
         state_ = new_state;
     }
+}
+
+void Http2Connection::log_dynamic_tables() {
+    spdlog::debug("decoder dynamic table:");
+    decoder_dynamic_table_.log_contents();
+    spdlog::debug("encoder dynamic table:");
+    encoder_dynamic_table_.log_contents();
 }
 
 }  // namespace ion

@@ -15,6 +15,7 @@ class DynamicTable {
     void insert(const HttpHeader& header);
     std::optional<size_t> find(const HttpHeader& header);
     std::optional<size_t> find_name(const std::string& name);
+    void log_contents();
 
    private:
     std::vector<HttpHeader> table_{};

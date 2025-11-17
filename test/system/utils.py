@@ -75,4 +75,4 @@ def curl_http2(url, custom_args=None):
 
 
 def assert_curl_response_ok(result):
-    assert "< HTTP/2 200 \n< \n" in result.stderr
+    assert "< HTTP/2 200 \n" in result.stderr

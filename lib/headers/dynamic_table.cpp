@@ -1,5 +1,9 @@
 #include "dynamic_table.h"
 
+#include <spdlog/spdlog.h>
+
+#include "header_static_table.h"
+
 namespace ion {
 
 size_t DynamicTable::size() {
@@ -11,7 +15,8 @@ HttpHeader DynamicTable::get(size_t index) {
 }
 
 void DynamicTable::insert(const HttpHeader& header) {
-    table_.push_back(header);
+    table_.insert(table_.begin(), header);
+    spdlog::debug("dynamic table: inserted header: {}: {}", header.name, header.value);
 }
 
 std::optional<size_t> DynamicTable::find(const HttpHeader& header) {
@@ -31,6 +36,14 @@ std::optional<size_t> DynamicTable::find_name(const std::string& name) {
         return std::nullopt;
     }
     return std::distance(table_.begin(), it);
+}
+
+void DynamicTable::log_contents() {
+    spdlog::debug("dynamic table:");
+    int pos = 0;
+    for (const auto& header : table_) {
+        spdlog::debug(" - ({}) {}: {}", pos++, header.name, header.value);
+    }
 }
 
 }  // namespace ion

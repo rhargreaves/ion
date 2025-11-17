@@ -23,9 +23,10 @@ class Http2Connection {
     const TlsConnection& tls_conn_;
     std::vector<uint8_t> buffer_;
     Http2ConnectionState state_ = Http2ConnectionState::AwaitingPreface;
-    DynamicTable dynamic_table_{};
-    HeaderBlockDecoder decoder_{dynamic_table_};
-    HeaderBlockEncoder encoder_{dynamic_table_};
+    DynamicTable decoder_dynamic_table_{};
+    DynamicTable encoder_dynamic_table_{};
+    HeaderBlockDecoder decoder_{decoder_dynamic_table_};
+    HeaderBlockEncoder encoder_{encoder_dynamic_table_};
 
     bool try_read_preface();
     Http2WindowUpdate process_window_update_payload(std::span<const uint8_t> payload);
@@ -43,6 +44,8 @@ class Http2Connection {
     void process_settings_payload(std::span<const uint8_t> payload);
     void process_frame(const Http2FrameHeader& header, std::span<const uint8_t> payload);
     void update_state(Http2ConnectionState new_state);
+
+    void log_dynamic_tables();
 };
 
 }  // namespace ion

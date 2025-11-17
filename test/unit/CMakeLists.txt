@@ -11,6 +11,7 @@ add_executable(unit-test
         headers/test_huffman_tree.cpp
         headers/test_bit_reader.cpp
         headers/test_hb_encoder.cpp
+        headers/test_dynamic_table.cpp
 )
 
 target_link_libraries(unit-test
