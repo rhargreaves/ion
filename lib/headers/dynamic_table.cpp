@@ -15,7 +15,7 @@ HttpHeader DynamicTable::get(size_t index) {
 }
 
 void DynamicTable::insert(const HttpHeader& header) {
-    table_.insert(table_.begin(), header);
+    table_.push_front(header);
     spdlog::debug("dynamic table: inserted header: {}: {}", header.name, header.value);
 }
 
@@ -38,7 +38,7 @@ std::optional<size_t> DynamicTable::find_name(const std::string& name) {
     return std::distance(table_.begin(), it);
 }
 
-void DynamicTable::log_contents() {
+void DynamicTable::log_contents() const {
     spdlog::debug("dynamic table:");
     int pos = 0;
     for (const auto& header : table_) {

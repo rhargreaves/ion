@@ -1,8 +1,8 @@
 
 
 #pragma once
+#include <deque>
 #include <optional>
-#include <vector>
 
 #include "http_header.h"
 
@@ -15,10 +15,10 @@ class DynamicTable {
     void insert(const HttpHeader& header);
     std::optional<size_t> find(const HttpHeader& header);
     std::optional<size_t> find_name(const std::string& name);
-    void log_contents();
+    void log_contents() const;
 
    private:
-    std::vector<HttpHeader> table_{};
+    std::deque<HttpHeader> table_{};
 };
 
 }  // namespace ion

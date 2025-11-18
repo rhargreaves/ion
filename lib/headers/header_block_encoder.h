@@ -1,4 +1,6 @@
 #pragma once
+#include <vector>
+
 #include "dynamic_table.h"
 
 namespace ion {
