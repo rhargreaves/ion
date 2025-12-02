@@ -23,6 +23,9 @@ add_library(ion
         headers/dynamic_table.h
         headers/header_block_encoder.cpp
         headers/header_block_encoder.h
+        router.cpp
+        router.h
+        http_response.h
 )
 
 target_include_directories(ion PUBLIC .)
