@@ -58,6 +58,9 @@ int main(int argc, char* argv[]) {
     try {
         ion::Http2Server server{};
         g_server.store(&server);
+
+        server.router().register_handler([] { return HttpResponse{.status_code = 200}; });
+
         server.run_server(port);
         spdlog::info("exiting");
         return 0;

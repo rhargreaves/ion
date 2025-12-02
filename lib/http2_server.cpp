@@ -21,7 +21,7 @@ void Http2Server::run_server(uint16_t port) {
         tls_conn.handshake();
         spdlog::info("SSL handshake completed successfully");
 
-        Http2Connection http{tls_conn};
+        Http2Connection http{tls_conn, router_};
         bool connection_valid = true;
 
         while (!user_req_termination_ && connection_valid) {

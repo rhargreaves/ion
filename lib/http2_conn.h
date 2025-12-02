@@ -6,6 +6,7 @@
 #include "headers/header_block_decoder.h"
 #include "headers/header_block_encoder.h"
 #include "http2_frames.h"
+#include "router.h"
 #include "tls_conn.h"
 
 namespace ion {
@@ -15,7 +16,7 @@ enum class Http2ConnectionState { AwaitingPreface, AwaitingFrame, ProtocolError,
 
 class Http2Connection {
    public:
-    explicit Http2Connection(const TlsConnection& tls_conn);
+    explicit Http2Connection(const TlsConnection& tls_conn, const Router& router);
     Http2ProcessResult process_state();
     void close();
 
@@ -27,6 +28,7 @@ class Http2Connection {
     DynamicTable encoder_dynamic_table_{};
     HeaderBlockDecoder decoder_{decoder_dynamic_table_};
     HeaderBlockEncoder encoder_{encoder_dynamic_table_};
+    Router router_;
 
     bool try_read_preface();
     Http2WindowUpdate process_window_update_payload(std::span<const uint8_t> payload);
@@ -46,6 +48,7 @@ class Http2Connection {
     void update_state(Http2ConnectionState new_state);
 
     void log_dynamic_tables();
+    std::vector<HttpHeader> process_request(const std::vector<HttpHeader>& req_hdrs);
 };
 
 }  // namespace ion

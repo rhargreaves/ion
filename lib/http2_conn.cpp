@@ -20,7 +20,8 @@ static constexpr std::string_view CLIENT_PREFACE{"PRI * HTTP/2.0\r\n\r\nSM\r\n\r
 
 static constexpr size_t READ_BUFFER_SIZE = 1024 * 1024;
 
-Http2Connection::Http2Connection(const TlsConnection& conn) : tls_conn_(conn) {}
+Http2Connection::Http2Connection(const TlsConnection& conn, const Router& router)
+    : tls_conn_(conn), router_(router) {}
 
 void Http2Connection::process_settings_payload(std::span<const uint8_t> payload) {
     std::vector<Http2Setting> settings;
@@ -216,9 +217,8 @@ void Http2Connection::process_frame(const Http2FrameHeader& header,
                 spdlog::debug(" - request header: {}: {}", hdr.name, hdr.value);
             }
 
-            log_dynamic_tables();
-            auto hdrs_bytes = encoder_.encode(
-                std::vector<HttpHeader>{{":status", "200"}, {"server", "ion/0.1.0"}});
+            auto resp_headers = process_request(hdrs);
+            auto hdrs_bytes = encoder_.encode(resp_headers);
             log_dynamic_tables();
             write_headers_response(header.stream_id, hdrs_bytes,
                                    FLAG_END_HEADERS | FLAG_END_STREAM);
@@ -309,6 +309,16 @@ void Http2Connection::log_dynamic_tables() {
     decoder_dynamic_table_.log_contents();
     spdlog::debug("encoder dynamic table:");
     encoder_dynamic_table_.log_contents();
+}
+
+std::vector<HttpHeader> Http2Connection::process_request(const std::vector<HttpHeader>& headers) {
+    auto handler = router_.get_handler("dummy", "dummy");
+    auto resp = handler();
+
+    auto resp_hdrs = std::vector<HttpHeader>();
+    resp_hdrs.push_back({":status", std::to_string(resp.status_code)});
+    resp_hdrs.push_back({"server", "ion/0.1.0"});
+    return resp_hdrs;
 }
 
 }  // namespace ion
