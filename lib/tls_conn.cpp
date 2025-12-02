@@ -48,7 +48,7 @@ TlsConnection::TlsConnection(TcpConnection& tcp_conn, const std::filesystem::pat
     SSL_CTX_set_alpn_select_cb(ctx, alpn_callback, nullptr);
 
     SSL_CTX_set_keylog_callback(ctx, [](const SSL*, const char* line) {
-        if (auto keylog_file = std::getenv("SSLKEYLOGFILE")) {
+        if (const auto keylog_file = std::getenv("SSLKEYLOGFILE")) {
             std::ofstream file(keylog_file, std::ios::app);
             if (file.is_open()) {
                 file << line << '\n';
