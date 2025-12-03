@@ -26,6 +26,24 @@ It is not intended to be a production-ready server!
 <img src="docs/screenshot.png" alt="ion screenshot" title="ion screenshot">
 </p>
 
+## Usage
+
+```c++
+#include "ion/http2_server.h"
+
+int main() {
+    ion::Http2Server server{};
+    auto& router = server.router();
+
+    router.register_handler("/", "GET", [] { return ion::HttpResponse {.status_code = 200}; });
+
+    server.run_server(8443);
+    return 0;
+}
+```
+
+See [app/main.cpp](app/main.cpp) for a more complete example, including signal handling.
+
 ## Build
 
 Requirements:
