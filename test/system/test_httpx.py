@@ -76,6 +76,19 @@ async def test_httpx_returns_404_for_invalid_path():
 
 
 @pytest.mark.asyncio
+async def test_httpx_returns_204_for_no_content():
+    server = run_server(SERVER_PORT)
+    assert wait_for_port(SERVER_PORT)
+    try:
+        client = httpx.AsyncClient(http2=True, verify=False)
+        response = await client.get(BASE_URL + "/no_content")
+
+        assert response.status_code == 204
+    finally:
+        stop_server(server)
+
+
+@pytest.mark.asyncio
 async def test_httpx_returns_200_for_multiple_requests_over_persistent_connection():
     server = run_server(SERVER_PORT)
     assert wait_for_port(SERVER_PORT)

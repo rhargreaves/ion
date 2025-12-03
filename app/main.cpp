@@ -41,7 +41,11 @@ void run_server(uint16_t port) {
     ion::Http2Server server{};
     g_server.store(&server);
 
-    server.router().register_handler("/", "GET", [] { return HttpResponse{.status_code = 200}; });
+    auto& router = server.router();
+
+    router.register_handler("/", "GET", [] { return HttpResponse{.status_code = 200}; });
+
+    router.register_handler("/no_content", "GET", [] { return HttpResponse{.status_code = 204}; });
 
     server.run_server(port);
 }
