@@ -37,6 +37,15 @@ void sigpipe_handler(int) {
     spdlog::debug("SIGPIPE from network connection, ignoring");
 }
 
+void run_server(uint16_t port) {
+    ion::Http2Server server{};
+    g_server.store(&server);
+
+    server.router().register_handler("/", "GET", [] { return HttpResponse{.status_code = 200}; });
+
+    server.run_server(port);
+}
+
 int main(int argc, char* argv[]) {
     CLI::App app{"ion: the light-weight HTTP/2 server ⚡️"};
     uint16_t port{Args::DEFAULT_PORT};
@@ -56,12 +65,7 @@ int main(int argc, char* argv[]) {
     spdlog::set_level(Args::parse_log_level(log_level));
     spdlog::info("ion started ⚡️");
     try {
-        ion::Http2Server server{};
-        g_server.store(&server);
-
-        server.router().register_handler([] { return HttpResponse{.status_code = 200}; });
-
-        server.run_server(port);
+        run_server(port);
         spdlog::info("exiting");
         return 0;
     } catch (const std::exception& e) {

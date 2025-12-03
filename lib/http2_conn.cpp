@@ -311,8 +311,25 @@ void Http2Connection::log_dynamic_tables() {
     encoder_dynamic_table_.log_contents();
 }
 
+static std::optional<std::string> get_header(const std::vector<HttpHeader>& headers,
+                                             const std::string& name) {
+    const auto it = std::find_if(headers.begin(), headers.end(),
+                                 [name](const HttpHeader& hdr) { return hdr.name == name; });
+    if (it == headers.end()) {
+        return std::nullopt;
+    }
+    return it->value;
+}
+
 std::vector<HttpHeader> Http2Connection::process_request(const std::vector<HttpHeader>& headers) {
-    auto handler = router_.get_handler("dummy", "dummy");
+    auto path = get_header(headers, ":path");
+    auto method = get_header(headers, ":method");
+
+    if (!path || !method) {
+        throw std::runtime_error("invalid request: missing path or method");
+    }
+
+    auto handler = router_.get_handler(path.value(), method.value());
     auto resp = handler();
 
     auto resp_hdrs = std::vector<HttpHeader>();

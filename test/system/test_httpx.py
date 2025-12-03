@@ -4,7 +4,7 @@ import pytest
 import logging
 
 SERVER_PORT = 8443
-URL = f"https://localhost:{SERVER_PORT}"
+BASE_URL = f"https://localhost:{SERVER_PORT}"
 
 logging.basicConfig(
     format="%(levelname)s [%(asctime)s] %(name)s - %(message)s",
@@ -26,10 +26,10 @@ async def test_httpx_sends_custom_header_two_different_values():  # support dyna
     assert wait_for_port(SERVER_PORT)
     try:
         client = httpx.AsyncClient(http2=True, verify=False)
-        resp1 = await client.get(URL, headers={"foo": "bar"})
+        resp1 = await client.get(BASE_URL, headers={"foo": "bar"})
         assert resp1.status_code == 200
 
-        resp2 = await client.get(URL, headers={"foo": "baz"})
+        resp2 = await client.get(BASE_URL, headers={"foo": "baz"})
         assert resp2.status_code == 200
     finally:
         stop_server(server)
@@ -41,7 +41,7 @@ async def test_httpx_returns_server_header():
     assert wait_for_port(SERVER_PORT)
     try:
         client = httpx.AsyncClient(http2=True, verify=False)
-        response = await client.get(URL)
+        response = await client.get(BASE_URL)
 
         assert response.status_code == 200
         assert response.headers["server"] == "ion/0.1.0"
@@ -55,9 +55,22 @@ async def test_httpx_returns_200():
     assert wait_for_port(SERVER_PORT)
     try:
         client = httpx.AsyncClient(http2=True, verify=False)
-        response = await client.get(URL)
+        response = await client.get(BASE_URL)
 
         assert response.status_code == 200
+    finally:
+        stop_server(server)
+
+
+@pytest.mark.asyncio
+async def test_httpx_returns_404_for_invalid_path():
+    server = run_server(SERVER_PORT)
+    assert wait_for_port(SERVER_PORT)
+    try:
+        client = httpx.AsyncClient(http2=True, verify=False)
+        response = await client.get(BASE_URL + "/invalid-path")
+
+        assert response.status_code == 404
     finally:
         stop_server(server)
 
@@ -70,7 +83,7 @@ async def test_httpx_returns_200_for_multiple_requests_over_persistent_connectio
         client = httpx.AsyncClient(http2=True, verify=False)
         for i in range(10):
             print(f"request {i}:")
-            response = await client.get(URL)
+            response = await client.get(BASE_URL)
             assert response.status_code == 200
     finally:
         stop_server(server)

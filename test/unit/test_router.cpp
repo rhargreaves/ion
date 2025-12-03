@@ -5,15 +5,15 @@ TEST_CASE("router: returns appropriate handler function") {
     auto router = ion::Router{};
 
     SECTION ("return default handler") {
-        auto handler = router.get_handler("dummy", "dummy");
+        auto handler = router.get_handler("/", "GET");
 
         REQUIRE(handler().status_code == 404);
     }
 
     SECTION ("return last handler added") {
-        router.register_handler([]() { return HttpResponse{.status_code = 200}; });
+        router.register_handler("/foo", "GET", []() { return HttpResponse{.status_code = 200}; });
 
-        auto handler = router.get_handler("dummy", "dummy");
+        auto handler = router.get_handler("/foo", "GET");
 
         REQUIRE(handler().status_code == 200);
     }
