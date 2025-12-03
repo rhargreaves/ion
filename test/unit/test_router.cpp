@@ -4,17 +4,28 @@
 TEST_CASE("router: returns appropriate handler function") {
     auto router = ion::Router{};
 
-    SECTION ("return default handler") {
+    SECTION ("return default handler if no handlers defined") {
         auto handler = router.get_handler("/", "GET");
 
         REQUIRE(handler().status_code == 404);
     }
 
-    SECTION ("return last handler added") {
+    SECTION ("return default handler if non-matched") {
         router.register_handler("/foo", "GET", []() { return HttpResponse{.status_code = 200}; });
 
-        auto handler = router.get_handler("/foo", "GET");
+        auto handler = router.get_handler("/", "GET");
 
-        REQUIRE(handler().status_code == 200);
+        REQUIRE(handler().status_code == 404);
+    }
+
+    SECTION ("return matched handler") {
+        router.register_handler("/foo", "GET", []() { return HttpResponse{.status_code = 200}; });
+        router.register_handler("/bar", "POST", []() { return HttpResponse{.status_code = 201}; });
+        router.register_handler("/bar", "GET", []() { return HttpResponse{.status_code = 202}; });
+        router.register_handler("/baz", "GET", []() { return HttpResponse{.status_code = 203}; });
+
+        auto handler = router.get_handler("/bar", "GET");
+
+        REQUIRE(handler().status_code == 202);
     }
 }
