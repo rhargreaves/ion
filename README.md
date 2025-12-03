@@ -35,7 +35,9 @@ int main() {
     ion::Http2Server server{};
     auto& router = server.router();
 
-    router.register_handler("/", "GET", [] { return ion::HttpResponse {.status_code = 200}; });
+    router.register_handler("/", "GET", [] {
+        return ion::HttpResponse {.status_code = 200};
+    });
 
     server.run_server(8443);
     return 0;
