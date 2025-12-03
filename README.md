@@ -14,12 +14,13 @@ It is not intended to be a production-ready server!
 ## Progress
 
 * Basic HTTP/2 over TLS
+* Register routes (path & method) and return status codes
 * For each request:
     * Prints headers received, supporting:
         * Static table entries
         * Dynamic table entries
         * Huffman encoded & plain text strings
-    * Returns 200 OK, empty body
+    * Returns status code, empty body
 * Close server using Ctrl+C (`SIGINT`) or `SIGTERM`
 
 <p align="center">
