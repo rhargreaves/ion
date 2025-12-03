@@ -26,7 +26,7 @@ It is not intended to be a production-ready server!
 <img src="docs/screenshot.png" alt="ion screenshot" title="ion screenshot">
 </p>
 
-## Usage
+## Example Usage
 
 ```c++
 #include "ion/http2_server.h"
@@ -82,7 +82,7 @@ Make:
 make build
 ```
 
-## Usage
+## Demo App Usage
 
 ```sh
 ./build/make/app/ion-server &
