@@ -10,6 +10,7 @@ I'm using this as a learning exercise to learn more about HTTP/2 and modern C++.
 As such, I am intentionally using low-level APIs and avoiding libraries for the core flow (but using modern C++ features
 to wrap the POSIX interfaces).
 It is not intended to be a production-ready server!
+I'm documenting non-obvious stuff I've learnt along the way in [LEARNINGS.md](docs/LEARNINGS.md).
 
 ## Progress
 
