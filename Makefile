@@ -5,21 +5,26 @@ CERT_PEM=cert.pem
 KEY_PEM=key.pem
 BUILD_SUFFIX?=make
 BUILD_DIR=build/$(BUILD_SUFFIX)
+BUILD_TYPE=RelWithDebInfo
 SERVER_PORT=8443
 
 export ION_PATH=$(BUILD_DIR)/app/ion-server
 
 build:
-	cmake -S . -B $(BUILD_DIR)
+	cmake -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -S . -B $(BUILD_DIR)
 	cmake --build $(BUILD_DIR) --parallel
 .PHONY: build
 
-test: test-unit test-system
+test: test-unit test-integration test-system
 .PHONY: test
 
 test-unit:
 	$(BUILD_DIR)/test/unit/unit-test
 .PHONY: test-unit
+
+test-integration:
+	$(BUILD_DIR)/test/integration/int-test
+.PHONY: test-integration
 
 test-system: $(CERT_PEM) $(KEY_PEM)
 	pip3 install -q -r test/system/requirements.txt

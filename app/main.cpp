@@ -43,9 +43,10 @@ void run_server(uint16_t port) {
 
     auto& router = server.router();
 
-    router.register_handler("/", "GET", [] { return HttpResponse{.status_code = 200}; });
+    router.register_handler("/", "GET", [] { return ion::HttpResponse{.status_code = 200}; });
 
-    router.register_handler("/no_content", "GET", [] { return HttpResponse{.status_code = 204}; });
+    router.register_handler("/no_content", "GET",
+                            [] { return ion::HttpResponse{.status_code = 204}; });
 
     server.run_server(port);
 }

@@ -18,7 +18,10 @@ void Http2Server::run_server(uint16_t port) {
         spdlog::info("client connected");
 
         TlsConnection tls_conn{tcp_conn, "cert.pem", "key.pem"};
-        tls_conn.handshake();
+        if (!tls_conn.handshake()) {
+            spdlog::info("handshake failed, dropping connection");
+            continue;
+        }
         spdlog::info("SSL handshake completed successfully");
 
         Http2Connection http{tls_conn, router_};

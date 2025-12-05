@@ -22,7 +22,7 @@ class TlsConnection {
     std::expected<ssize_t, TlsError> read(std::span<uint8_t> buffer) const;
     ssize_t write(std::span<const uint8_t> buffer) const;
     [[nodiscard]] bool has_data() const;
-    void handshake() const;
+    [[nodiscard]] bool handshake() const;
     void graceful_shutdown() const;
 
    private:

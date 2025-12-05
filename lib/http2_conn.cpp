@@ -18,7 +18,7 @@ static constexpr uint8_t FLAG_END_STREAM = 0x01;
 
 static constexpr std::string_view CLIENT_PREFACE{"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"};
 
-static constexpr size_t READ_BUFFER_SIZE = 1024 * 1024;
+static constexpr size_t READ_BUFFER_SIZE = 512 * 1024;
 
 Http2Connection::Http2Connection(const TlsConnection& conn, const Router& router)
     : tls_conn_(conn), router_(router) {}
@@ -106,7 +106,7 @@ void Http2Connection::write_settings() {
 }
 
 void Http2Connection::populate_read_buffer() {
-    std::array<uint8_t, READ_BUFFER_SIZE> temp_buffer{};
+    std::vector<uint8_t> temp_buffer(READ_BUFFER_SIZE);
     const auto result = tls_conn_.read(temp_buffer);
 
     if (!result) {

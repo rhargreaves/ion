@@ -7,7 +7,7 @@ Router::Router() {
 }
 
 std::function<HttpResponse()> Router::get_handler(const std::string& path,
-                                                  const std::string& method) {
+                                                  const std::string& method) const {
     for (const auto& route : routes_) {
         if (route.path == path && route.method == method) {
             return route.handler;

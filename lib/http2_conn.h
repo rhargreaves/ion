@@ -22,13 +22,13 @@ class Http2Connection {
 
    private:
     const TlsConnection& tls_conn_;
+    const Router& router_;
     std::vector<uint8_t> buffer_;
     Http2ConnectionState state_ = Http2ConnectionState::AwaitingPreface;
     DynamicTable decoder_dynamic_table_{};
     DynamicTable encoder_dynamic_table_{};
     HeaderBlockDecoder decoder_{decoder_dynamic_table_};
     HeaderBlockEncoder encoder_{encoder_dynamic_table_};
-    Router router_;
 
     bool try_read_preface();
     Http2WindowUpdate process_window_update_payload(std::span<const uint8_t> payload);

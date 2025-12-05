@@ -67,14 +67,14 @@ TlsConnection::TlsConnection(TcpConnection& tcp_conn, const std::filesystem::pat
     }
 }
 
-void TlsConnection::handshake() const {
+bool TlsConnection::handshake() const {
     constexpr int timeout_ms = 100;
     constexpr int max_retries = 100;
 
-    for (int attempt = 0; attempt < max_retries; ++attempt) {
+    for (int attempt = 0; attempt < max_retries; attempt++) {
         const int result = SSL_accept(ssl_);
         if (result == 1) {
-            return;
+            return true;
         }
         switch (const int ssl_error = SSL_get_error(ssl_, result)) {
             case SSL_ERROR_WANT_READ:
@@ -89,17 +89,22 @@ void TlsConnection::handshake() const {
                     continue;  // Timeout, try again
                 }
                 if (poll_result < 0) {
-                    throw std::system_error(errno, std::system_category(), "poll during handshake");
+                    spdlog::error("poll failed during handshake: {}", strerror(errno));
+                    return false;
                 }
                 break;
             }
             default: {
                 char err_buf[256];
                 ERR_error_string_n(ERR_get_error(), err_buf, sizeof(err_buf));
-                throw std::runtime_error("SSL handshake failed: " + std::string(err_buf));
+                spdlog::error("SSL handshake failed: {}", err_buf);
+                return false;
             }
         }
     }
+
+    spdlog::warn("SSL handshake timed out after {} attempts", max_retries);
+    return false;
 }
 
 TlsConnection::~TlsConnection() {
