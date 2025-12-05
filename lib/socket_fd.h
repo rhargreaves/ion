@@ -23,9 +23,7 @@ class SocketFd {
     }
 
     ~SocketFd() {
-        if (fd_ >= 0) {
-            ::close(fd_);
-        }
+        close();
     }
 
     operator int() const noexcept {

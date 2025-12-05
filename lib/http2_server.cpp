@@ -2,22 +2,24 @@
 
 #include <spdlog/spdlog.h>
 
+#include "tcp_listener.h"
 #include "tls_conn.h"
 
 namespace ion {
 
 void Http2Server::run_server(uint16_t port) {
-    TcpConnection tcp_conn{port};
-    tcp_conn.listen();
+    TcpListener listener{port};
+    listener.listen();
     spdlog::info("listening on port {}", port);
 
     while (!user_req_termination_) {
-        if (!tcp_conn.try_accept()) {
+        auto tcp_conn = listener.try_accept();
+        if (!tcp_conn) {
             continue;
         }
         spdlog::info("client connected");
 
-        TlsConnection tls_conn{tcp_conn, "cert.pem", "key.pem"};
+        TlsConnection tls_conn{tcp_conn.value(), "cert.pem", "key.pem"};
         if (!tls_conn.handshake()) {
             spdlog::info("handshake failed, dropping connection");
             continue;

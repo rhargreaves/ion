@@ -22,7 +22,7 @@ test-unit:
 	$(BUILD_DIR)/test/unit/unit-test
 .PHONY: test-unit
 
-test-integration:
+test-integration: $(CERT_PEM) $(KEY_PEM)
 	$(BUILD_DIR)/test/integration/int-test
 .PHONY: test-integration
 
