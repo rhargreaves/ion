@@ -97,12 +97,13 @@ curl -k --http2 -v https://localhost:8443/
 
 Run all tests using `make test`
 
-### Unit Tests
+### Unit & Integration Tests
 
 C++-based Catch2 tests:
 
 ```
 make test-unit
+make test-integration
 ```
 
 ### System Tests
