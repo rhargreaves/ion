@@ -9,6 +9,8 @@ find_package(CURL REQUIRED)
 
 add_executable(int-test
         test_server.cpp
+        curl_client.h
+        wait_for_port.h
 )
 
 target_link_libraries(int-test
