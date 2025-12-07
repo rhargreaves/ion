@@ -125,15 +125,10 @@ std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data
             if (auto hdr = try_decode_literal_field(index, reader, true)) {
                 hdrs.push_back(hdr.value());
             }
-        } else if (first_byte > 0 && first_byte < 0x10) {
-            // literal header field - indexed name, without indexing value
+        } else if (first_byte < 0x10) {
+            // literal header field - indexed/new name, without indexing value
             auto index = static_cast<uint8_t>(first_byte & 0x0F);
             if (auto hdr = try_decode_literal_field(index, reader, false)) {
-                hdrs.push_back(hdr.value());
-            }
-        } else if (first_byte == 0x00) {
-            // literal header field - new name, without indexing value
-            if (auto hdr = try_decode_literal_field(0, reader, false)) {
                 hdrs.push_back(hdr.value());
             }
         } else {
