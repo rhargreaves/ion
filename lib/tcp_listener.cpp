@@ -10,8 +10,6 @@
 
 #include <system_error>
 
-#include "tcp_conn.h"
-
 namespace ion {
 
 void TcpListener::set_nonblocking_socket(const SocketFd& socket_fd) {
@@ -59,7 +57,7 @@ void TcpListener::listen() const {
     }
 }
 
-std::optional<TcpConnection> TcpListener::try_accept() {
+std::optional<SocketFd> TcpListener::try_accept() {
     constexpr int timeout_ms = 100;
     pollfd pfd = {server_fd_, POLLIN, 0};
     const int result = poll(&pfd, 1, timeout_ms);
@@ -80,7 +78,7 @@ std::optional<TcpConnection> TcpListener::try_accept() {
             auto client_fd = SocketFd(fd);
             set_nonblocking_socket(
                 client_fd);  // required for Linux. macOS inherits from server_fd!
-            return TcpConnection(std::move(client_fd));
+            return client_fd;
         }
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             return std::nullopt;

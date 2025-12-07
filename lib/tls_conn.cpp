@@ -10,13 +10,12 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <system_error>
 
 namespace ion {
 
-TlsConnection::TlsConnection(TcpConnection& tcp_conn, const std::filesystem::path& cert_path,
+TlsConnection::TlsConnection(SocketFd& client_fd, const std::filesystem::path& cert_path,
                              const std::filesystem::path& key_path)
-    : tcp_conn_(tcp_conn) {
+    : client_fd_(client_fd) {
     if (!exists(cert_path)) {
         throw std::runtime_error("certificate file not found");
     }
@@ -62,7 +61,7 @@ TlsConnection::TlsConnection(TcpConnection& tcp_conn, const std::filesystem::pat
         throw std::runtime_error("failed to create SSL object");
     }
 
-    if (SSL_set_fd(ssl_, tcp_conn_.client_fd()) != 1) {
+    if (SSL_set_fd(ssl_, client_fd_) != 1) {
         throw std::runtime_error("failed to set SSL file descriptor");
     }
 }
@@ -79,7 +78,7 @@ bool TlsConnection::handshake() const {
         switch (const int ssl_error = SSL_get_error(ssl_, result)) {
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE: {
-                pollfd pfd = {tcp_conn_.client_fd(), 0, 0};
+                pollfd pfd = {client_fd_, 0, 0};
                 pfd.events = (ssl_error == SSL_ERROR_WANT_READ) ? POLLIN : POLLOUT;
                 const int poll_result = poll(&pfd, 1, timeout_ms);
                 if (poll_result > 0 && (pfd.revents & pfd.events)) {
@@ -194,7 +193,7 @@ bool TlsConnection::has_data() const {
     }
 
     constexpr int timeout_ms = 100;
-    pollfd pfd = {tcp_conn_.client_fd(), POLLIN, 0};
+    pollfd pfd = {client_fd_, POLLIN, 0};
     const int result = poll(&pfd, 1, timeout_ms);
     return result > 0 && (pfd.revents & POLLIN);
 }

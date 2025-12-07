@@ -2,7 +2,6 @@
 #include <optional>
 
 #include "socket_fd.h"
-#include "tcp_conn.h"
 
 namespace ion {
 
@@ -12,7 +11,7 @@ class TcpListener {
     ~TcpListener() = default;
 
     void listen() const;
-    [[nodiscard]] std::optional<TcpConnection> try_accept();
+    [[nodiscard]] std::optional<SocketFd> try_accept();
     void close();
 
    private:

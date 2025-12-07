@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <span>
 
-#include "tcp_conn.h"
+#include "socket_fd.h"
 
 namespace ion {
 
@@ -14,7 +14,7 @@ enum class TlsError { WantReadOrWrite, ConnectionClosed, ProtocolError, OtherErr
 
 class TlsConnection {
    public:
-    explicit TlsConnection(TcpConnection& tcp_conn, const std::filesystem::path& cert_path,
+    explicit TlsConnection(SocketFd& client_fd, const std::filesystem::path& cert_path,
                            const std::filesystem::path& key_path);
     ~TlsConnection();
 
@@ -26,7 +26,7 @@ class TlsConnection {
     void graceful_shutdown() const;
 
    private:
-    TcpConnection& tcp_conn_;
+    SocketFd& client_fd_;
     SSL* ssl_ = nullptr;
 
     static int alpn_callback(SSL* ssl, const unsigned char** out, unsigned char* outlen,

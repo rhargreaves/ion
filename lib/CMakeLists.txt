@@ -1,7 +1,5 @@
 add_library(ion
         socket_fd.h
-        tcp_conn.cpp
-        tcp_conn.h
         tls_conn.cpp
         tls_conn.h
         tcp_listener.h
