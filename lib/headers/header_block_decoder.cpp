@@ -131,6 +131,11 @@ std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data
             if (auto hdr = try_decode_literal_field(index, reader, false)) {
                 hdrs.push_back(hdr.value());
             }
+        } else if (first_byte == 0x00) {
+            // literal header field - new name, without indexing value
+            if (auto hdr = try_decode_literal_field(0, reader, false)) {
+                hdrs.push_back(hdr.value());
+            }
         } else {
             spdlog::error("invalid first byte in header representation: {}", first_byte);
         }

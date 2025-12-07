@@ -145,4 +145,16 @@ TEST_CASE("headers: decodes dynamic table entries") {
         REQUIRE(hdrs.size() == 1);
         check_header(hdrs, 0, "x-foo", "foo bar baz foo bar baz foo bar baz");
     }
+
+    SECTION ("literal header field - new name, without indexing (long value, huffman)") {
+        constexpr auto foo_hdr = std::to_array<uint8_t>(
+            {0x00, 0x84, 0xf2, 0xb4, 0xa7, 0x3f, 0x9a, 0x94, 0xe7, 0x52, 0x31,
+             0xd8, 0xa4, 0x63, 0xf6, 0xa4, 0xa7, 0x3a, 0x91, 0x8e, 0xc5, 0x23,
+             0x1f, 0xb5, 0x25, 0x39, 0xd4, 0x8c, 0x76, 0x29, 0x18, 0xfd, 0xff});
+
+        auto hdrs = decoder.decode(foo_hdr);
+
+        REQUIRE(hdrs.size() == 1);
+        check_header(hdrs, 0, "x-foo", "foo bar baz foo bar baz foo bar baz");
+    }
 }
