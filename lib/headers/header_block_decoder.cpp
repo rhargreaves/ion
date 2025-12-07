@@ -90,8 +90,7 @@ std::optional<HttpHeader> HeaderBlockDecoder::try_decode_indexed_field(uint8_t f
 }
 
 std::optional<HttpHeader> HeaderBlockDecoder::try_decode_literal_field(uint8_t index,
-                                                                       ByteReader& reader,
-                                                                       bool update_dynamic_table) {
+                                                                       ByteReader& reader) {
     bool is_new_name = index == 0;
     const std::optional<std::string> name =
         is_new_name ? read_length_and_string(reader) : try_read_indexed_header_name(index);
@@ -100,12 +99,7 @@ std::optional<HttpHeader> HeaderBlockDecoder::try_decode_literal_field(uint8_t i
     }
 
     auto value = read_length_and_string(reader);
-    auto hdr = HttpHeader{name.value(), value};
-
-    if (update_dynamic_table) {
-        dynamic_table_.insert(hdr);
-    }
-    return hdr;
+    return HttpHeader{name.value(), value};
 }
 
 std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data) {
@@ -122,13 +116,14 @@ std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data
         } else if (first_byte & 0x40) {
             // literal header field
             auto index = static_cast<uint8_t>(first_byte & 0x3F);
-            if (auto hdr = try_decode_literal_field(index, reader, true)) {
+            if (auto hdr = try_decode_literal_field(index, reader)) {
+                dynamic_table_.insert(hdr.value());
                 hdrs.push_back(hdr.value());
             }
         } else if (first_byte < 0x10) {
-            // literal header field - indexed/new name, without indexing value
+            // literal header field - without indexing value
             auto index = static_cast<uint8_t>(first_byte & 0x0F);
-            if (auto hdr = try_decode_literal_field(index, reader, false)) {
+            if (auto hdr = try_decode_literal_field(index, reader)) {
                 hdrs.push_back(hdr.value());
             }
         } else {
