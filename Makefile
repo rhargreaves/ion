@@ -9,6 +9,7 @@ BUILD_TYPE=RelWithDebInfo
 SERVER_PORT=8443
 
 export ION_PATH=$(BUILD_DIR)/app/ion-server
+export SSLKEYLOGFILE=/tmp/ion-tls-keys.log
 
 build:
 	cmake -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -S . -B $(BUILD_DIR)

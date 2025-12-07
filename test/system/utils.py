@@ -5,7 +5,6 @@ import os
 
 def run_server(port):
     env = os.environ.copy()
-    env['SSLKEYLOGFILE'] = '/tmp/tls-keys.log'
     p = subprocess.Popen([
         os.environ.get('ION_PATH', 'ion-server'),
         "-p",
