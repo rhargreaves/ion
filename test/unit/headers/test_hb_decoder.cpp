@@ -44,6 +44,18 @@ TEST_CASE("headers: decodes static table entries") {
         }
     }
 
+    SECTION ("literal header field without indexing") {
+        auto data = std::to_array<uint8_t>({0x04, 0x84, 0x62, 0x33, 0xc9, 0xeb});
+
+        auto hdrs = decoder.decode(data);
+
+        REQUIRE(hdrs.size() == 1);
+
+        SECTION ("parses :path: /body") {
+            check_header(hdrs, 0, ":path", "/body");
+        }
+    }
+
     SECTION ("handles min/max indices") {
         std::array<uint8_t, 2> data = {0x81, 0xbd};
         auto hdrs = decoder.decode(data);
