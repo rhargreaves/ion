@@ -48,8 +48,8 @@ TEST_CASE("server: test basic handlers") {
 
         try {
             CurlClient client;
-            const long status = client.get(std::format("https://localhost:{}/", TEST_PORT));
-            REQUIRE(status == 200);
+            const auto res = client.get(std::format("https://localhost:{}/", TEST_PORT));
+            REQUIRE(res.status_code == 200);
 
         } catch (std::exception&) {
             cleanup();
@@ -69,12 +69,10 @@ TEST_CASE("server: test basic handlers") {
 
         try {
             CurlClient client;
-            const long status = client.get(std::format("https://localhost:{}/hdrs", TEST_PORT));
-            REQUIRE(status == 200);
-
-            const auto hdrs = client.headers();
-            REQUIRE(hdrs.size() == 2);
-            REQUIRE(hdrs.at("x-foo") == "bar");
+            const auto res = client.get(std::format("https://localhost:{}/hdrs", TEST_PORT));
+            REQUIRE(res.status_code == 200);
+            REQUIRE(res.headers.size() == 2);
+            REQUIRE(res.headers.at("x-foo") == "bar");
         } catch (std::exception&) {
             cleanup();
             throw;
@@ -93,10 +91,10 @@ TEST_CASE("server: test basic handlers") {
 
         try {
             CurlClient client;
-            const long status = client.get(std::format("https://localhost:{}/body", TEST_PORT));
-            REQUIRE(status == 200);
-            REQUIRE(client.headers().at("content-type") == "text/plain");
-            REQUIRE(client.body() == "hello");
+            const auto res = client.get(std::format("https://localhost:{}/body", TEST_PORT));
+            REQUIRE(res.status_code == 200);
+            REQUIRE(res.headers.at("content-type") == "text/plain");
+            REQUIRE(res.body == "hello");
         } catch (std::exception&) {
             cleanup();
             throw;
