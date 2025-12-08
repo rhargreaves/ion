@@ -22,7 +22,7 @@ class Router {
     Router();
 
    private:
-    std::vector<Route> routes_;
+    std::vector<Route> routes_{};
     std::function<HttpResponse()> default_handler_;
 };
 

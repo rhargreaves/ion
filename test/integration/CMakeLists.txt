@@ -16,6 +16,7 @@ add_executable(int-test
 target_link_libraries(int-test
         PRIVATE
         ion
+        spdlog
         Catch2::Catch2WithMain
         CURL::libcurl
 )

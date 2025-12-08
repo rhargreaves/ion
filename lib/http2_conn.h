@@ -48,7 +48,7 @@ class Http2Connection {
     void update_state(Http2ConnectionState new_state);
 
     void log_dynamic_tables();
-    std::vector<HttpHeader> process_request(const std::vector<HttpHeader>& req_hdrs);
+    HttpResponse process_request(const std::vector<HttpHeader>& req_hdrs);
 };
 
 }  // namespace ion

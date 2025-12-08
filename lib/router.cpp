@@ -3,7 +3,7 @@
 namespace ion {
 
 Router::Router() {
-    default_handler_ = [] { return HttpResponse(404); };
+    default_handler_ = [] { return HttpResponse{404}; };
 }
 
 std::function<HttpResponse()> Router::get_handler(const std::string& path,

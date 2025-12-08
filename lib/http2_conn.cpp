@@ -217,8 +217,8 @@ void Http2Connection::process_frame(const Http2FrameHeader& header,
                 spdlog::debug(" - request header: {}: {}", hdr.name, hdr.value);
             }
 
-            auto resp_headers = process_request(hdrs);
-            auto hdrs_bytes = encoder_.encode(resp_headers);
+            auto resp = process_request(hdrs);
+            auto hdrs_bytes = encoder_.encode(resp.headers);
             log_dynamic_tables();
             write_headers_response(header.stream_id, hdrs_bytes,
                                    FLAG_END_HEADERS | FLAG_END_STREAM);
@@ -321,7 +321,7 @@ static std::optional<std::string> get_header(const std::vector<HttpHeader>& head
     return it->value;
 }
 
-std::vector<HttpHeader> Http2Connection::process_request(const std::vector<HttpHeader>& headers) {
+HttpResponse Http2Connection::process_request(const std::vector<HttpHeader>& headers) {
     auto path = get_header(headers, ":path");
     auto method = get_header(headers, ":method");
 
@@ -331,11 +331,10 @@ std::vector<HttpHeader> Http2Connection::process_request(const std::vector<HttpH
 
     auto handler = router_.get_handler(path.value(), method.value());
     auto resp = handler();
-
-    auto resp_hdrs = std::vector<HttpHeader>();
-    resp_hdrs.push_back({":status", std::to_string(resp.status_code)});
-    resp_hdrs.push_back({"server", "ion/0.1.0"});
-    return resp_hdrs;
+    resp.headers.insert(resp.headers.begin(),
+                        HttpHeader{":status", std::to_string(resp.status_code)});
+    resp.headers.push_back({"server", "ion/0.1.0"});
+    return resp;
 }
 
 }  // namespace ion
