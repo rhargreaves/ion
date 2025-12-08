@@ -45,7 +45,9 @@ int main() {
         const std::vector<uint8_t> body_bytes(body_text.begin(), body_text.end());
 
         return ion::HttpResponse{
-            .status_code = 200, .body = body_bytes, .headers = {{"content-type", "text/plain"}}};
+            .status_code = 200,
+            .body = body_bytes,
+            .headers = {{"content-type", "text/plain"}}};
     });
 
     server.run_server(8443);
