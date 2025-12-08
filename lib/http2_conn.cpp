@@ -8,6 +8,7 @@
 
 namespace ion {
 
+static constexpr uint8_t FRAME_TYPE_DATA = 0x00;
 static constexpr uint8_t FRAME_TYPE_HEADERS = 0x01;
 static constexpr uint8_t FRAME_TYPE_SETTINGS = 0x04;
 static constexpr uint8_t FRAME_TYPE_GOAWAY = 0x07;
@@ -78,6 +79,14 @@ void Http2Connection::write_headers_response(uint32_t stream_id,
 
     write_frame_header(header);
     tls_conn_.write(headers_data);
+}
+void Http2Connection::write_data_response(uint32_t stream_id, const std::vector<uint8_t>& body) {
+    const Http2FrameHeader frame_header{.length = static_cast<uint32_t>(body.size()),
+                                        .type = FRAME_TYPE_DATA,
+                                        .flags = FLAG_END_STREAM,
+                                        .stream_id = stream_id};
+    write_frame_header(frame_header);
+    tls_conn_.write(body);
 }
 
 void Http2Connection::write_goaway(uint32_t last_stream_id, uint32_t error_code) {
@@ -220,9 +229,16 @@ void Http2Connection::process_frame(const Http2FrameHeader& header,
             auto resp = process_request(hdrs);
             auto hdrs_bytes = encoder_.encode(resp.headers);
             log_dynamic_tables();
+
+            auto ending_stream = resp.body.empty();
             write_headers_response(header.stream_id, hdrs_bytes,
-                                   FLAG_END_HEADERS | FLAG_END_STREAM);
-            spdlog::info("200 response sent");
+                                   FLAG_END_HEADERS | (ending_stream ? FLAG_END_STREAM : 0));
+            spdlog::info(std::format("{} status code sent w/headers", resp.status_code));
+
+            if (!ending_stream) {
+                spdlog::info("sending response body (length: {})", resp.body.size());
+                write_data_response(header.stream_id, resp.body);
+            }
             break;
         }
         case FRAME_TYPE_WINDOW_UPDATE: {

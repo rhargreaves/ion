@@ -31,7 +31,8 @@ TEST_CASE("server: test basic handlers") {
         const std::string body_text = "hello";
         const std::vector<uint8_t> body_bytes(body_text.begin(), body_text.end());
 
-        return ion::HttpResponse{.status_code = 200, .body = body_bytes};
+        return ion::HttpResponse{
+            .status_code = 200, .body = body_bytes, .headers = {{"content-type", "text/plain"}}};
     });
 
     std::thread server_thread([&server]() { server.run_server(TEST_PORT); });
@@ -81,26 +82,25 @@ TEST_CASE("server: test basic handlers") {
         cleanup();
     }
 
-    // SECTION ("returns body") {
-    //     REQUIRE(wait_for_port(TEST_PORT));
-    //
-    //     auto cleanup = [&]() {
-    //         server.stop_server();
-    //         REQUIRE(server_thread.joinable());
-    //         server_thread.join();
-    //     };
-    //
-    //     try {
-    //         CurlClient client;
-    //         const long status = client.get(std::format("https://localhost:{}/body", TEST_PORT));
-    //
-    //         REQUIRE(status == 200);
-    //         REQUIRE(client.body() == "hello");
-    //
-    //     } catch (std::exception&) {
-    //         cleanup();
-    //         throw;
-    //     }
-    //     cleanup();
-    // }
+    SECTION ("returns body") {
+        REQUIRE(wait_for_port(TEST_PORT));
+
+        auto cleanup = [&]() {
+            server.stop_server();
+            REQUIRE(server_thread.joinable());
+            server_thread.join();
+        };
+
+        try {
+            CurlClient client;
+            const long status = client.get(std::format("https://localhost:{}/body", TEST_PORT));
+            REQUIRE(status == 200);
+            REQUIRE(client.headers().at("content-type") == "text/plain");
+            REQUIRE(client.body() == "hello");
+        } catch (std::exception&) {
+            cleanup();
+            throw;
+        }
+        cleanup();
+    }
 }

@@ -41,9 +41,11 @@ class Http2Connection {
     void write_settings_ack();
     void write_headers_response(uint32_t stream_id, std::span<const uint8_t> headers_data,
                                 uint8_t flags);
+    void write_data_response(uint32_t uint32, const std::vector<uint8_t>& body);
     void write_goaway(uint32_t last_stream_id, uint32_t error_code = 0);
     void write_settings();
     void process_settings_payload(std::span<const uint8_t> payload);
+
     void process_frame(const Http2FrameHeader& header, std::span<const uint8_t> payload);
     void update_state(Http2ConnectionState new_state);
 
