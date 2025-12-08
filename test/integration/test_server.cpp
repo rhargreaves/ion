@@ -22,7 +22,7 @@ TEST_CASE("server: supports basic handlers") {
         server.router().register_handler("/", "GET", []() -> ion::HttpResponse {
             return ion::HttpResponse{.status_code = 200};
         });
-        ServerTestFixture fixture(server, TEST_PORT);
+        ServerTestFixture run(server, TEST_PORT);
 
         CurlClient client;
         const auto res = client.get(std::format("https://localhost:{}/", TEST_PORT));
@@ -35,7 +35,7 @@ TEST_CASE("server: supports basic handlers") {
             resp.headers.push_back({"x-foo", "bar"});
             return resp;
         });
-        ServerTestFixture fixture(server, TEST_PORT);
+        ServerTestFixture run(server, TEST_PORT);
 
         CurlClient client;
         const auto res = client.get(std::format("https://localhost:{}/hdrs", TEST_PORT));
@@ -53,7 +53,7 @@ TEST_CASE("server: supports basic handlers") {
                                      .body = body_bytes,
                                      .headers = {{"content-type", "text/plain"}}};
         });
-        ServerTestFixture fixture(server, TEST_PORT);
+        ServerTestFixture run(server, TEST_PORT);
 
         CurlClient client;
         const auto res = client.get(std::format("https://localhost:{}/body", TEST_PORT));
