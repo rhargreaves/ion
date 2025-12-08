@@ -49,7 +49,7 @@ TEST_CASE("server: returns custom headers") {
 TEST_CASE("server: returns body") {
     auto server = create_test_server();
 
-    server.router().register_handler("/body", "GET", []() -> ion::HttpResponse {
+    server.router().register_handler("/body", "GET", [] {
         const std::string body_text = "hello";
         const std::vector<uint8_t> body_bytes(body_text.begin(), body_text.end());
 

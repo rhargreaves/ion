@@ -16,12 +16,11 @@ I'm documenting non-obvious stuff I've learnt along the way in [LEARNINGS.md](do
 
 * Basic HTTP/2 over TLS
 * Register routes (path & method) and return status codes
-* For each request:
-    * Prints headers received, supporting:
-        * Static table entries
-        * Dynamic table entries
-        * Huffman encoded & plain text strings
-    * Returns status code, empty body
+* Supports request & response headers:
+    * Static table entries
+    * Dynamic table entries
+    * Huffman encoded & plain text strings
+* Supports response body, status codes & headers
 * Close server using Ctrl+C (`SIGINT`) or `SIGTERM`
 
 <p align="center">
@@ -39,6 +38,14 @@ int main() {
 
     router.register_handler("/", "GET", [] {
         return ion::HttpResponse {.status_code = 200};
+    });
+
+    router.register_handler("/body", "GET", [] {
+        const std::string body_text = "hello";
+        const std::vector<uint8_t> body_bytes(body_text.begin(), body_text.end());
+
+        return ion::HttpResponse{
+            .status_code = 200, .body = body_bytes, .headers = {{"content-type", "text/plain"}}};
     });
 
     server.run_server(8443);
