@@ -349,6 +349,9 @@ HttpResponse Http2Connection::process_request(const std::vector<HttpHeader>& hea
     auto resp = handler();
     resp.headers.insert(resp.headers.begin(),
                         HttpHeader{":status", std::to_string(resp.status_code)});
+    if (!resp.body.empty()) {
+        resp.headers.push_back({"content-length", std::to_string(resp.body.size())});
+    }
     resp.headers.push_back({"server", "ion/0.1.0"});
     return resp;
 }

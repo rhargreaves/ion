@@ -93,8 +93,18 @@ TEST_CASE("server: test basic handlers") {
             CurlClient client;
             const auto res = client.get(std::format("https://localhost:{}/body", TEST_PORT));
             REQUIRE(res.status_code == 200);
-            REQUIRE(res.headers.at("content-type") == "text/plain");
-            REQUIRE(res.body == "hello");
+
+            SECTION ("returns content-type header") {
+                REQUIRE(res.headers.at("content-type") == "text/plain");
+            }
+
+            SECTION ("returns content-length header") {
+                REQUIRE(res.headers.at("content-length") == "5");
+            }
+
+            SECTION ("returns body") {
+                REQUIRE(res.body == "hello");
+            }
         } catch (std::exception&) {
             cleanup();
             throw;
