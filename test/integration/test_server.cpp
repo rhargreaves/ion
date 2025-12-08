@@ -1,15 +1,13 @@
 #include <spdlog/spdlog.h>
 
-#include <atomic>
 #include <chrono>
 #include <iostream>
-#include <thread>
 
 #include "catch2/catch_test_macros.hpp"
 #include "curl_client.h"
 #include "http2_server.h"
 #include "http_response.h"
-#include "server_test_fixture.h"
+#include "test_server_runner.h"
 #include "wait_for_port.h"
 
 static constexpr uint16_t TEST_PORT = 8443;
@@ -24,7 +22,7 @@ TEST_CASE("server: returns static code") {
 
     server.router().register_handler(
         "/", "GET", []() -> ion::HttpResponse { return ion::HttpResponse{.status_code = 200}; });
-    ServerTestFixture run(server, TEST_PORT);
+    TestServerRunner run(server, TEST_PORT);
 
     CurlClient client;
     const auto res = client.get(std::format("https://localhost:{}/", TEST_PORT));
@@ -39,7 +37,7 @@ TEST_CASE("server: returns custom headers") {
         resp.headers.push_back({"x-foo", "bar"});
         return resp;
     });
-    ServerTestFixture run(server, TEST_PORT);
+    TestServerRunner run(server, TEST_PORT);
 
     CurlClient client;
     const auto res = client.get(std::format("https://localhost:{}/hdrs", TEST_PORT));
@@ -58,7 +56,7 @@ TEST_CASE("server: returns body") {
         return ion::HttpResponse{
             .status_code = 200, .body = body_bytes, .headers = {{"content-type", "text/plain"}}};
     });
-    ServerTestFixture run(server, TEST_PORT);
+    TestServerRunner run(server, TEST_PORT);
 
     CurlClient client;
     const auto res = client.get(std::format("https://localhost:{}/body", TEST_PORT));
