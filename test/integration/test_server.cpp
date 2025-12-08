@@ -14,52 +14,56 @@
 
 static constexpr uint16_t TEST_PORT = 8443;
 
-TEST_CASE("server: supports basic handlers") {
+inline ion::Http2Server create_test_server() {
     spdlog::set_level(spdlog::level::debug);
-    auto server = ion::Http2Server{};
+    return ion::Http2Server{};
+}
 
-    SECTION ("returns static code") {
-        server.router().register_handler("/", "GET", []() -> ion::HttpResponse {
-            return ion::HttpResponse{.status_code = 200};
-        });
-        ServerTestFixture run(server, TEST_PORT);
+TEST_CASE("server: returns static code") {
+    auto server = create_test_server();
 
-        CurlClient client;
-        const auto res = client.get(std::format("https://localhost:{}/", TEST_PORT));
-        REQUIRE(res.status_code == 200);
-    }
+    server.router().register_handler(
+        "/", "GET", []() -> ion::HttpResponse { return ion::HttpResponse{.status_code = 200}; });
+    ServerTestFixture run(server, TEST_PORT);
 
-    SECTION ("returns custom headers") {
-        server.router().register_handler("/hdrs", "GET", []() -> ion::HttpResponse {
-            auto resp = ion::HttpResponse{.status_code = 200};
-            resp.headers.push_back({"x-foo", "bar"});
-            return resp;
-        });
-        ServerTestFixture run(server, TEST_PORT);
+    CurlClient client;
+    const auto res = client.get(std::format("https://localhost:{}/", TEST_PORT));
+    REQUIRE(res.status_code == 200);
+}
 
-        CurlClient client;
-        const auto res = client.get(std::format("https://localhost:{}/hdrs", TEST_PORT));
-        REQUIRE(res.status_code == 200);
-        REQUIRE(res.headers.size() == 2);
-        REQUIRE(res.headers.at("x-foo") == "bar");
-    }
+TEST_CASE("server: returns custom headers") {
+    auto server = create_test_server();
 
-    SECTION ("returns body") {
-        server.router().register_handler("/body", "GET", []() -> ion::HttpResponse {
-            const std::string body_text = "hello";
-            const std::vector<uint8_t> body_bytes(body_text.begin(), body_text.end());
+    server.router().register_handler("/hdrs", "GET", []() -> ion::HttpResponse {
+        auto resp = ion::HttpResponse{.status_code = 200};
+        resp.headers.push_back({"x-foo", "bar"});
+        return resp;
+    });
+    ServerTestFixture run(server, TEST_PORT);
 
-            return ion::HttpResponse{.status_code = 200,
-                                     .body = body_bytes,
-                                     .headers = {{"content-type", "text/plain"}}};
-        });
-        ServerTestFixture run(server, TEST_PORT);
+    CurlClient client;
+    const auto res = client.get(std::format("https://localhost:{}/hdrs", TEST_PORT));
+    REQUIRE(res.status_code == 200);
+    REQUIRE(res.headers.size() == 2);
+    REQUIRE(res.headers.at("x-foo") == "bar");
+}
 
-        CurlClient client;
-        const auto res = client.get(std::format("https://localhost:{}/body", TEST_PORT));
-        REQUIRE(res.status_code == 200);
-        REQUIRE(res.headers.at("content-type") == "text/plain");
-        REQUIRE(res.headers.at("content-length") == "5");
-        REQUIRE(res.body == "hello");
-    }
+TEST_CASE("server: returns body") {
+    auto server = create_test_server();
+
+    server.router().register_handler("/body", "GET", []() -> ion::HttpResponse {
+        const std::string body_text = "hello";
+        const std::vector<uint8_t> body_bytes(body_text.begin(), body_text.end());
+
+        return ion::HttpResponse{
+            .status_code = 200, .body = body_bytes, .headers = {{"content-type", "text/plain"}}};
+    });
+    ServerTestFixture run(server, TEST_PORT);
+
+    CurlClient client;
+    const auto res = client.get(std::format("https://localhost:{}/body", TEST_PORT));
+    REQUIRE(res.status_code == 200);
+    REQUIRE(res.headers.at("content-type") == "text/plain");
+    REQUIRE(res.headers.at("content-length") == "5");
+    REQUIRE(res.body == "hello");
 }
