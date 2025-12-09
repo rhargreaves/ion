@@ -9,6 +9,8 @@ BUILD_TYPE=RelWithDebInfo
 SERVER_PORT=8443
 
 export ION_PATH=$(BUILD_DIR)/app/ion-server
+export ION_TLS_CERT_PATH=cert.pem
+export ION_TLS_KEY_PATH=key.pem
 export SSLKEYLOGFILE=/tmp/ion-tls-keys.log
 
 build:
