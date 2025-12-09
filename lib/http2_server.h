@@ -10,8 +10,8 @@ namespace ion {
 
 class Http2Server {
    public:
-    void run_server(uint16_t port);
-    void stop_server();
+    void start(uint16_t port);
+    void stop();
 
     Http2Server() : config_(ServerConfiguration::from_env()) {}
     explicit Http2Server(const ServerConfiguration& config) : config_(config) {}

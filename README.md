@@ -48,7 +48,7 @@ int main() {
             .headers = {{"content-type", "text/plain"}}};
     });
 
-    server.run_server(8443);
+    server.start(8443);
     return 0;
 }
 ```

@@ -12,7 +12,7 @@ static std::atomic<ion::Http2Server*> g_server{nullptr};
 
 static void stop_server() {
     if (ion::Http2Server* server = g_server.load()) {
-        server->stop_server();
+        server->stop();
     }
 }
 
@@ -48,7 +48,7 @@ void run_server(uint16_t port) {
     router.register_handler("/no_content", "GET",
                             [] { return ion::HttpResponse{.status_code = 204}; });
 
-    server.run_server(port);
+    server.start(port);
 }
 
 int main(int argc, char* argv[]) {

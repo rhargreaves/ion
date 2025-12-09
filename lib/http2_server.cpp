@@ -7,7 +7,7 @@
 
 namespace ion {
 
-void Http2Server::run_server(uint16_t port) {
+void Http2Server::start(uint16_t port) {
     TcpListener listener{port};
     listener.listen();
     spdlog::info("listening on port {}", port);
@@ -48,7 +48,7 @@ void Http2Server::run_server(uint16_t port) {
     spdlog::info("server shutting down...");
 }
 
-void Http2Server::stop_server() {
+void Http2Server::stop() {
     user_req_termination_ = 1;
 }
 
