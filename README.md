@@ -37,10 +37,6 @@ int main() {
     auto& router = server.router();
 
     router.register_handler("/", "GET", [] {
-        return ion::HttpResponse {.status_code = 200};
-    });
-
-    router.register_handler("/body", "GET", [] {
         const std::string body_text = "hello";
         const std::vector<uint8_t> body_bytes(body_text.begin(), body_text.end());
 
