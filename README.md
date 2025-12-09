@@ -29,6 +29,8 @@ I'm documenting non-obvious stuff I've learnt along the way in [LEARNINGS.md](do
 
 ## Example Usage
 
+Set environment variables `ION_TLS_CERT_PATH` and `ION_TLS_KEY_PATH` to point to your TLS certificate and key.
+
 ```c++
 #include "ion/http2_server.h"
 
