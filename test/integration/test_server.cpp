@@ -20,7 +20,7 @@ inline ion::Http2Server create_test_server() {
 TEST_CASE("server: returns static code") {
     auto server = create_test_server();
 
-    server.router().register_handler(
+    server.router().add_route(
         "/", "GET", []() -> ion::HttpResponse { return ion::HttpResponse{.status_code = 200}; });
     TestServerRunner run(server, TEST_PORT);
 
@@ -32,7 +32,7 @@ TEST_CASE("server: returns static code") {
 TEST_CASE("server: returns custom headers") {
     auto server = create_test_server();
 
-    server.router().register_handler("/hdrs", "GET", []() -> ion::HttpResponse {
+    server.router().add_route("/hdrs", "GET", []() -> ion::HttpResponse {
         auto resp = ion::HttpResponse{.status_code = 200};
         resp.headers.push_back({"x-foo", "bar"});
         return resp;
@@ -49,7 +49,7 @@ TEST_CASE("server: returns custom headers") {
 TEST_CASE("server: returns body") {
     auto server = create_test_server();
 
-    server.router().register_handler("/body", "GET", [] {
+    server.router().add_route("/body", "GET", [] {
         const std::string body_text = "hello";
         const std::vector<uint8_t> body_bytes(body_text.begin(), body_text.end());
 

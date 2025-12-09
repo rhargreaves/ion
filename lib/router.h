@@ -16,8 +16,8 @@ class Router {
    public:
     std::function<HttpResponse()> get_handler(const std::string& path,
                                               const std::string& method) const;
-    void register_handler(const std::string& path, const std::string& method,
-                          const std::function<HttpResponse()>& handler);
+    void add_route(const std::string& path, const std::string& method,
+                   const std::function<HttpResponse()>& handler);
 
     Router();
 
