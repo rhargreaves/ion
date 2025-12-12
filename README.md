@@ -131,7 +131,7 @@ make test-h2spec
 
 ## Benchmarks
 
-Using `h2load`. See [benchmarks/results.md](benchmarks/results.md) for tests ran during development.
+Using `h2load`. See [benchmark/results.md](benchmark/results.md) for tests ran during development.
 
 ## References
 
