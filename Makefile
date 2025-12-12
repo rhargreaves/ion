@@ -7,6 +7,7 @@ BUILD_SUFFIX?=make
 BUILD_DIR=build/$(BUILD_SUFFIX)
 BUILD_TYPE=RelWithDebInfo
 SERVER_PORT=8443
+LOG_LEVEL=info
 
 export ION_PATH=$(BUILD_DIR)/app/ion-server
 export ION_TLS_CERT_PATH=cert.pem
@@ -39,8 +40,12 @@ test-h2spec:
 PHONY: test-h2spec
 
 run: build $(CERT_PEM) $(KEY_PEM)
-	$(ION_PATH) -p $(SERVER_PORT)
+	$(ION_PATH) -p $(SERVER_PORT) -l $(LOG_LEVEL)
 .PHONY: run
+
+benchmark:
+	h2load https://localhost:$(SERVER_PORT)/ -n 1000 -c 10 -t 8
+.PHONY: benchmark
 
 clean:
 	-rm -rf $(BUILD_DIR) $(CERT_PEM) $(KEY_PEM)

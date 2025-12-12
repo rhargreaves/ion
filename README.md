@@ -129,6 +129,10 @@ Using [h2spec](https://github.com/summerwind/h2spec):
 make test-h2spec
 ```
 
+## Benchmarks
+
+Using `h2load`. See [benchmarks/results.md](benchmarks/results.md) for tests ran during development.
+
 ## References
 
 * [RFC 9113 - HTTP/2](https://datatracker.ietf.org/doc/html/rfc9113)
