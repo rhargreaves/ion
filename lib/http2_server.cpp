@@ -10,6 +10,8 @@
 
 namespace ion {
 
+static constexpr std::size_t MAX_CONNECTIONS = 128;
+
 std::unique_ptr<Http2Connection> Http2Server::try_establish_conn(
     TcpListener& listener, std::chrono::milliseconds timeout) {
     auto fd = listener.try_accept(timeout);
@@ -33,13 +35,16 @@ void Http2Server::start(uint16_t port) {
     spdlog::info("listening on port {}", port);
 
     std::vector<std::unique_ptr<Http2Connection>> connections{};
-
     while (!user_req_termination_) {
-        auto conn =
-            try_establish_conn(listener, std::chrono::milliseconds{connections.empty() ? 100 : 0});
-        if (conn) {
-            connections.emplace_back(std::move(conn));
-            spdlog::info("new connection established. total = {}", connections.size());
+        const bool at_capacity = connections.size() >= MAX_CONNECTIONS;
+
+        if (!at_capacity) {
+            auto conn = try_establish_conn(
+                listener, std::chrono::milliseconds{connections.empty() ? 100 : 0});
+            if (conn) {
+                connections.emplace_back(std::move(conn));
+                spdlog::info("new connection established. total = {}", connections.size());
+            }
         }
 
         for (auto it = connections.begin(); it != connections.end();) {
