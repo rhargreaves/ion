@@ -13,9 +13,25 @@
 
 namespace ion {
 
-TlsConnection::TlsConnection(SocketFd& client_fd, const std::filesystem::path& cert_path,
+TlsConnection::TlsConnection(TlsConnection&& other) noexcept
+    : client_fd_(std::move(other.client_fd_)), ssl_(std::exchange(other.ssl_, nullptr)) {}
+
+TlsConnection& TlsConnection::operator=(TlsConnection&& other) noexcept {
+    if (this == &other) {
+        return *this;
+    }
+    if (ssl_) {
+        SSL_free(ssl_);
+        ssl_ = nullptr;
+    }
+    client_fd_ = std::move(other.client_fd_);
+    ssl_ = std::exchange(other.ssl_, nullptr);
+    return *this;
+}
+
+TlsConnection::TlsConnection(SocketFd&& client_fd, const std::filesystem::path& cert_path,
                              const std::filesystem::path& key_path)
-    : client_fd_(client_fd) {
+    : client_fd_(std::move(client_fd)) {
     if (!exists(cert_path)) {
         throw std::runtime_error("certificate file not found");
     }

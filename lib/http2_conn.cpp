@@ -5,6 +5,7 @@
 #include <format>
 
 #include "headers/header_block_decoder.h"
+#include "version.h"
 
 namespace ion {
 
@@ -21,8 +22,8 @@ static constexpr std::string_view CLIENT_PREFACE{"PRI * HTTP/2.0\r\n\r\nSM\r\n\r
 
 static constexpr size_t READ_BUFFER_SIZE = 512 * 1024;
 
-Http2Connection::Http2Connection(const TlsConnection& conn, const Router& router)
-    : tls_conn_(conn), router_(router) {}
+Http2Connection::Http2Connection(TlsConnection&& conn, const Router& router)
+    : tls_conn_(std::move(conn)), router_(router) {}
 
 void Http2Connection::process_settings_payload(std::span<const uint8_t> payload) {
     std::vector<Http2Setting> settings;
@@ -352,7 +353,7 @@ HttpResponse Http2Connection::process_request(const std::vector<HttpHeader>& hea
     if (!resp.body.empty()) {
         resp.headers.push_back({"content-length", std::to_string(resp.body.size())});
     }
-    resp.headers.push_back({"server", "ion/0.1.0"});
+    resp.headers.push_back({"server", std::string{SERVER_HEADER}});
     return resp;
 }
 

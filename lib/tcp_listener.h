@@ -1,4 +1,5 @@
 #pragma once
+#include <chrono>
 #include <optional>
 
 #include "socket_fd.h"
@@ -11,7 +12,7 @@ class TcpListener {
     ~TcpListener() = default;
 
     void listen() const;
-    [[nodiscard]] std::optional<SocketFd> try_accept();
+    [[nodiscard]] std::optional<SocketFd> try_accept(std::chrono::milliseconds timeout);
     void close();
 
    private:

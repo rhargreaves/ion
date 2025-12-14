@@ -8,9 +8,20 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <limits>
 #include <system_error>
 
 namespace ion {
+
+inline int to_poll_timeout_ms(std::chrono::milliseconds timeout) {
+    if (timeout.count() < 0) {
+        return -1;  // wait forever
+    }
+    if (timeout.count() > std::numeric_limits<int>::max()) {
+        return std::numeric_limits<int>::max();
+    }
+    return static_cast<int>(timeout.count());
+}
 
 void TcpListener::set_nonblocking_socket(const SocketFd& socket_fd) {
     const int flags = fcntl(socket_fd, F_GETFL, 0);
@@ -57,10 +68,9 @@ void TcpListener::listen() const {
     }
 }
 
-std::optional<SocketFd> TcpListener::try_accept() {
-    constexpr int timeout_ms = 100;
+std::optional<SocketFd> TcpListener::try_accept(std::chrono::milliseconds timeout) {
     pollfd pfd = {server_fd_, POLLIN, 0};
-    const int result = poll(&pfd, 1, timeout_ms);
+    const int result = poll(&pfd, 1, to_poll_timeout_ms(timeout));
     if (result < 0) {
         if (errno == EINTR) {
             spdlog::warn("poll interrupted by signal (ignoring)");

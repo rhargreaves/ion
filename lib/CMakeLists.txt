@@ -1,3 +1,9 @@
+configure_file(
+        ${CMAKE_SOURCE_DIR}/lib/version.h.in
+        ${CMAKE_BINARY_DIR}/generated/version.h
+        @ONLY
+)
+
 add_library(ion
         socket_fd.h
         tls_conn.cpp
@@ -29,7 +35,18 @@ add_library(ion
         server_config.cpp
 )
 
-target_include_directories(ion PUBLIC .)
+target_compile_options(ion PRIVATE
+        -ferror-limit=0
+        -ftemplate-backtrace-limit=0
+        -fdiagnostics-show-template-tree
+        -fdiagnostics-show-note-include-stack
+)
+
+target_include_directories(ion PUBLIC
+        .
+        ${CMAKE_BINARY_DIR}/generated
+)
+
 target_link_libraries(ion PUBLIC
         OpenSSL::SSL
         OpenSSL::Crypto

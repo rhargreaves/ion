@@ -1,5 +1,4 @@
 #pragma once
-
 #include <span>
 #include <vector>
 
@@ -16,12 +15,17 @@ enum class Http2ConnectionState { AwaitingPreface, AwaitingFrame, ProtocolError,
 
 class Http2Connection {
    public:
-    explicit Http2Connection(const TlsConnection& tls_conn, const Router& router);
+    explicit Http2Connection(TlsConnection&& tls_conn, const Router& router);
     Http2ProcessResult process_state();
     void close();
 
+    Http2Connection(const Http2Connection&) = delete;
+    Http2Connection& operator=(const Http2Connection&) = delete;
+    Http2Connection(Http2Connection&&) = delete;
+    Http2Connection& operator=(Http2Connection&&) = delete;
+
    private:
-    const TlsConnection& tls_conn_;
+    TlsConnection tls_conn_;
     const Router& router_;
     std::vector<uint8_t> buffer_;
     Http2ConnectionState state_ = Http2ConnectionState::AwaitingPreface;

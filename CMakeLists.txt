@@ -7,7 +7,8 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -fno-omit
 set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -fsanitize=address")
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-project(ion)
+project(ion VERSION 0.1.1)
+set(ION_BUILD_VERSION "${PROJECT_VERSION}")
 
 # Link libc++abi on Linux
 if (UNIX AND NOT APPLE)

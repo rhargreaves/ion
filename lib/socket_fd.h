@@ -1,4 +1,5 @@
 #pragma once
+#include <spdlog/spdlog.h>
 #include <unistd.h>
 
 namespace ion {
@@ -32,6 +33,7 @@ class SocketFd {
 
     void close() noexcept {
         if (fd_ >= 0) {
+            spdlog::trace("closing socket fd {}", fd_);
             ::close(fd_);
             fd_ = -1;
         }
