@@ -12,6 +12,8 @@ add_executable(int-test
         curl_client.h
         wait_for_port.h
         test_server_runner.h
+        test_static.cpp
+        wait_for_port.cpp
 )
 
 target_link_libraries(int-test

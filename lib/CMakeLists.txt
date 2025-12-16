@@ -33,6 +33,10 @@ add_library(ion
         headers/header_block_encoder.h
         server_config.h
         server_config.cpp
+        static_file_handler.cpp
+        static_file_handler.h
+        file_reader.cpp
+        file_reader.h
 )
 
 target_compile_options(ion PRIVATE

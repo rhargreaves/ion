@@ -2,7 +2,8 @@
 
 #include <CLI/ExtraValidators.hpp>
 
-void Args::register_opts(CLI::App& app, uint16_t& port, std::string& log_level) {
+void Args::register_opts(CLI::App& app, uint16_t& port, std::string& log_level,
+                         std::optional<std::string>& static_dir) {
     app.add_option("--port,-p", port, "Port to listen on")
         ->default_val(DEFAULT_PORT)
         ->check(CLI::Range(1, 65535));
@@ -12,6 +13,10 @@ void Args::register_opts(CLI::App& app, uint16_t& port, std::string& log_level) 
         ->default_val(DEFAULT_LOG_LEVEL)
         ->check(CLI::IsMember({"trace", "debug", "info", "warn", "error", "critical", "off"},
                               CLI::ignore_case));
+
+    app.add_option("--static-dir,-s", static_dir, "Directory for static files")
+        ->default_val(std::nullopt)
+        ->check(CLI::ExistingDirectory);
 }
 
 spdlog::level::level_enum Args::parse_log_level(const std::string& level_str) {

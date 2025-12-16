@@ -37,7 +37,7 @@ void sigpipe_handler(int) {
     spdlog::debug("SIGPIPE from network connection, ignoring");
 }
 
-void run_server(uint16_t port) {
+void run_server(uint16_t port, std::optional<std::string> static_dir) {
     ion::Http2Server server{};
     g_server.store(&server);
 
@@ -47,6 +47,11 @@ void run_server(uint16_t port) {
 
     router.add_route("/no_content", "GET", [] { return ion::HttpResponse{.status_code = 204}; });
 
+    if (static_dir) {
+        auto sth = std::make_unique<ion::StaticFileHandler>("/static", *static_dir);
+        router.add_static_handler(std::move(sth));
+    }
+
     server.start(port);
 }
 
@@ -54,7 +59,8 @@ int main(int argc, char* argv[]) {
     CLI::App app{"ion: the light-weight HTTP/2 server ⚡️"};
     uint16_t port{Args::DEFAULT_PORT};
     std::string log_level{Args::DEFAULT_LOG_LEVEL};
-    Args::register_opts(app, port, log_level);
+    std::optional<std::string> static_dir;
+    Args::register_opts(app, port, log_level, static_dir);
 
     try {
         app.parse(argc, argv);
@@ -69,7 +75,7 @@ int main(int argc, char* argv[]) {
     spdlog::set_level(Args::parse_log_level(log_level));
     spdlog::info("ion started ⚡️");
     try {
-        run_server(port);
+        run_server(port, static_dir);
         spdlog::info("exiting");
         return 0;
     } catch (const std::exception& e) {

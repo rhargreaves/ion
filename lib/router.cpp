@@ -13,6 +13,15 @@ std::function<HttpResponse()> Router::get_handler(const std::string& path,
             return route.handler;
         }
     }
+
+    if (method == "GET") {
+        for (const auto& handler : static_handlers_) {
+            if (handler->matches(path)) {
+                return [&handler, path]() -> HttpResponse { return handler->handle(path); };
+            }
+        }
+    }
+
     return default_handler_;
 }
 
@@ -20,6 +29,10 @@ void Router::add_route(const std::string& path, const std::string& method,
                        const std::function<HttpResponse()>& handler) {
     const Route route{path, method, handler};
     routes_.push_back(route);
+}
+
+void Router::add_static_handler(std::unique_ptr<StaticFileHandler> handler) {
+    static_handlers_.push_back(std::move(handler));
 }
 
 }  // namespace ion

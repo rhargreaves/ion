@@ -8,7 +8,9 @@ def run_server(port):
     p = subprocess.Popen([
         os.environ.get('ION_PATH', 'ion-server'),
         "-p",
-        str(port)
+        str(port),
+        "-s",
+        os.path.join(os.path.dirname(__file__), "static")
     ], env=env)
     print(f"server pid = {p.pid}")
     return p
