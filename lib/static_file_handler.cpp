@@ -31,6 +31,11 @@ std::string StaticFileHandler::get_relative_path(const std::string& url_path) co
         rel_path = rel_path.substr(1);
     }
 
+    // Remove query string
+    if (const auto query_pos = rel_path.find('?'); query_pos != std::string::npos) {
+        rel_path = rel_path.substr(0, query_pos);
+    }
+
     return rel_path;
 }
 

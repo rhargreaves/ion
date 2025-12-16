@@ -60,4 +60,10 @@ TEST_CASE("static: basic static file mapping") {
             client.get(std::format("https://localhost:{}/static/../secret.txt", TEST_PORT));
         REQUIRE((res.status_code == 403 || res.status_code == 404));
     }
+
+    SECTION ("strips query string") {
+        const auto res =
+            client.get(std::format("https://localhost:{}/static/index.html?v=1", TEST_PORT));
+        REQUIRE(res.status_code == 200);
+    }
 }
