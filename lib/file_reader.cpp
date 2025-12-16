@@ -88,22 +88,40 @@ std::optional<std::string> FileReader::sanitize_path(const std::string& base_dir
     try {
         namespace fs = std::filesystem;
 
-        // Resolve base directory to canonical path
-        auto base = fs::canonical(fs::absolute(base_dir));
-        // Construct full path (don't canonicalize yet - file might not exist)
-        auto full_path = fs::absolute(base / requested_path);
+        // Resolve base directory; it must exist and be a directory
+        auto base_abs = fs::absolute(base_dir);
+        if (!fs::exists(base_abs) || !fs::is_directory(base_abs)) {
+            spdlog::error("Path error: base directory does not exist or is not a directory: {}",
+                          base_dir);
+            return std::nullopt;
+        }
+        auto base = fs::weakly_canonical(base_abs);
 
-        // Check if the path starts with base_dir (prevents traversal)
-        auto full_str = full_path.string();
-        auto base_str = base.string();
+        // Combine base with requested path; if requested_path is absolute, it supersedes base
+        fs::path requested(requested_path);
+        fs::path combined = requested.is_absolute() ? requested : (base / requested);
 
-        if (full_str.find(base_str) != 0) {
+        // Normalize the combined path (resolve .. and . where possible without requiring the leaf)
+        auto full = fs::weakly_canonical(combined);
+
+        // Ensure the resolved path is within the base directory by comparing path components
+        auto base_it = base.begin();
+        auto full_it = full.begin();
+        for (; base_it != base.end() && full_it != full.end(); ++base_it, ++full_it) {
+            if (*base_it != *full_it) {
+                spdlog::warn("Directory traversal attempt blocked: {} (base: {})", requested_path,
+                             base_dir);
+                return std::nullopt;
+            }
+        }
+        // If base has more components than full, full cannot be inside base
+        if (base_it != base.end()) {
             spdlog::warn("Directory traversal attempt blocked: {} (base: {})", requested_path,
                          base_dir);
             return std::nullopt;
         }
 
-        return full_str;
+        return full.string();
 
     } catch (const std::filesystem::filesystem_error& e) {
         spdlog::error("Path error: {}", e.what());

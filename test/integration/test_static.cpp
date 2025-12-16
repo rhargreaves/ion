@@ -1,6 +1,8 @@
 #include <spdlog/spdlog.h>
 
 #include <chrono>
+#include <cstdlib>
+#include <filesystem>
 #include <iostream>
 
 #include "catch2/catch_test_macros.hpp"
@@ -16,7 +18,7 @@ inline ion::Http2Server create_test_server() {
     return ion::Http2Server{};
 }
 
-TEST_CASE("static: returns static content") {
+TEST_CASE("static: basic static file mapping") {
     auto server = create_test_server();
 
     auto sfh = std::make_unique<ion::StaticFileHandler>("/static", "./test/system/static");
@@ -26,6 +28,36 @@ TEST_CASE("static: returns static content") {
     TestServerRunner run(server, TEST_PORT);
 
     CurlClient client;
-    const auto res = client.get(std::format("https://localhost:{}/static/index.html", TEST_PORT));
-    REQUIRE(res.status_code == 200);
+    SECTION ("serves index.html explicitly") {
+        const auto res =
+            client.get(std::format("https://localhost:{}/static/index.html", TEST_PORT));
+        REQUIRE(res.status_code == 200);
+        REQUIRE(res.headers.contains("content-type"));
+        CHECK(res.headers.at("content-type").starts_with("text/html"));
+        CHECK(res.body.find("Hello from static") != std::string::npos);
+    }
+
+    SECTION ("maps /static to index.html") {
+        const auto res = client.get(std::format("https://localhost:{}/static", TEST_PORT));
+        REQUIRE(res.status_code == 200);
+        CHECK(res.body.find("Hello from static") != std::string::npos);
+    }
+
+    SECTION ("maps /static/ to index.html") {
+        const auto res = client.get(std::format("https://localhost:{}/static/", TEST_PORT));
+        REQUIRE(res.status_code == 200);
+        CHECK(res.body.find("Hello from static") != std::string::npos);
+    }
+
+    SECTION ("returns 404 for missing file") {
+        const auto res =
+            client.get(std::format("https://localhost:{}/static/missing.txt", TEST_PORT));
+        REQUIRE(res.status_code == 404);
+    }
+
+    SECTION ("blocks directory traversal attempts") {
+        const auto res =
+            client.get(std::format("https://localhost:{}/static/../secret.txt", TEST_PORT));
+        REQUIRE((res.status_code == 403 || res.status_code == 404));
+    }
 }

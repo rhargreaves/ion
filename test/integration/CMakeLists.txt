@@ -24,6 +24,11 @@ target_link_libraries(int-test
         CURL::libcurl
 )
 
+target_compile_definitions(int-test
+        PRIVATE
+        PROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+        PROJECT_BINARY_DIR="${CMAKE_BINARY_DIR}")
+
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
 catch_discover_tests(int-test)

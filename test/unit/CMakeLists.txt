@@ -13,6 +13,7 @@ add_executable(unit-test
         headers/test_hb_encoder.cpp
         headers/test_dynamic_table.cpp
         test_router.cpp
+        test_file_reader.cpp
 )
 
 target_link_libraries(unit-test

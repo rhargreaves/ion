@@ -40,7 +40,9 @@ test-h2spec:
 PHONY: test-h2spec
 
 run: build $(CERT_PEM) $(KEY_PEM)
-	$(ION_PATH) -p $(SERVER_PORT) -l $(LOG_LEVEL)
+	$(ION_PATH) -p $(SERVER_PORT) \
+		-l $(LOG_LEVEL) \
+		$(ARGS)
 .PHONY: run
 
 benchmark:

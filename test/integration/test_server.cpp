@@ -1,6 +1,7 @@
 #include <spdlog/spdlog.h>
 
 #include <chrono>
+#include <cstdlib>
 #include <iostream>
 
 #include "catch2/catch_test_macros.hpp"
@@ -8,7 +9,6 @@
 #include "http2_server.h"
 #include "http_response.h"
 #include "test_server_runner.h"
-#include "wait_for_port.h"
 
 static constexpr uint16_t TEST_PORT = 8443;
 

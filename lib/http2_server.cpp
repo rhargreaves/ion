@@ -43,13 +43,12 @@ void Http2Server::start(uint16_t port) {
                 listener, std::chrono::milliseconds{connections.empty() ? 100 : 0});
             if (conn) {
                 connections.emplace_back(std::move(conn));
-                spdlog::info("new connection established. total = {}", connections.size());
+                spdlog::info("HTTP connection established. total = {}", connections.size());
             }
         }
 
         for (auto it = connections.begin(); it != connections.end();) {
             auto& http = **it;
-            spdlog::debug("processing connection {}", it - connections.begin());
             switch (http.process_state()) {
                 case Http2ProcessResult::Incomplete:
                     // TODO: retry, mindful of timing out if things are taking too long
