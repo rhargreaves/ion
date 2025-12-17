@@ -5,6 +5,7 @@
 #include <format>
 
 #include "headers/header_block_decoder.h"
+#include "http2_frame_reader.h"
 #include "version.h"
 
 namespace ion {
@@ -24,20 +25,6 @@ static constexpr size_t READ_BUFFER_SIZE = 512 * 1024;
 
 Http2Connection::Http2Connection(TlsConnection&& conn, const Router& router)
     : tls_conn_(std::move(conn)), router_(router) {}
-
-void Http2Connection::process_settings_payload(std::span<const uint8_t> payload) {
-    std::vector<Http2Setting> settings;
-    const auto num_settings = payload.size() / Http2Setting::wire_size;
-    settings.reserve(num_settings);
-
-    for (size_t i = 0; i < num_settings; ++i) {
-        std::span<const uint8_t, Http2Setting::wire_size> entry{
-            payload.data() + i * Http2Setting::wire_size, Http2Setting::wire_size};
-        settings.push_back(Http2Setting::parse(entry));
-    }
-    spdlog::debug("read {} settings, sending ACK", settings.size());
-    write_settings_ack();
-}
 
 Http2WindowUpdate Http2Connection::process_window_update_payload(std::span<const uint8_t> payload) {
     return Http2WindowUpdate::parse(payload.subspan<0, Http2WindowUpdate::wire_size>());
@@ -189,40 +176,37 @@ bool Http2Connection::try_read_frame() {
         return false;
     }
 
-    process_frame(header, buffer.subspan(Http2FrameHeader::wire_size, header.length));
+    Http2FrameReader frame{header, buffer.subspan(Http2FrameHeader::wire_size, header.length)};
+    process_frame(frame);
     discard_processed_buffer(total_frame_size);
     return true;
 }
 
-void Http2Connection::process_frame(const Http2FrameHeader& header,
-                                    std::span<const uint8_t> payload) {
-    switch (header.type) {
+void Http2Connection::process_frame(const Http2FrameReader& frame) {
+    switch (frame.type()) {
         case FRAME_TYPE_SETTINGS: {
-            spdlog::debug("received SETTINGS frame (stream={} flags={})", header.stream_id,
-                          header.flags);
-            if (header.flags & 0x01) {
+            spdlog::debug("received SETTINGS frame (stream={} flags={})", frame.stream_id(),
+                          frame.flags());
+            if (frame.has_flag(0x01)) {
                 spdlog::debug("received SETTINGS ACK");
             } else {
-                if (header.length % Http2Setting::wire_size != 0) {
-                    spdlog::error("invalid SETTINGS frame: data size not a multiple of {}",
-                                  Http2Setting::wire_size);
+                auto settings = frame.read_settings();
+                if (!settings) {
                     update_state(Http2ConnectionState::ProtocolError);
                     return;
                 }
-                process_settings_payload(payload);
+                spdlog::debug("read {} settings, sending ACK", settings->size());
+                write_settings_ack();
             }
             break;
         }
         case FRAME_TYPE_HEADERS: {
-            spdlog::debug("received HEADERS frame for stream {}", header.stream_id);
-            const bool end_headers_set = (header.flags & FLAG_END_HEADERS) != 0;
-            const bool end_stream_set = (header.flags & FLAG_END_STREAM) != 0;
-            spdlog::debug(" - stream ID: {}, end headers: {}, end stream: {}, length: {}",
-                          header.stream_id, end_headers_set, end_stream_set, header.length);
+            spdlog::debug("received HEADERS frame for stream {}", frame.stream_id());
+            spdlog::debug(" - end headers: {}, end stream: {}, length: {}", frame.is_end_headers(),
+                          frame.is_end_stream(), frame.length());
 
-            // read header block fragment
             log_dynamic_tables();
-            auto hdrs = decoder_.decode(payload);
+            auto hdrs = decoder_.decode(frame.read_headers_block());
             for (const auto& hdr : hdrs) {
                 spdlog::debug(" - request header: {}: {}", hdr.name, hdr.value);
             }
@@ -232,29 +216,29 @@ void Http2Connection::process_frame(const Http2FrameHeader& header,
             log_dynamic_tables();
 
             auto ending_stream = resp.body.empty();
-            write_headers_response(header.stream_id, hdrs_bytes,
+            write_headers_response(frame.stream_id(), hdrs_bytes,
                                    FLAG_END_HEADERS | (ending_stream ? FLAG_END_STREAM : 0));
             spdlog::info(std::format("{} status code sent w/headers", resp.status_code));
 
             if (!ending_stream) {
                 spdlog::info("sending response body (length: {})", resp.body.size());
-                write_data_response(header.stream_id, resp.body);
+                write_data_response(frame.stream_id(), resp.body);
             }
             break;
         }
         case FRAME_TYPE_WINDOW_UPDATE: {
-            spdlog::debug("received WINDOW_UPDATE frame for stream {}", header.stream_id);
-            const auto [window_size_increment] = process_window_update_payload(payload);
+            spdlog::debug("received WINDOW_UPDATE frame for stream {}", frame.stream_id());
+            const auto [window_size_increment] = frame.read_window_update();
             spdlog::debug("window size increment = {}", window_size_increment);
             break;
         }
         case FRAME_TYPE_GOAWAY: {
-            spdlog::debug("received GOAWAY frame (stream {})", header.stream_id);
+            spdlog::debug("received GOAWAY frame (stream {})", frame.stream_id());
             update_state(Http2ConnectionState::ClientClosed);
             break;
         }
         default:
-            spdlog::debug("received unknown frame type: {}", header.type);
+            spdlog::debug("received unknown frame type: {}", frame.type());
             break;
     }
 }

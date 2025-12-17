@@ -4,6 +4,7 @@
 
 #include "headers/header_block_decoder.h"
 #include "headers/header_block_encoder.h"
+#include "http2_frame_reader.h"
 #include "http2_frames.h"
 #include "router.h"
 #include "tls_conn.h"
@@ -48,9 +49,8 @@ class Http2Connection {
     void write_data_response(uint32_t uint32, const std::vector<uint8_t>& body);
     void write_goaway(uint32_t last_stream_id, uint32_t error_code = 0);
     void write_settings();
-    void process_settings_payload(std::span<const uint8_t> payload);
 
-    void process_frame(const Http2FrameHeader& header, std::span<const uint8_t> payload);
+    void process_frame(const Http2FrameReader& frame);
     void update_state(Http2ConnectionState new_state);
 
     void log_dynamic_tables();

@@ -37,6 +37,8 @@ add_library(ion
         static_file_handler.h
         file_reader.cpp
         file_reader.h
+        http2_frame_reader.cpp
+        http2_frame_reader.h
 )
 
 target_compile_options(ion PRIVATE
