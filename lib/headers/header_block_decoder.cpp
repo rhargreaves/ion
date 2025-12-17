@@ -23,9 +23,10 @@ HeaderBlockDecoder::HeaderBlockDecoder(DynamicTable& dynamic_table)
     populate_huffman_tree(huffman_tree_);
 }
 
-std::string HeaderBlockDecoder::read_length_and_string(ByteReader& reader) {
+std::optional<std::string> HeaderBlockDecoder::read_length_and_string(ByteReader& reader) {
     if (!reader.has_bytes()) {
-        throw std::runtime_error("Unexpected end of data while reading header length & string");
+        spdlog::error("Unexpected end of data while reading header length & string");
+        return std::nullopt;
     }
 
     uint8_t length_byte = reader.read_byte();
@@ -33,7 +34,8 @@ std::string HeaderBlockDecoder::read_length_and_string(ByteReader& reader) {
     auto str_size = length_byte & 0x7F;
 
     if (!reader.has_bytes(str_size)) {
-        throw std::runtime_error("Insufficient data for string");
+        spdlog::error("Insufficient data for string");
+        return std::nullopt;
     }
     return read_string(is_huffman, str_size, reader.read_bytes(str_size));
 }
@@ -99,7 +101,10 @@ std::optional<HttpHeader> HeaderBlockDecoder::try_decode_literal_field(uint8_t i
     }
 
     auto value = read_length_and_string(reader);
-    return HttpHeader{name.value(), value};
+    if (!value) {
+        return std::nullopt;
+    }
+    return HttpHeader{name.value(), *value};
 }
 
 std::vector<HttpHeader> HeaderBlockDecoder::decode(std::span<const uint8_t> data) {
