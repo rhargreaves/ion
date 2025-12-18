@@ -79,7 +79,8 @@ TEST_CASE("HTTP/2 frame header parsing", "[frames]") {
             auto decoder = ion::HeaderBlockDecoder{dynamic_table};
             auto headers = decoder.decode(reader.read_headers_block());
 
-            REQUIRE(headers.size() == 20);
+            REQUIRE(headers);
+            REQUIRE((*headers).size() == 20);
         }
     }
 }

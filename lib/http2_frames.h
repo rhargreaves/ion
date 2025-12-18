@@ -113,4 +113,6 @@ struct Http2WindowUpdate {
     }
 };
 
+enum class ErrorCode : uint32_t { no_error = 0x00, protocol_error = 0x01 };
+
 }  // namespace ion

@@ -19,18 +19,19 @@ TEST_CASE("headers: decodes static table entries") {
         std::array<uint8_t, 4> data = {0x82, 0x84, 0xbe, 0x87};
         auto hdrs = decoder.decode(data);
 
-        REQUIRE(hdrs.size() == 3);  // skip over any dynamic table entries not added yet
+        REQUIRE(hdrs);
+        REQUIRE((*hdrs).size() == 3);  // skip over any dynamic table entries not added yet
 
         SECTION ("parses :method: GET") {
-            check_header(hdrs, 0, ":method", "GET");
+            check_header(*hdrs, 0, ":method", "GET");
         }
 
         SECTION ("parses :path: /") {
-            check_header(hdrs, 1, ":path", "/");
+            check_header(*hdrs, 1, ":path", "/");
         }
 
         SECTION ("parses :scheme: https") {
-            check_header(hdrs, 2, ":scheme", "https");
+            check_header(*hdrs, 2, ":scheme", "https");
         }
     }
 
@@ -39,10 +40,11 @@ TEST_CASE("headers: decodes static table entries") {
 
         auto hdrs = decoder.decode(data);
 
-        REQUIRE(hdrs.size() == 1);
+        REQUIRE(hdrs);
+        REQUIRE((*hdrs).size() == 1);
 
         SECTION ("parses :authority: localhost") {
-            check_header(hdrs, 0, ":authority", "localhost");
+            check_header(*hdrs, 0, ":authority", "localhost");
         }
     }
 
@@ -51,10 +53,11 @@ TEST_CASE("headers: decodes static table entries") {
 
         auto hdrs = decoder.decode(data);
 
-        REQUIRE(hdrs.size() == 1);
+        REQUIRE(hdrs);
+        REQUIRE((*hdrs).size() == 1);
 
         SECTION ("parses :path: /body") {
-            check_header(hdrs, 0, ":path", "/body");
+            check_header(*hdrs, 0, ":path", "/body");
         }
     }
 
@@ -62,21 +65,24 @@ TEST_CASE("headers: decodes static table entries") {
         std::array<uint8_t, 2> data = {0x81, 0xbd};
         auto hdrs = decoder.decode(data);
 
-        REQUIRE(hdrs.size() == 2);
+        REQUIRE((*hdrs).size() == 2);
 
         SECTION ("parses :authority: <empty>") {
-            check_header(hdrs, 0, ":authority", "");
+            check_header(*hdrs, 0, ":authority", "");
         }
 
         SECTION ("parses www-authenticate: <empty>") {
-            check_header(hdrs, 1, "www-authenticate", "");
+            check_header(*hdrs, 1, "www-authenticate", "");
         }
     }
 
     SECTION ("handles out-of-range indices") {
         std::array<uint8_t, 2> data = {0x80, 0xbe};
 
-        REQUIRE(decoder.decode(data).empty());
+        auto hdrs = decoder.decode(data);
+
+        REQUIRE(!hdrs);
+        REQUIRE(hdrs.error() == FrameError::ProtocolError);
     }
 }
 
@@ -91,7 +97,9 @@ TEST_CASE("headers: decodes dynamic table entries") {
             /* :authority: localhost */ 0x41, 0x86, 0xa0, 0xe4, 0x1d, 0x13, 0x9d, 0x9,  //
             /* :scheme: https */ 0x87                                                   //
         });
-        auto hdrs1 = decoder.decode(req1);
+        auto hdrs1_expected = decoder.decode(req1);
+        REQUIRE(hdrs1_expected);
+        auto& hdrs1 = *hdrs1_expected;
 
         REQUIRE(hdrs1.size() == 4);
         check_header(hdrs1, 0, ":method", "GET");
@@ -100,7 +108,9 @@ TEST_CASE("headers: decodes dynamic table entries") {
         check_header(hdrs1, 3, ":scheme", "https");
 
         constexpr auto req2 = std::to_array<uint8_t>({0x82, 0x84, 0xbe, 0x87});
-        auto hdrs2 = decoder.decode(req2);
+        auto hdrs2_expected = decoder.decode(req2);
+        REQUIRE(hdrs2_expected);
+        auto& hdrs2 = *hdrs2_expected;
 
         REQUIRE(hdrs1.size() == hdrs2.size());
         for (size_t i = 0; i < hdrs1.size(); ++i) {
@@ -112,7 +122,9 @@ TEST_CASE("headers: decodes dynamic table entries") {
     SECTION ("literal header field - dynamic header name") {
         constexpr auto req1 =
             std::to_array<uint8_t>({0x40, 0x82, 0x94, 0xe7, 0x83, 0x8c, 0x76, 0x7f});
-        auto hdrs1 = decoder.decode(req1);
+        auto hdrs1_expected = decoder.decode(req1);
+        REQUIRE(hdrs1_expected);
+        auto& hdrs1 = *hdrs1_expected;
 
         REQUIRE(hdrs1.size() == 1);
         check_header(hdrs1, 0, "foo", "bar");
@@ -120,7 +132,9 @@ TEST_CASE("headers: decodes dynamic table entries") {
         constexpr auto req2 =
             std::to_array<uint8_t>({0x7e, 0x91, 0x8c, 0x76, 0x29, 0x18, 0xfd, 0xa9, 0x18, 0xec,
                                     0x52, 0x31, 0xfb, 0x52, 0x31, 0xd8, 0xa4, 0x63, 0xf7});
-        auto hdrs2 = decoder.decode(req2);
+        auto hdrs2_expected = decoder.decode(req2);
+        REQUIRE(hdrs2_expected);
+        auto& hdrs2 = *hdrs2_expected;
 
         REQUIRE(hdrs2.size() == 1);
         check_header(hdrs2, 0, "foo", "bar baz bar baz bar baz");
@@ -132,8 +146,8 @@ TEST_CASE("headers: decodes dynamic table entries") {
 
         auto hdrs = decoder.decode(foo_hdr);
 
-        REQUIRE(hdrs.size() == 1);
-        check_header(hdrs, 0, "x-foo", "bar");
+        REQUIRE((*hdrs).size() == 1);
+        check_header(*hdrs, 0, "x-foo", "bar");
     }
 
     SECTION ("literal header field - new name (long value, huffman)") {
@@ -144,8 +158,8 @@ TEST_CASE("headers: decodes dynamic table entries") {
 
         auto hdrs = decoder.decode(foo_hdr);
 
-        REQUIRE(hdrs.size() == 1);
-        check_header(hdrs, 0, "x-foo", "foo bar baz foo bar baz foo bar baz");
+        REQUIRE((*hdrs).size() == 1);
+        check_header(*hdrs, 0, "x-foo", "foo bar baz foo bar baz foo bar baz");
     }
 
     SECTION ("literal header field - new name, without indexing (long value, huffman)") {
@@ -156,8 +170,8 @@ TEST_CASE("headers: decodes dynamic table entries") {
 
         auto hdrs = decoder.decode(foo_hdr);
 
-        REQUIRE(hdrs.size() == 1);
-        check_header(hdrs, 0, "x-foo", "foo bar baz foo bar baz foo bar baz");
+        REQUIRE((*hdrs).size() == 1);
+        check_header(*hdrs, 0, "x-foo", "foo bar baz foo bar baz foo bar baz");
     }
 
     SECTION ("headers from Chrome") {
@@ -201,6 +215,17 @@ TEST_CASE("headers: decodes dynamic table entries") {
 
         auto hdrs = decoder.decode(hdr_block);
 
-        REQUIRE(hdrs.size() == 20);
+        REQUIRE(hdrs);
+        REQUIRE((*hdrs).size() == 20);
+    }
+
+    SECTION ("returns error for invalid first bytes") {
+        spdlog::set_level(spdlog::level::debug);
+        constexpr auto hdr_block = std::to_array<uint8_t>({0xff});
+
+        auto hdrs = decoder.decode(hdr_block);
+
+        REQUIRE(!hdrs);
+        REQUIRE(hdrs.error() == FrameError::ProtocolError);
     }
 }

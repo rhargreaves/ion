@@ -77,8 +77,9 @@ void Http2Connection::write_data_response(uint32_t stream_id, const std::vector<
     tls_conn_.write(body);
 }
 
-void Http2Connection::write_goaway(uint32_t last_stream_id, uint32_t error_code) {
-    const Http2GoAwayPayload payload{.last_stream_id = last_stream_id, .error_code = error_code};
+void Http2Connection::write_goaway(uint32_t last_stream_id, ErrorCode error_code) {
+    const Http2GoAwayPayload payload{.last_stream_id = last_stream_id,
+                                     .error_code = static_cast<uint32_t>(error_code)};
 
     const Http2FrameHeader header{.length = Http2GoAwayPayload::wire_size,
                                   .type = FRAME_TYPE_GOAWAY,
@@ -207,11 +208,16 @@ void Http2Connection::process_frame(const Http2FrameReader& frame) {
 
             log_dynamic_tables();
             auto hdrs = decoder_.decode(frame.read_headers_block());
-            for (const auto& hdr : hdrs) {
+            if (!hdrs) {
+                update_state(Http2ConnectionState::ProtocolError);
+                return;
+            }
+
+            for (const auto& hdr : *hdrs) {
                 spdlog::debug(" - request header: {}: {}", hdr.name, hdr.value);
             }
 
-            auto resp = process_request(hdrs);
+            auto resp = process_request(*hdrs);
             auto hdrs_bytes = encoder_.encode(resp.headers);
             log_dynamic_tables();
 
@@ -280,7 +286,7 @@ Http2ProcessResult Http2Connection::process_state() {
             return Http2ProcessResult::Incomplete;
         }
         case Http2ConnectionState::ProtocolError: {
-            throw std::runtime_error("protocol error");
+            return Http2ProcessResult::ProtocolError;
         }
         case Http2ConnectionState::ClientClosed: {
             return Http2ProcessResult::ClientClosed;
@@ -292,7 +298,8 @@ Http2ProcessResult Http2Connection::process_state() {
 }
 
 void Http2Connection::close() {
-    write_goaway(1);
+    write_goaway(1, (state_ != Http2ConnectionState::ProtocolError) ? ErrorCode::no_error
+                                                                    : ErrorCode::protocol_error);
     spdlog::debug("GOAWAY frame sent");
     tls_conn_.graceful_shutdown();
 }

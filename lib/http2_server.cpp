@@ -62,6 +62,10 @@ void Http2Server::start(uint16_t port) {
                     spdlog::info("client closed connection");
                     it = connections.erase(it);
                     break;
+                case Http2ProcessResult::ProtocolError:
+                    spdlog::error("protocol error. closing connection");
+                    http.close();
+                    it = connections.erase(it);
             }
         }
     }
