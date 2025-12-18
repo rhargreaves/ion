@@ -1,9 +1,11 @@
 #pragma once
+#include <expected>
 #include <span>
 #include <vector>
 
 #include "byte_reader.h"
 #include "dynamic_table.h"
+#include "frame_error.h"
 #include "http_header.h"
 #include "huffman_tree.h"
 
@@ -20,11 +22,12 @@ class HeaderBlockDecoder {
     HuffmanTree huffman_tree_{};
 
     std::string read_string(bool is_huffman, ssize_t size, std::span<const uint8_t> data);
-    std::optional<std::string> read_length_and_string(ByteReader& reader);
-    std::optional<HttpHeader> try_decode_literal_field(uint8_t index, ByteReader& reader);
-    std::optional<HttpHeader> try_decode_indexed_field(uint8_t first_byte);
-    std::optional<std::string> try_read_indexed_header_name(uint8_t index);
-    std::optional<HttpHeader> try_read_indexed_header(uint8_t index);
+    std::expected<std::string, FrameError> read_length_and_string(ByteReader& reader);
+    std::expected<HttpHeader, FrameError> try_decode_literal_field(uint8_t index,
+                                                                   ByteReader& reader);
+    std::expected<HttpHeader, FrameError> try_decode_indexed_field(uint8_t first_byte);
+    std::expected<std::string, FrameError> try_read_indexed_header_name(uint8_t index);
+    std::expected<HttpHeader, FrameError> try_read_indexed_header(uint8_t index);
 };
 
 }  // namespace ion

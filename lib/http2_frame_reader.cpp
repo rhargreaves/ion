@@ -2,6 +2,10 @@
 
 #include <spdlog/spdlog.h>
 
+#include <expected>
+
+#include "frame_error.h"
+
 namespace ion {
 
 std::expected<std::vector<Http2Setting>, FrameError> Http2FrameReader::read_settings() const {

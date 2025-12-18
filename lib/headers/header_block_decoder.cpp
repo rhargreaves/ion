@@ -23,10 +23,11 @@ HeaderBlockDecoder::HeaderBlockDecoder(DynamicTable& dynamic_table)
     populate_huffman_tree(huffman_tree_);
 }
 
-std::optional<std::string> HeaderBlockDecoder::read_length_and_string(ByteReader& reader) {
+std::expected<std::string, FrameError> HeaderBlockDecoder::read_length_and_string(
+    ByteReader& reader) {
     if (!reader.has_bytes()) {
         spdlog::error("Unexpected end of data while reading header length & string");
-        return std::nullopt;
+        return std::unexpected(FrameError::ProtocolError);
     }
 
     uint8_t length_byte = reader.read_byte();
@@ -35,7 +36,7 @@ std::optional<std::string> HeaderBlockDecoder::read_length_and_string(ByteReader
 
     if (!reader.has_bytes(str_size)) {
         spdlog::error("Insufficient data for string");
-        return std::nullopt;
+        return std::unexpected(FrameError::ProtocolError);
     }
     return read_string(is_huffman, str_size, reader.read_bytes(str_size));
 }
@@ -50,7 +51,7 @@ std::string HeaderBlockDecoder::read_string(bool is_huffman, ssize_t size,
     return {raw_data.begin(), raw_data.end()};
 }
 
-std::optional<HttpHeader> HeaderBlockDecoder::try_read_indexed_header(uint8_t index) {
+std::expected<HttpHeader, FrameError> HeaderBlockDecoder::try_read_indexed_header(uint8_t index) {
     auto table_index = index - 1;
     if (table_index < STATIC_TABLE.size()) {
         // static lookup
@@ -61,12 +62,13 @@ std::optional<HttpHeader> HeaderBlockDecoder::try_read_indexed_header(uint8_t in
     auto dynamic_index = table_index - STATIC_TABLE.size();
     if (dynamic_index >= dynamic_table_.size()) {
         spdlog::error("invalid dynamic table index ({})", index);
-        return std::nullopt;
+        return std::unexpected(FrameError::ProtocolError);
     }
     return dynamic_table_.get(dynamic_index);
 }
 
-std::optional<std::string> HeaderBlockDecoder::try_read_indexed_header_name(uint8_t index) {
+std::expected<std::string, FrameError> HeaderBlockDecoder::try_read_indexed_header_name(
+    uint8_t index) {
     auto table_index = index - 1;
     if (table_index < STATIC_TABLE.size()) {
         // static lookup
@@ -77,32 +79,33 @@ std::optional<std::string> HeaderBlockDecoder::try_read_indexed_header_name(uint
     auto dynamic_index = table_index - STATIC_TABLE.size();
     if (dynamic_index >= dynamic_table_.size()) {
         spdlog::error("invalid dynamic table index ({})", index);
-        return std::nullopt;
+        return std::unexpected(FrameError::ProtocolError);
     }
     return dynamic_table_.get(dynamic_index).name;
 }
 
-std::optional<HttpHeader> HeaderBlockDecoder::try_decode_indexed_field(uint8_t first_byte) {
+std::expected<HttpHeader, FrameError> HeaderBlockDecoder::try_decode_indexed_field(
+    uint8_t first_byte) {
     auto index = static_cast<uint8_t>(first_byte & 0x7F);
     if (index < 1) {
         spdlog::error("invalid header index (<1)");
-        return std::nullopt;
+        return std::unexpected(FrameError::ProtocolError);
     }
     return try_read_indexed_header(index);
 }
 
-std::optional<HttpHeader> HeaderBlockDecoder::try_decode_literal_field(uint8_t index,
-                                                                       ByteReader& reader) {
+std::expected<HttpHeader, FrameError> HeaderBlockDecoder::try_decode_literal_field(
+    uint8_t index, ByteReader& reader) {
     bool is_new_name = index == 0;
-    const std::optional<std::string> name =
+    const auto name =
         is_new_name ? read_length_and_string(reader) : try_read_indexed_header_name(index);
     if (!name) {
-        return std::nullopt;
+        return std::unexpected(FrameError::ProtocolError);
     }
 
     auto value = read_length_and_string(reader);
     if (!value) {
-        return std::nullopt;
+        return std::unexpected(FrameError::ProtocolError);
     }
     return HttpHeader{name.value(), *value};
 }

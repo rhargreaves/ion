@@ -39,6 +39,7 @@ add_library(ion
         file_reader.h
         http2_frame_reader.cpp
         http2_frame_reader.h
+        frame_error.h
 )
 
 target_compile_options(ion PRIVATE

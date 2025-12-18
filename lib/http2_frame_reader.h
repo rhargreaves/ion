@@ -3,11 +3,10 @@
 #include <span>
 #include <vector>
 
+#include "frame_error.h"
 #include "http2_frames.h"
 
 namespace ion {
-
-enum class FrameError { InvalidSettingsSize, UnknownFrameType, ProtocolError };
 
 class Http2FrameReader {
    public:
