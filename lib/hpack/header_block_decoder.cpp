@@ -127,10 +127,20 @@ std::expected<std::vector<HttpHeader>, FrameError> HeaderBlockDecoder::decode(
                 }
                 break;
             }
-            case HeaderFieldType::Literal: {
+            case HeaderFieldType::LiteralIncremental: {
                 auto index = static_cast<uint8_t>(first_byte & 0x3F);
                 if (auto hdr = decode_literal_field(index, reader)) {
                     dynamic_table_.insert(hdr.value());
+                    hdrs.push_back(hdr.value());
+                } else {
+                    return std::unexpected(hdr.error());
+                }
+                break;
+            }
+            case HeaderFieldType::LiteralNoIndex:
+            case HeaderFieldType::LiteralNeverIndex: {
+                auto index = static_cast<uint8_t>(first_byte & 0x0F);
+                if (auto hdr = decode_literal_field(index, reader)) {
                     hdrs.push_back(hdr.value());
                 } else {
                     return std::unexpected(hdr.error());
@@ -141,15 +151,7 @@ std::expected<std::vector<HttpHeader>, FrameError> HeaderBlockDecoder::decode(
                 spdlog::error("TODO: size update not implemented");
                 return std::unexpected(FrameError::ProtocolError);
             }
-            case HeaderFieldType::LiteralWithoutIndexing: {
-                auto index = static_cast<uint8_t>(first_byte & 0x0F);
-                if (auto hdr = decode_literal_field(index, reader)) {
-                    hdrs.push_back(hdr.value());
-                } else {
-                    return std::unexpected(hdr.error());
-                }
-                break;
-            }
+
             case HeaderFieldType::Invalid: {
                 spdlog::error("invalid first byte in header representation: {}", first_byte);
                 return std::unexpected(FrameError::ProtocolError);

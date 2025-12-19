@@ -3,7 +3,14 @@
 
 namespace ion {
 
-enum class HeaderFieldType { Indexed, Literal, SizeUpdate, LiteralWithoutIndexing, Invalid };
+enum class HeaderFieldType {
+    Indexed,
+    LiteralIncremental,
+    SizeUpdate,
+    LiteralNeverIndex,
+    LiteralNoIndex,
+    Invalid
+};
 
 struct HeaderField {
     static HeaderFieldType from_byte(uint8_t first_byte) {
@@ -11,13 +18,16 @@ struct HeaderField {
             return HeaderFieldType::Indexed;
         }
         if (first_byte & 0x40) {
-            return HeaderFieldType::Literal;
+            return HeaderFieldType::LiteralIncremental;
         }
         if (first_byte & 0x20) {
             return HeaderFieldType::SizeUpdate;
         }
-        if (first_byte <= 0x10) {
-            return HeaderFieldType::LiteralWithoutIndexing;
+        if (first_byte & 0x10) {
+            return HeaderFieldType::LiteralNeverIndex;
+        }
+        if (first_byte < 0x10) {
+            return HeaderFieldType::LiteralNoIndex;
         }
         return HeaderFieldType::Invalid;
     }
