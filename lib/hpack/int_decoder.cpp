@@ -20,21 +20,19 @@ std::expected<uint32_t, IntegerDecodeError> IntegerDecoder::decode(ByteReader& r
     const auto mask = make_mask(prefix_bits);
 
     const uint8_t prefix = reader.read_byte() & mask;
-    bool continues = prefix == mask;
     sum += prefix;
+    bool cont = prefix == mask;
 
     uint32_t shift = 0;
-    while (continues) {
+    while (cont) {
         if (reader.has_bytes() == 0) {
             return std::unexpected(IntegerDecodeError::NotEnoughBytes);
         }
         const uint8_t continuation = reader.read_byte();
-
         sum += (continuation & 0x7F) << shift;
-        continues = continuation & 0x80;
         shift += 7;
+        cont = continuation & 0x80;
     }
-
     return sum;
 }
 
