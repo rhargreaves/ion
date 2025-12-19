@@ -2,58 +2,21 @@
 
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
-#include <csignal>
 
 #include "../lib/http2_server.h"
 #include "access_log.h"
 #include "args.h"
+#include "signal_handler.h"
 #include "spdlog/sinks/basic_file_sink.h"
-
-static std::atomic<ion::Http2Server*> g_server{nullptr};
-
-static void stop_server() {
-    if (ion::Http2Server* server = g_server.load()) {
-        server->stop();
-    }
-}
-
-void signal_handler(int) {
-    spdlog::info("stopping server (signal)...");
-    stop_server();
-}
-
-void sigpipe_handler(int) {
-    char dummy;
-
-    if (write(STDOUT_FILENO, &dummy, 0) < 0 && errno == EPIPE) {
-        spdlog::error("stdout pipe broken, terminating");
-        stop_server();
-    }
-
-    if (write(STDERR_FILENO, &dummy, 0) < 0 && errno == EPIPE) {
-        spdlog::error("stderr pipe broken, terminating");
-        stop_server();
-    }
-
-    spdlog::debug("SIGPIPE from network connection, ignoring");
-}
-
-void setup_signal_handler() {
-    std::signal(SIGINT, signal_handler);
-    std::signal(SIGTERM, signal_handler);
-    std::signal(SIGPIPE, sigpipe_handler);
-}
 
 void run_server(uint16_t port, const std::vector<std::string>& static_map) {
     ion::Http2Server server{};
-    g_server.store(&server);
+    auto handler = SignalHandler::setup(server);
 
     auto& router = server.router();
-
     router.add_route("/_tests/ok", "GET", [] { return ion::HttpResponse{.status_code = 200}; });
     router.add_route("/_tests/no_content", "GET",
                      [] { return ion::HttpResponse{.status_code = 204}; });
-
     if (static_map.size() == 2) {
         auto sth = std::make_unique<ion::StaticFileHandler>(static_map[0], static_map[1]);
         router.add_static_handler(std::move(sth));
@@ -79,15 +42,12 @@ void setup_access_logs(const std::string& log_path) {
 
 int main(int argc, char* argv[]) {
     CLI::App app{"ion: the light-weight HTTP/2 server ⚡️"};
-
     auto args = Args::register_opts(app);
     try {
         app.parse(argc, argv);
     } catch (const CLI::ParseError& e) {
         return app.exit(e);
     }
-
-    setup_signal_handler();
 
     spdlog::set_level(args.log_level_enum());
     spdlog::info("ion started ⚡️");

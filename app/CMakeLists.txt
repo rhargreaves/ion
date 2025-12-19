@@ -1,6 +1,8 @@
 add_executable(ion-server
         main.cpp
         args.cpp
+        signal_handler.cpp
+        signal_handler.h
 )
 
 target_link_libraries(ion-server PRIVATE
