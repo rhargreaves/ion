@@ -67,7 +67,7 @@ TEST_CASE("integer decoder: decodes ints outside prefix range") {
 
         ByteReader br{bytes};
 
-        REQUIRE(*ion::IntegerDecoder::decode(br, 4) == 15 + 255 + 1);
+        REQUIRE(*ion::IntegerDecoder::decode(br, 4) == 15 + 127 + 128);
     }
 
     SECTION ("not enough bytes") {

@@ -23,13 +23,16 @@ std::expected<uint32_t, IntegerDecodeError> IntegerDecoder::decode(ByteReader& r
     bool continues = prefix == mask;
     sum += prefix;
 
+    uint32_t shift = 0;
     while (continues) {
         if (reader.has_bytes() == 0) {
             return std::unexpected(IntegerDecodeError::NotEnoughBytes);
         }
         const uint8_t continuation = reader.read_byte();
-        continues = continuation == 0xff;
-        sum += continuation;
+
+        sum += (continuation & 0x7F) << shift;
+        continues = continuation & 0x80;
+        shift += 7;
     }
 
     return sum;
