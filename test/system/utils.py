@@ -10,6 +10,7 @@ def run_server(port):
         "-p",
         str(port),
         "-s",
+        "/static",
         os.path.join(os.path.dirname(__file__), "static")
     ], env=env)
     print(f"server pid = {p.pid}")
