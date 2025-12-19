@@ -61,7 +61,8 @@ std::expected<HttpHeader, FrameError> HeaderBlockDecoder::read_indexed_header(ui
     // dynamic lookup
     auto dynamic_index = table_index - STATIC_TABLE.size();
     if (dynamic_index >= dynamic_table_.size()) {
-        spdlog::error("invalid dynamic table index ({})", index);
+        spdlog::error("invalid dynamic table index lookup for header (idx: {}, sz: {})", index,
+                      dynamic_table_.size());
         return std::unexpected(FrameError::ProtocolError);
     }
     return dynamic_table_.get(dynamic_index);
@@ -77,7 +78,8 @@ std::expected<std::string, FrameError> HeaderBlockDecoder::read_indexed_header_n
     // dynamic lookup
     auto dynamic_index = table_index - STATIC_TABLE.size();
     if (dynamic_index >= dynamic_table_.size()) {
-        spdlog::error("invalid dynamic table index ({})", index);
+        spdlog::error("invalid dynamic table index lookup for header name (idx: {}, sz: {})", index,
+                      dynamic_table_.size());
         return std::unexpected(FrameError::ProtocolError);
     }
     return dynamic_table_.get(dynamic_index).name;
