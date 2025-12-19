@@ -38,6 +38,12 @@ void sigpipe_handler(int) {
     spdlog::debug("SIGPIPE from network connection, ignoring");
 }
 
+void setup_signal_handler() {
+    std::signal(SIGINT, signal_handler);
+    std::signal(SIGTERM, signal_handler);
+    std::signal(SIGPIPE, sigpipe_handler);
+}
+
 void run_server(uint16_t port, const std::vector<std::string>& static_map) {
     ion::Http2Server server{};
     g_server.store(&server);
@@ -74,23 +80,20 @@ void setup_access_logs(const std::string& log_path) {
 int main(int argc, char* argv[]) {
     CLI::App app{"ion: the light-weight HTTP/2 server ⚡️"};
 
-    auto opts = Args::register_opts(app);
-
+    auto args = Args::register_opts(app);
     try {
         app.parse(argc, argv);
     } catch (const CLI::ParseError& e) {
         return app.exit(e);
     }
 
-    std::signal(SIGINT, signal_handler);
-    std::signal(SIGTERM, signal_handler);
-    std::signal(SIGPIPE, sigpipe_handler);
+    setup_signal_handler();
 
-    spdlog::set_level(Args::parse_log_level(opts.log_level));
+    spdlog::set_level(args.log_level_enum());
     spdlog::info("ion started ⚡️");
     try {
-        setup_access_logs(opts.access_log_path);
-        run_server(opts.port, opts.static_map);
+        setup_access_logs(args.access_log_path);
+        run_server(args.port, args.static_map);
         spdlog::info("exiting");
         return 0;
     } catch (const std::exception& e) {

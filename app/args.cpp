@@ -23,15 +23,15 @@ Args Args::register_opts(CLI::App& app) {
     return args;
 }
 
-spdlog::level::level_enum Args::parse_log_level(const std::string& level_str) {
+spdlog::level::level_enum Args::log_level_enum() const {
     static const std::unordered_map<std::string, spdlog::level::level_enum> level_map = {
         {"trace", spdlog::level::trace}, {"debug", spdlog::level::debug},
         {"info", spdlog::level::info},   {"warn", spdlog::level::warn},
         {"error", spdlog::level::err},   {"critical", spdlog::level::critical},
         {"off", spdlog::level::off}};
 
-    if (auto it = level_map.find(level_str); it != level_map.end()) {
+    if (auto it = level_map.find(log_level); it != level_map.end()) {
         return it->second;
     }
-    throw CLI::ValidationError("Invalid log level: " + level_str);
+    throw CLI::ValidationError("Invalid log level: " + log_level);
 }
