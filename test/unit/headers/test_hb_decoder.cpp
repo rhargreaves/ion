@@ -16,10 +16,10 @@ TEST_CASE("headers: decodes static table entries") {
     auto decoder = ion::HeaderBlockDecoder{dynamic_table};
 
     SECTION ("static table entries only") {
-        std::array<uint8_t, 4> data = {0x82, 0x84, 0xbe, 0x87};
+        std::array<uint8_t, 3> data = {0x82, 0x84, 0x87};
         auto hdrs = decoder.decode(data);
 
-        REQUIRE(hdrs);
+        REQUIRE(hdrs.has_value());
         REQUIRE((*hdrs).size() == 3);  // skip over any dynamic table entries not added yet
 
         SECTION ("parses :method: GET") {
