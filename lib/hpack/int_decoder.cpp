@@ -11,7 +11,7 @@ constexpr uint8_t make_mask(uint8_t bits) {
     if (bits >= 8) {
         return 0xff;
     }
-    return static_cast<uint8_t>((1 << bits) - 1);
+    return (1 << bits) - 1;
 }
 
 std::expected<uint32_t, IntegerDecodeError> IntegerDecoder::decode(ByteReader& reader,
@@ -28,7 +28,7 @@ std::expected<uint32_t, IntegerDecodeError> IntegerDecoder::decode(ByteReader& r
             return std::unexpected(IntegerDecodeError::NotEnoughBytes);
         }
         const uint8_t continuation = reader.read_byte();
-        continues = continuation == make_mask(8);
+        continues = continuation == 0xff;
         sum += continuation;
     }
 
