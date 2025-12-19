@@ -19,6 +19,10 @@ build:
 	cmake --build $(BUILD_DIR) --parallel
 .PHONY: build
 
+build-docker-app:
+	docker build -f app.Dockerfile -t ion-app .
+.PHONY: build-docker-app
+
 test: test-unit test-integration test-system
 .PHONY: test
 

@@ -1,7 +1,7 @@
 {
   "name": "ion",
   "build": {
-    "dockerfile": "../Dockerfile",
+    "dockerfile": "../build.Dockerfile",
     "context": ".."
   },
   "workspaceFolder": "/workspace",
