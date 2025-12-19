@@ -2,6 +2,8 @@ import subprocess
 import time
 import os
 
+ACCESS_LOG_PATH = "/tmp/ion-system-tests-access.log"
+
 
 def run_server(port):
     env = os.environ.copy()
@@ -11,7 +13,9 @@ def run_server(port):
         str(port),
         "-s",
         "/static",
-        os.path.join(os.path.dirname(__file__), "static")
+        os.path.join(os.path.dirname(__file__), "static"),
+        "--access-log",
+        ACCESS_LOG_PATH
     ], env=env)
     print(f"server pid = {p.pid}")
     return p

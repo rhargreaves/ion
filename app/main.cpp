@@ -2,7 +2,6 @@
 
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
-#include <CLI/Formatter.hpp>
 #include <csignal>
 
 #include "../lib/http2_server.h"
@@ -37,7 +36,7 @@ void sigpipe_handler(int) {
     spdlog::debug("SIGPIPE from network connection, ignoring");
 }
 
-void run_server(uint16_t port, std::vector<std::string> static_map) {
+void run_server(uint16_t port, const std::vector<std::string>& static_map) {
     ion::Http2Server server{};
     g_server.store(&server);
 
@@ -57,10 +56,8 @@ void run_server(uint16_t port, std::vector<std::string> static_map) {
 
 int main(int argc, char* argv[]) {
     CLI::App app{"ion: the light-weight HTTP/2 server ⚡️"};
-    uint16_t port{Args::DEFAULT_PORT};
-    std::string log_level{Args::DEFAULT_LOG_LEVEL};
-    std::vector<std::string> static_map;
-    Args::register_opts(app, port, log_level, static_map);
+
+    auto opts = Args::register_opts(app);
 
     try {
         app.parse(argc, argv);
@@ -72,10 +69,10 @@ int main(int argc, char* argv[]) {
     std::signal(SIGTERM, signal_handler);
     std::signal(SIGPIPE, sigpipe_handler);
 
-    spdlog::set_level(Args::parse_log_level(log_level));
+    spdlog::set_level(Args::parse_log_level(opts.log_level));
     spdlog::info("ion started ⚡️");
     try {
-        run_server(port, static_map);
+        run_server(opts.port, opts.static_map);
         spdlog::info("exiting");
         return 0;
     } catch (const std::exception& e) {

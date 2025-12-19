@@ -113,3 +113,16 @@ async def test_httpx_returns_200_for_multiple_requests_over_persistent_connectio
             assert response.status_code == 200
     finally:
         stop_server(server)
+
+
+@pytest.mark.asyncio
+async def test_httpx_logs_requests_in_access_logs():
+    server = run_server(SERVER_PORT)
+    assert wait_for_port(SERVER_PORT)
+    try:
+        client = httpx.AsyncClient(http2=True, verify=False)
+        response = await client.get(BASE_URL)
+
+        assert response.status_code == 200
+    finally:
+        stop_server(server)
