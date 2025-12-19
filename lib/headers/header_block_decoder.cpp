@@ -5,6 +5,7 @@
 #include <array>
 
 #include "byte_reader.h"
+#include "header_field.h"
 #include "header_static_table.h"
 #include "huffman_codes.h"
 #include "huffman_tree.h"
@@ -117,37 +118,42 @@ std::expected<std::vector<HttpHeader>, FrameError> HeaderBlockDecoder::decode(
 
     while (reader.has_bytes()) {
         uint8_t first_byte = reader.read_byte();
-        if (first_byte & 0x80) {
-            // indexed field (static or dynamic)
-            if (auto hdr = decode_indexed_field(first_byte)) {
-                hdrs.push_back(*hdr);
-            } else {
-                return std::unexpected(hdr.error());
+        switch (HeaderField::from_byte(first_byte)) {
+            case HeaderFieldType::Indexed: {
+                if (auto hdr = decode_indexed_field(first_byte)) {
+                    hdrs.push_back(*hdr);
+                } else {
+                    return std::unexpected(hdr.error());
+                }
+                break;
             }
-        } else if (first_byte & 0x40) {
-            // literal header field
-            auto index = static_cast<uint8_t>(first_byte & 0x3F);
-            if (auto hdr = decode_literal_field(index, reader)) {
-                dynamic_table_.insert(hdr.value());
-                hdrs.push_back(hdr.value());
-            } else {
-                return std::unexpected(hdr.error());
+            case HeaderFieldType::Literal: {
+                auto index = static_cast<uint8_t>(first_byte & 0x3F);
+                if (auto hdr = decode_literal_field(index, reader)) {
+                    dynamic_table_.insert(hdr.value());
+                    hdrs.push_back(hdr.value());
+                } else {
+                    return std::unexpected(hdr.error());
+                }
+                break;
             }
-        } else if (first_byte & 0x20) {
-            // size update
-            spdlog::error("TODO: size update not implemented");
-            return std::unexpected(FrameError::ProtocolError);
-        } else if (first_byte <= 0x10) {
-            // literal header field - never index & without indexing value
-            auto index = static_cast<uint8_t>(first_byte & 0x0F);
-            if (auto hdr = decode_literal_field(index, reader)) {
-                hdrs.push_back(hdr.value());
-            } else {
-                return std::unexpected(hdr.error());
+            case HeaderFieldType::SizeUpdate: {
+                spdlog::error("TODO: size update not implemented");
+                return std::unexpected(FrameError::ProtocolError);
             }
-        } else {
-            spdlog::error("invalid first byte in header representation: {}", first_byte);
-            return std::unexpected(FrameError::ProtocolError);
+            case HeaderFieldType::LiteralWithoutIndexing: {
+                auto index = static_cast<uint8_t>(first_byte & 0x0F);
+                if (auto hdr = decode_literal_field(index, reader)) {
+                    hdrs.push_back(hdr.value());
+                } else {
+                    return std::unexpected(hdr.error());
+                }
+                break;
+            }
+            case HeaderFieldType::Invalid: {
+                spdlog::error("invalid first byte in header representation: {}", first_byte);
+                return std::unexpected(FrameError::ProtocolError);
+            }
         }
     }
     return hdrs;
