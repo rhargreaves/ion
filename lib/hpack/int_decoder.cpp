@@ -28,8 +28,15 @@ std::expected<uint32_t, IntegerDecodeError> IntegerDecoder::decode(ByteReader& r
         if (reader.has_bytes() == 0) {
             return std::unexpected(IntegerDecodeError::NotEnoughBytes);
         }
+
         const uint8_t continuation = reader.read_byte();
-        sum += (continuation & 0x7F) << shift;
+        const uint32_t value = continuation & 0x7F;
+
+        if (value > (std::numeric_limits<uint32_t>::max() - sum) >> shift) {
+            return std::unexpected(IntegerDecodeError::IntegerOverflow);
+        }
+
+        sum += value << shift;
         shift += 7;
         cont = continuation & 0x80;
     }

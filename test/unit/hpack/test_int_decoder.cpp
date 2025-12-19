@@ -78,4 +78,15 @@ TEST_CASE("integer decoder: decodes ints outside prefix range") {
         REQUIRE(ion::IntegerDecoder::decode(br, 8).error() ==
                 ion::IntegerDecodeError::NotEnoughBytes);
     }
+
+    SECTION ("integer overflow") {
+        constexpr auto bytes = std::to_array<uint8_t>({0xff, 0xff, 0xff, 0xff, 0xff, 0x10});
+
+        ByteReader br{bytes};
+
+        auto result = ion::IntegerDecoder::decode(br, 7);
+
+        REQUIRE(!result);
+        REQUIRE(result.error() == ion::IntegerDecodeError::IntegerOverflow);
+    }
 }
