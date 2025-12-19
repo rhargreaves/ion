@@ -44,9 +44,9 @@ void run_server(uint16_t port, const std::vector<std::string>& static_map) {
 
     auto& router = server.router();
 
-    router.add_route("/", "GET", [] { return ion::HttpResponse{.status_code = 200}; });
-
-    router.add_route("/no_content", "GET", [] { return ion::HttpResponse{.status_code = 204}; });
+    router.add_route("/_tests/ok", "GET", [] { return ion::HttpResponse{.status_code = 200}; });
+    router.add_route("/_tests/no_content", "GET",
+                     [] { return ion::HttpResponse{.status_code = 204}; });
 
     if (static_map.size() == 2) {
         auto sth = std::make_unique<ion::StaticFileHandler>(static_map[0], static_map[1]);

@@ -40,7 +40,7 @@ def send_request(conn, stream_id):
     c, s = conn
     headers = [
         (':method', 'GET'),
-        (':path', '/'),
+        (':path', '/_tests/ok'),
         (':authority', SERVER_NAME),
         (':scheme', 'https'),
     ]

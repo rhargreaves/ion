@@ -6,6 +6,7 @@ import os
 
 SERVER_PORT = 8443
 BASE_URL = f"https://localhost:{SERVER_PORT}"
+OK_URL = BASE_URL + "/_tests/ok"
 
 logging.basicConfig(
     format="%(levelname)s [%(asctime)s] %(name)s - %(message)s",
@@ -27,10 +28,10 @@ async def test_httpx_sends_custom_header_two_different_values():  # support dyna
     assert wait_for_port(SERVER_PORT)
     try:
         client = httpx.AsyncClient(http2=True, verify=False)
-        resp1 = await client.get(BASE_URL, headers={"foo": "bar"})
+        resp1 = await client.get(OK_URL, headers={"foo": "bar"})
         assert resp1.status_code == 200
 
-        resp2 = await client.get(BASE_URL, headers={"foo": "baz"})
+        resp2 = await client.get(OK_URL, headers={"foo": "baz"})
         assert resp2.status_code == 200
     finally:
         stop_server(server)
@@ -42,7 +43,7 @@ async def test_httpx_returns_server_header():
     assert wait_for_port(SERVER_PORT)
     try:
         client = httpx.AsyncClient(http2=True, verify=False)
-        response = await client.get(BASE_URL)
+        response = await client.get(OK_URL)
 
         assert response.status_code == 200
         assert response.headers["server"].startswith("ion/")
@@ -56,7 +57,7 @@ async def test_httpx_returns_200():
     assert wait_for_port(SERVER_PORT)
     try:
         client = httpx.AsyncClient(http2=True, verify=False)
-        response = await client.get(BASE_URL)
+        response = await client.get(OK_URL)
 
         assert response.status_code == 200
     finally:
@@ -82,7 +83,7 @@ async def test_httpx_returns_204_for_no_content():
     assert wait_for_port(SERVER_PORT)
     try:
         client = httpx.AsyncClient(http2=True, verify=False)
-        response = await client.get(BASE_URL + "/no_content")
+        response = await client.get(BASE_URL + "/_tests/no_content")
 
         assert response.status_code == 204
     finally:
@@ -110,7 +111,7 @@ async def test_httpx_returns_200_for_multiple_requests_over_persistent_connectio
         client = httpx.AsyncClient(http2=True, verify=False)
         for i in range(10):
             print(f"request {i}:")
-            response = await client.get(BASE_URL)
+            response = await client.get(OK_URL)
             assert response.status_code == 200
     finally:
         stop_server(server)
@@ -122,7 +123,7 @@ async def test_httpx_logs_requests_in_access_logs():
     assert wait_for_port(SERVER_PORT)
     try:
         client = httpx.AsyncClient(http2=True, verify=False)
-        response = await client.get(BASE_URL)
+        response = await client.get(OK_URL)
         assert response.status_code == 200
 
         assert_last_log_line_is_valid(ACCESS_LOG_PATH)
