@@ -15,12 +15,14 @@ I'm documenting non-obvious stuff I've learnt along the way in [LEARNINGS.md](do
 ## Progress
 
 * Basic HTTP/2 over TLS
-* Register routes (path & method) and return status codes
-* Supports request & response headers:
+* Support for HPACK (headers):
     * Static table entries
     * Dynamic table entries
     * Huffman encoded & plain text strings
-* Supports response body, status codes & headers
+* Supports response body, status codes
+* Route registration
+* Static file serving
+* Combined Log Format (CLF) access logs
 * Close server using Ctrl+C (`SIGINT`) or `SIGTERM`
 
 <p align="center">
@@ -98,6 +100,24 @@ make build
 ```sh
 ./build/make/app/ion-server &
 curl -k --http2 -v https://localhost:8443/
+```
+
+### Command Line Options
+
+```
+ion: the light-weight HTTP/2 server ⚡️
+
+build/make/app/ion-server [OPTIONS]
+
+OPTIONS:
+  -h,     --help              Print this help message and exit
+  -p,     --port UINT:INT in [1 - 65535] [8443]
+                              Port to listen on
+  -l,     --log-level TEXT:{trace,debug,info,warn,error,critical,off} [info]
+                              Set logging level (trace, debug, info, warn, error, critical,
+                              off)
+  -s,     --static TEXT x 2   Map URL prefix to directory. Usage: --static /url/path ./fs/path
+          --access-log TEXT
 ```
 
 ## Test
