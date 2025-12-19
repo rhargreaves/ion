@@ -47,3 +47,4 @@ cert.pem
 key.pem
 
 **/build/
+access.log
