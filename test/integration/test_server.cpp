@@ -13,7 +13,6 @@
 static constexpr uint16_t TEST_PORT = 8443;
 
 inline ion::Http2Server create_test_server() {
-    spdlog::set_level(spdlog::level::debug);
     return ion::Http2Server{};
 }
 

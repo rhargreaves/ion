@@ -31,6 +31,23 @@ struct HeaderField {
         }
         return HeaderFieldType::Invalid;
     }
+
+    static std::string_view to_string(HeaderFieldType type) {
+        switch (type) {
+            case HeaderFieldType::Indexed:
+                return "Indexed";
+            case HeaderFieldType::LiteralIncremental:
+                return "LiteralIncremental";
+            case HeaderFieldType::SizeUpdate:
+                return "SizeUpdate";
+            case HeaderFieldType::LiteralNeverIndex:
+                return "LiteralNeverIndex";
+            case HeaderFieldType::LiteralNoIndex:
+                return "LiteralNoIndex";
+            default:
+                return "Invalid";
+        }
+    }
 };
 
 }  // namespace ion

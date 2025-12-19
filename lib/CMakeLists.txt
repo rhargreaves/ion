@@ -41,6 +41,8 @@ add_library(ion
         http2_frame_reader.h
         frame_error.h
         hpack/header_field.h
+        hpack/int_decoder.cpp
+        hpack/int_decoder.h
 )
 
 target_compile_options(ion PRIVATE

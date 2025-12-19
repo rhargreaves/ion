@@ -14,6 +14,7 @@ add_executable(unit-test
         hpack/test_dynamic_table.cpp
         test_router.cpp
         test_file_reader.cpp
+        hpack/test_int_decoder.cpp
 )
 
 target_link_libraries(unit-test

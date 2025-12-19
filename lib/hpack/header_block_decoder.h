@@ -21,12 +21,13 @@ class HeaderBlockDecoder {
     DynamicTable& dynamic_table_;
     HuffmanTree huffman_tree_{};
 
-    std::string read_string(bool is_huffman, ssize_t size, std::span<const uint8_t> data);
+    std::string read_string(bool is_huffman, size_t size, std::span<const uint8_t> data);
     std::expected<std::string, FrameError> read_length_and_string(ByteReader& reader);
-    std::expected<HttpHeader, FrameError> decode_literal_field(uint8_t index, ByteReader& reader);
-    std::expected<HttpHeader, FrameError> decode_indexed_field(uint8_t first_byte);
-    std::expected<std::string, FrameError> read_indexed_header_name(uint8_t index);
-    std::expected<HttpHeader, FrameError> read_indexed_header(uint8_t index);
+    std::expected<HttpHeader, FrameError> decode_literal_field(uint8_t idx_prefix_bits,
+                                                               ByteReader& reader);
+    std::expected<HttpHeader, FrameError> decode_indexed_field(ByteReader& reader);
+    std::expected<std::string, FrameError> read_indexed_header_name(size_t index);
+    std::expected<HttpHeader, FrameError> read_indexed_header(size_t index);
 };
 
 }  // namespace ion

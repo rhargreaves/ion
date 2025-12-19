@@ -175,7 +175,6 @@ TEST_CASE("headers: decodes dynamic table entries") {
     }
 
     SECTION ("headers from Chrome") {
-        spdlog::set_level(spdlog::level::debug);
         constexpr auto hdr_block = std::to_array<uint8_t>(
             {0x82, 0x41, 0x8a, 0xa0, 0xe4, 0x1d, 0x13, 0x9d, 0x9,  0xb8, 0xf3, 0x4d, 0x33, 0x87,
              0x4,  0x86, 0x61, 0x9,  0x1a, 0x4c, 0x46, 0x3f, 0x40, 0x85, 0xae, 0xc1, 0xcd, 0x48,
@@ -220,7 +219,6 @@ TEST_CASE("headers: decodes dynamic table entries") {
     }
 
     SECTION ("returns error for invalid first bytes") {
-        spdlog::set_level(spdlog::level::debug);
         constexpr auto hdr_block = std::to_array<uint8_t>({0xff});
 
         auto hdrs = decoder.decode(hdr_block);
@@ -229,10 +227,7 @@ TEST_CASE("headers: decodes dynamic table entries") {
         REQUIRE(hdrs.error() == FrameError::ProtocolError);
     }
 
-    SECTION ("headers from Chrome (2)") {
-        SKIP("wip");
-
-        spdlog::set_level(spdlog::level::debug);
+    SECTION ("headers from Chrome w/Integer prefix continuation") {
         constexpr auto hdr_block1 = std::to_array<uint8_t>(
             {0x82, 0x41, 0x8a, 0xa0, 0xe4, 0x1d, 0x13, 0x9d, 0x9,  0xb8, 0xf3, 0x4d, 0x33, 0x87,
              0x4,  0x86, 0x61, 0x9,  0x1a, 0x4c, 0x46, 0x3f, 0x40, 0x85, 0xae, 0xc1, 0xcd, 0x48,
@@ -307,7 +302,6 @@ TEST_CASE("headers: dynamic table management") {
     auto decoder = ion::HeaderBlockDecoder{dynamic_table};
 
     SECTION ("returns error if dynamic table update received") {
-        spdlog::set_level(spdlog::level::debug);
         constexpr auto hdr_block = std::to_array<uint8_t>({0x20});
 
         auto hdrs = decoder.decode(hdr_block);

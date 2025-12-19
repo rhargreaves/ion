@@ -9,6 +9,7 @@
 #include "header_static_table.h"
 #include "huffman_codes.h"
 #include "huffman_tree.h"
+#include "int_decoder.h"
 
 namespace ion {
 
@@ -42,7 +43,7 @@ std::expected<std::string, FrameError> HeaderBlockDecoder::read_length_and_strin
     return read_string(is_huffman, str_size, reader.read_bytes(str_size));
 }
 
-std::string HeaderBlockDecoder::read_string(bool is_huffman, ssize_t size,
+std::string HeaderBlockDecoder::read_string(bool is_huffman, size_t size,
                                             std::span<const uint8_t> data) {
     if (is_huffman) {
         auto raw_bytes = huffman_tree_.decode(data.subspan(0, size));
@@ -52,11 +53,14 @@ std::string HeaderBlockDecoder::read_string(bool is_huffman, ssize_t size,
     return {raw_data.begin(), raw_data.end()};
 }
 
-std::expected<HttpHeader, FrameError> HeaderBlockDecoder::read_indexed_header(uint8_t index) {
+std::expected<HttpHeader, FrameError> HeaderBlockDecoder::read_indexed_header(size_t index) {
     auto table_index = index - 1;
     if (table_index < STATIC_TABLE.size()) {
         // static lookup
-        return STATIC_TABLE[table_index].to_http_header();
+        auto hdr = STATIC_TABLE[table_index];
+        spdlog::trace("read indexed header from static table (idx: {}, name: {}, val: {})",
+                      table_index, hdr.name, hdr.value);
+        return hdr.to_http_header();
     }
 
     // dynamic lookup
@@ -66,14 +70,20 @@ std::expected<HttpHeader, FrameError> HeaderBlockDecoder::read_indexed_header(ui
                       dynamic_table_.size());
         return std::unexpected(FrameError::ProtocolError);
     }
-    return dynamic_table_.get(dynamic_index);
+    auto hdr = dynamic_table_.get(dynamic_index);
+    spdlog::trace("read indexed header from dynamic table (idx: {}, name: {}, val: {})",
+                  dynamic_index, hdr.name, hdr.value);
+    return hdr;
 }
 
-std::expected<std::string, FrameError> HeaderBlockDecoder::read_indexed_header_name(uint8_t index) {
+std::expected<std::string, FrameError> HeaderBlockDecoder::read_indexed_header_name(size_t index) {
     auto table_index = index - 1;
     if (table_index < STATIC_TABLE.size()) {
         // static lookup
-        return std::string(STATIC_TABLE[table_index].name);
+        auto name = STATIC_TABLE[table_index].name;
+        spdlog::trace("read indexed header name from static table (idx: {}, name: {})", table_index,
+                      name);
+        return std::string(name);
     }
 
     // dynamic lookup
@@ -83,23 +93,36 @@ std::expected<std::string, FrameError> HeaderBlockDecoder::read_indexed_header_n
                       dynamic_table_.size());
         return std::unexpected(FrameError::ProtocolError);
     }
-    return dynamic_table_.get(dynamic_index).name;
+    auto name = dynamic_table_.get(dynamic_index).name;
+    spdlog::trace("read indexed header name from dynamic table (idx: {}, name: {})", dynamic_index,
+                  name);
+    return name;
 }
 
-std::expected<HttpHeader, FrameError> HeaderBlockDecoder::decode_indexed_field(uint8_t first_byte) {
-    auto index = static_cast<uint8_t>(first_byte & 0x7F);
-    if (index < 1) {
+std::expected<HttpHeader, FrameError> HeaderBlockDecoder::decode_indexed_field(ByteReader& reader) {
+    const auto index = IntegerDecoder::decode(reader, 7);
+    if (!index.has_value()) {
+        spdlog::error("failed to decode indexed header index (not enough bytes)");
+    }
+
+    if (*index < 1) {
         spdlog::error("invalid header index (<1)");
         return std::unexpected(FrameError::ProtocolError);
     }
-    return read_indexed_header(index);
+    return read_indexed_header(*index);
 }
 
-std::expected<HttpHeader, FrameError> HeaderBlockDecoder::decode_literal_field(uint8_t index,
-                                                                               ByteReader& reader) {
-    bool is_new_name = index == 0;
+std::expected<HttpHeader, FrameError> HeaderBlockDecoder::decode_literal_field(
+    uint8_t idx_prefix_bits, ByteReader& reader) {
+    const auto index = IntegerDecoder::decode(reader, idx_prefix_bits);
+    if (!index.has_value()) {
+        spdlog::error("failed to decode literal field index (not enough bytes)");
+    }
+
+    bool is_new_name = *index == 0;
+    spdlog::trace("decoding literal field with index: {}, new name: {}", *index, is_new_name);
     const auto name =
-        is_new_name ? read_length_and_string(reader) : read_indexed_header_name(index);
+        is_new_name ? read_length_and_string(reader) : read_indexed_header_name(*index);
     if (!name) {
         return std::unexpected(FrameError::ProtocolError);
     }
@@ -108,6 +131,7 @@ std::expected<HttpHeader, FrameError> HeaderBlockDecoder::decode_literal_field(u
     if (!value) {
         return std::unexpected(FrameError::ProtocolError);
     }
+    spdlog::trace("decoded header: name: {}, value: {}", name.value(), value.value());
     return HttpHeader{name.value(), *value};
 }
 
@@ -117,10 +141,12 @@ std::expected<std::vector<HttpHeader>, FrameError> HeaderBlockDecoder::decode(
     ByteReader reader(data);
 
     while (reader.has_bytes()) {
-        uint8_t first_byte = reader.read_byte();
-        switch (HeaderField::from_byte(first_byte)) {
+        uint8_t first_byte = reader.peek_byte();
+        auto type = HeaderField::from_byte(first_byte);
+        spdlog::trace("header type: {}, byte: 0x{:02X}", HeaderField::to_string(type), first_byte);
+        switch (type) {
             case HeaderFieldType::Indexed: {
-                if (auto hdr = decode_indexed_field(first_byte)) {
+                if (auto hdr = decode_indexed_field(reader)) {
                     hdrs.push_back(*hdr);
                 } else {
                     return std::unexpected(hdr.error());
@@ -128,8 +154,7 @@ std::expected<std::vector<HttpHeader>, FrameError> HeaderBlockDecoder::decode(
                 break;
             }
             case HeaderFieldType::LiteralIncremental: {
-                auto index = static_cast<uint8_t>(first_byte & 0x3F);
-                if (auto hdr = decode_literal_field(index, reader)) {
+                if (auto hdr = decode_literal_field(6, reader)) {
                     dynamic_table_.insert(hdr.value());
                     hdrs.push_back(hdr.value());
                 } else {
@@ -139,8 +164,7 @@ std::expected<std::vector<HttpHeader>, FrameError> HeaderBlockDecoder::decode(
             }
             case HeaderFieldType::LiteralNoIndex:
             case HeaderFieldType::LiteralNeverIndex: {
-                auto index = static_cast<uint8_t>(first_byte & 0x0F);
-                if (auto hdr = decode_literal_field(index, reader)) {
+                if (auto hdr = decode_literal_field(4, reader)) {
                     hdrs.push_back(hdr.value());
                 } else {
                     return std::unexpected(hdr.error());
@@ -151,7 +175,6 @@ std::expected<std::vector<HttpHeader>, FrameError> HeaderBlockDecoder::decode(
                 spdlog::error("TODO: size update not implemented");
                 return std::unexpected(FrameError::ProtocolError);
             }
-
             case HeaderFieldType::Invalid: {
                 spdlog::error("invalid first byte in header representation: {}", first_byte);
                 return std::unexpected(FrameError::ProtocolError);
