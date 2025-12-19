@@ -4,7 +4,7 @@
 
 #include <format>
 
-#include "headers/header_block_decoder.h"
+#include "hpack/header_block_decoder.h"
 #include "http2_frame_reader.h"
 #include "version.h"
 

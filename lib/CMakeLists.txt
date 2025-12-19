@@ -18,19 +18,19 @@ add_library(ion
         http2_server.h
         router.cpp
         router.h
-        headers/header_block_decoder.cpp
-        headers/header_block_decoder.h
-        headers/huffman_tree.cpp
-        headers/huffman_tree.h
-        headers/huffman_codes.h
-        headers/header_static_table.h
-        headers/byte_reader.h
-        headers/http_header.h
-        headers/static_http_header.h
-        headers/dynamic_table.cpp
-        headers/dynamic_table.h
-        headers/header_block_encoder.cpp
-        headers/header_block_encoder.h
+        hpack/header_block_decoder.cpp
+        hpack/header_block_decoder.h
+        hpack/huffman_tree.cpp
+        hpack/huffman_tree.h
+        hpack/huffman_codes.h
+        hpack/header_static_table.h
+        hpack/byte_reader.h
+        hpack/http_header.h
+        hpack/static_http_header.h
+        hpack/dynamic_table.cpp
+        hpack/dynamic_table.h
+        hpack/header_block_encoder.cpp
+        hpack/header_block_encoder.h
         server_config.h
         server_config.cpp
         static_file_handler.cpp
@@ -40,7 +40,7 @@ add_library(ion
         http2_frame_reader.cpp
         http2_frame_reader.h
         frame_error.h
-        headers/header_field.h
+        hpack/header_field.h
 )
 
 target_compile_options(ion PRIVATE

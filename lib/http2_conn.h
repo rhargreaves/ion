@@ -2,8 +2,8 @@
 #include <span>
 #include <vector>
 
-#include "headers/header_block_decoder.h"
-#include "headers/header_block_encoder.h"
+#include "hpack/header_block_decoder.h"
+#include "hpack/header_block_encoder.h"
 #include "http2_frame_reader.h"
 #include "http2_frames.h"
 #include "router.h"

@@ -2,7 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "catch2/matchers/catch_matchers.hpp"
-#include "headers/header_block_encoder.h"
+#include "hpack/header_block_encoder.h"
 #include "http2_frames.h"
 
 TEST_CASE("headers: encodes static table entries") {

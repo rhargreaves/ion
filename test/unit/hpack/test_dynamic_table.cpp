@@ -1,7 +1,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "headers/dynamic_table.h"
+#include "hpack/dynamic_table.h"
 
 TEST_CASE("inserts new headers at the front") {
     ion::DynamicTable table{};

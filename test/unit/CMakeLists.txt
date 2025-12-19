@@ -7,11 +7,11 @@ FetchContent_MakeAvailable(Catch2)
 
 add_executable(unit-test
         test_frame_parsing.cpp
-        headers/test_hb_decoder.cpp
-        headers/test_huffman_tree.cpp
-        headers/test_bit_reader.cpp
-        headers/test_hb_encoder.cpp
-        headers/test_dynamic_table.cpp
+        hpack/test_hb_decoder.cpp
+        hpack/test_huffman_tree.cpp
+        hpack/test_bit_reader.cpp
+        hpack/test_hb_encoder.cpp
+        hpack/test_dynamic_table.cpp
         test_router.cpp
         test_file_reader.cpp
 )

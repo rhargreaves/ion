@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "headers/dynamic_table.h"
-#include "headers/header_block_decoder.h"
+#include "hpack/dynamic_table.h"
+#include "hpack/header_block_decoder.h"
 #include "http2_frame_reader.h"
 #include "http2_frames.h"
 

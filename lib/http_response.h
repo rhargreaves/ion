@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "headers/http_header.h"
+#include "hpack/http_header.h"
 
 namespace ion {
 
