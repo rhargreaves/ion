@@ -5,7 +5,9 @@
 #include <csignal>
 
 #include "../lib/http2_server.h"
+#include "access_log.h"
 #include "args.h"
+#include "spdlog/sinks/basic_file_sink.h"
 
 static std::atomic<ion::Http2Server*> g_server{nullptr};
 
@@ -54,6 +56,21 @@ void run_server(uint16_t port, const std::vector<std::string>& static_map) {
     server.start(port);
 }
 
+void setup_access_logs(const std::optional<std::string>& log_path) {
+    if (!log_path) {
+        return;
+    }
+
+    try {
+        auto access_logger = spdlog::basic_logger_mt(ion::AccessLog::ACCESS_LOGGER_NAME, *log_path);
+        access_logger->set_pattern("%v");
+        access_logger->flush_on(spdlog::level::info);
+        spdlog::info("writing access logs to {}", *log_path);
+    } catch (const spdlog::spdlog_ex& e) {
+        spdlog::error("failed to setup access logs: {}", e.what());
+    }
+}
+
 int main(int argc, char* argv[]) {
     CLI::App app{"ion: the light-weight HTTP/2 server ⚡️"};
 
@@ -72,6 +89,7 @@ int main(int argc, char* argv[]) {
     spdlog::set_level(Args::parse_log_level(opts.log_level));
     spdlog::info("ion started ⚡️");
     try {
+        setup_access_logs(opts.access_log_path);
         run_server(opts.port, opts.static_map);
         spdlog::info("exiting");
         return 0;

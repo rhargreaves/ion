@@ -43,6 +43,10 @@ add_library(ion
         hpack/header_field.h
         hpack/int_decoder.cpp
         hpack/int_decoder.h
+        system_clock.cpp
+        system_clock.h
+        access_log.cpp
+        access_log.h
 )
 
 target_compile_options(ion PRIVATE

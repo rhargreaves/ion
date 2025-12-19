@@ -27,6 +27,7 @@ class Http2Connection {
 
    private:
     TlsConnection tls_conn_;
+    std::string client_ip_;
     const Router& router_;
     std::vector<uint8_t> buffer_;
     Http2ConnectionState state_ = Http2ConnectionState::AwaitingPreface;
@@ -49,7 +50,6 @@ class Http2Connection {
     void write_data_response(uint32_t uint32, const std::vector<uint8_t>& body);
     void write_goaway(uint32_t last_stream_id, ErrorCode error_code);
     void write_settings();
-
     void process_frame(const Http2FrameReader& frame);
     void update_state(Http2ConnectionState new_state);
 

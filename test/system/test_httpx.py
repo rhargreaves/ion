@@ -1,7 +1,8 @@
-from utils import wait_for_port, run_server, stop_server
+from utils import wait_for_port, run_server, stop_server, ACCESS_LOG_PATH, assert_last_log_line_is_valid
 import httpx
 import pytest
 import logging
+import os
 
 SERVER_PORT = 8443
 BASE_URL = f"https://localhost:{SERVER_PORT}"
@@ -122,7 +123,10 @@ async def test_httpx_logs_requests_in_access_logs():
     try:
         client = httpx.AsyncClient(http2=True, verify=False)
         response = await client.get(BASE_URL)
-
         assert response.status_code == 200
+
+        assert_last_log_line_is_valid(ACCESS_LOG_PATH)
+
     finally:
         stop_server(server)
+        os.remove(ACCESS_LOG_PATH)

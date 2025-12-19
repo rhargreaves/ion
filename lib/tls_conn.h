@@ -11,6 +11,7 @@
 namespace ion {
 
 enum class TlsError { WantReadOrWrite, ConnectionClosed, ProtocolError, OtherError };
+enum class ClientIpError { GetPeerNameFailed, UnknownIpFormat };
 
 class TlsConnection {
    public:
@@ -30,6 +31,7 @@ class TlsConnection {
     [[nodiscard]] bool has_data() const;
     [[nodiscard]] bool handshake() const;
     void graceful_shutdown() const;
+    std::expected<std::string, ClientIpError> client_ip() const;
 
    private:
     SocketFd client_fd_;

@@ -4,8 +4,11 @@
 
 #include <format>
 
+#include "access_log.h"
 #include "hpack/header_block_decoder.h"
 #include "http2_frame_reader.h"
+#include "http2_server.h"
+#include "system_clock.h"
 #include "version.h"
 
 namespace ion {
@@ -24,7 +27,11 @@ static constexpr std::string_view CLIENT_PREFACE{"PRI * HTTP/2.0\r\n\r\nSM\r\n\r
 static constexpr size_t READ_BUFFER_SIZE = 512 * 1024;
 
 Http2Connection::Http2Connection(TlsConnection&& conn, const Router& router)
-    : tls_conn_(std::move(conn)), router_(router) {}
+    : tls_conn_(std::move(conn)), router_(router) {
+    if (auto client_ip = tls_conn_.client_ip(); client_ip.has_value()) {
+        client_ip_ = std::move(*client_ip);
+    }
+}
 
 Http2WindowUpdate Http2Connection::process_window_update_payload(std::span<const uint8_t> payload) {
     return Http2WindowUpdate::parse(payload.subspan<0, Http2WindowUpdate::wire_size>());
@@ -230,6 +237,8 @@ void Http2Connection::process_frame(const Http2FrameReader& frame) {
                 spdlog::info("sending response body (length: {})", resp.body.size());
                 write_data_response(frame.stream_id(), resp.body);
             }
+
+            AccessLog::log_request(*hdrs, resp.status_code, resp.body.size(), client_ip_);
             break;
         }
         case FRAME_TYPE_WINDOW_UPDATE: {

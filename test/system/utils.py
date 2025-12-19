@@ -1,6 +1,7 @@
 import subprocess
 import time
 import os
+import re
 
 ACCESS_LOG_PATH = "/tmp/ion-system-tests-access.log"
 
@@ -82,3 +83,23 @@ def curl_http2(url, custom_args=None):
 
 def assert_curl_response_ok(result):
     assert "< HTTP/2 200 \n" in result.stderr
+
+
+def assert_last_log_line_is_valid(log_path):
+    with open(log_path, 'r') as f:
+        lines = [line.strip() for line in f.readlines() if line.strip()]
+        assert lines, "Access log is empty"
+        last_line = lines[-1]
+
+    # Combined Log Format Regex:
+    # 1. IP
+    # 2. Ident & Auth (- -)
+    # 3. Timestamp
+    # 4. Request
+    # 5. Statu
+    # 6. Size
+    # 7. Referrer
+    # 8. User Agent
+    log_pattern = r'^[\d\.]+ - - \[.*?\] \".*? HTTP/2\" \d{3} (\d+|-) \".*?\" \".*?\"$'
+
+    assert re.match(log_pattern, last_line), f"Log entry does not match expected format: {last_line}"
