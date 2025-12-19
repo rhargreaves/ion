@@ -118,7 +118,7 @@ async def test_httpx_returns_200_for_multiple_requests_over_persistent_connectio
 
 @pytest.mark.asyncio
 async def test_httpx_logs_requests_in_access_logs():
-    server = run_server(SERVER_PORT)
+    server = run_server(SERVER_PORT, extra_args=["--access-log", ACCESS_LOG_PATH])
     assert wait_for_port(SERVER_PORT)
     try:
         client = httpx.AsyncClient(http2=True, verify=False)

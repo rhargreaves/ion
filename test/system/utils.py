@@ -6,18 +6,19 @@ import re
 ACCESS_LOG_PATH = "/tmp/ion-system-tests-access.log"
 
 
-def run_server(port):
-    env = os.environ.copy()
-    p = subprocess.Popen([
-        os.environ.get('ION_PATH', 'ion-server'),
-        "-p",
-        str(port),
-        "-s",
-        "/static",
-        os.path.join(os.path.dirname(__file__), "static"),
-        "--access-log",
-        ACCESS_LOG_PATH
-    ], env=env)
+def run_server(port, extra_args=None):
+    if extra_args is None:
+        extra_args = []
+
+    cmd = [os.environ.get('ION_PATH', 'ion-server'),
+           "-p",
+           str(port),
+           "-s",
+           "/static",
+           os.path.join(os.path.dirname(__file__), "static"),
+           ] + extra_args
+
+    p = subprocess.Popen(cmd)
     print(f"server pid = {p.pid}")
     return p
 
