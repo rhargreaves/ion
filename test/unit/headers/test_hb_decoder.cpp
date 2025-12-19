@@ -228,4 +228,30 @@ TEST_CASE("headers: decodes dynamic table entries") {
         REQUIRE(!hdrs);
         REQUIRE(hdrs.error() == FrameError::ProtocolError);
     }
+
+    SECTION ("literal header field never index - new name (non-huffman)") {
+        constexpr auto foo_hdr =
+            std::to_array<uint8_t>({0x10, 0x84, 0xf2, 0xb4, 0xa7, 0x3f, 0x3, 0x62, 0x61, 0x72});
+
+        auto hdrs = decoder.decode(foo_hdr);
+
+        REQUIRE((*hdrs).size() == 1);
+        check_header(*hdrs, 0, "x-foo", "bar");
+
+        REQUIRE(dynamic_table.size() == 0);
+    }
+}
+
+TEST_CASE("headers: dynamic table management") {
+    auto dynamic_table = ion::DynamicTable{};
+    auto decoder = ion::HeaderBlockDecoder{dynamic_table};
+
+    SECTION ("returns error if dynamic table update received") {
+        spdlog::set_level(spdlog::level::debug);
+        constexpr auto hdr_block = std::to_array<uint8_t>({0x20});
+
+        auto hdrs = decoder.decode(hdr_block);
+
+        REQUIRE(hdrs.error() == FrameError::ProtocolError);
+    }
 }

@@ -131,8 +131,12 @@ std::expected<std::vector<HttpHeader>, FrameError> HeaderBlockDecoder::decode(
             } else {
                 return std::unexpected(hdr.error());
             }
-        } else if (first_byte < 0x10) {
-            // literal header field - without indexing value
+        } else if (first_byte & 0x20) {
+            // size update
+            spdlog::error("TODO: size update not implemented");
+            return std::unexpected(FrameError::ProtocolError);
+        } else if (first_byte <= 0x10) {
+            // literal header field - never index & without indexing value
             auto index = static_cast<uint8_t>(first_byte & 0x0F);
             if (auto hdr = decode_literal_field(index, reader)) {
                 hdrs.push_back(hdr.value());
