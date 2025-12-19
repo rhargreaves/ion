@@ -56,16 +56,16 @@ void run_server(uint16_t port, const std::vector<std::string>& static_map) {
     server.start(port);
 }
 
-void setup_access_logs(const std::optional<std::string>& log_path) {
-    if (!log_path) {
+void setup_access_logs(const std::string& log_path) {
+    if (log_path.empty()) {
         return;
     }
 
     try {
-        auto access_logger = spdlog::basic_logger_mt(ion::AccessLog::ACCESS_LOGGER_NAME, *log_path);
-        access_logger->set_pattern("%v");
-        access_logger->flush_on(spdlog::level::info);
-        spdlog::info("writing access logs to {}", *log_path);
+        auto logger = spdlog::basic_logger_mt(ion::AccessLog::ACCESS_LOGGER_NAME, log_path);
+        logger->set_pattern("%v");
+        logger->flush_on(spdlog::level::info);
+        spdlog::info("writing access logs to {}", log_path);
     } catch (const spdlog::spdlog_ex& e) {
         spdlog::error("failed to setup access logs: {}", e.what());
     }
