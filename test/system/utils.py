@@ -35,12 +35,14 @@ def stop_server(server):
         pass
 
 
-def run_server_help():
+def run_server_custom_args(args=None):
+    if args is None:
+        args = []
+
     return subprocess.run(
         [
-            os.environ.get('ION_PATH', 'ion-server'),
-            "--help"
-        ],
+            os.environ.get('ION_PATH', 'ion-server')
+        ] + args,
         capture_output=True,
         text=True,
         timeout=2

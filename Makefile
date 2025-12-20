@@ -1,4 +1,4 @@
-PYTEST_ARGS=-rP
+PYTEST_ARGS=
 #PYTEST_ARGS=--log-cli-level=DEBUG
 #PYTEST_ARGS=
 CERT_PEM=cert.pem
@@ -9,6 +9,7 @@ BUILD_TYPE=RelWithDebInfo
 SERVER_PORT=8443
 LOG_LEVEL=info
 
+export BUILD_VERSION=0.1.1
 export ION_PATH=$(BUILD_DIR)/app/ion-server
 export ION_TLS_CERT_PATH=cert.pem
 export ION_TLS_KEY_PATH=key.pem

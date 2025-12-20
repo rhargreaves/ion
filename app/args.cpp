@@ -2,6 +2,8 @@
 
 #include <CLI/ExtraValidators.hpp>
 
+#include "version.h"
+
 Args Args::register_opts(CLI::App& app) {
     Args args{};
 
@@ -19,6 +21,8 @@ Args Args::register_opts(CLI::App& app) {
         ->expected(2);
 
     app.add_option("--access-log", args.access_log_path)->default_val(std::nullopt);
+
+    app.set_version_flag("-v,--version", std::string(ion::BUILD_VERSION));
 
     return args;
 }
