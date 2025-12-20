@@ -36,8 +36,11 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     libc++1 \
     && rm -rf /var/lib/apt/lists/*
-WORKDIR /app
-COPY --from=builder /build-context/build/app/ion-server /app/ion-server
-ENTRYPOINT ["/app/ion-server"]
-EXPOSE 8443
+RUN useradd --system --shell /usr/sbin/nologin ion
 
+WORKDIR /app
+COPY --from=builder --chown=ion:ion \
+    /build-context/build/app/ion-server /app/ion-server
+USER ion
+EXPOSE 8443
+ENTRYPOINT ["/app/ion-server"]
