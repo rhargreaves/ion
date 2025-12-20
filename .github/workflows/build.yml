@@ -53,6 +53,10 @@ jobs:
             build/docker/app/ion-server
             build/docker/lib/libion.so
 
+      - name: Set short SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
       - name: Build and push architecture-specific image
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
         uses: docker/build-push-action@v6
@@ -61,7 +65,7 @@ jobs:
           file: app.Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:sha-${{ github.sha }}-${{ matrix.arch }}
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:git-${{ steps.vars.outputs.sha_short }}-${{ matrix.arch }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
 
@@ -106,7 +110,12 @@ jobs:
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
-            type=sha
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Set short SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Create manifest and push
         run: |
@@ -122,5 +131,5 @@ jobs:
           TAGS=$(echo "${{ steps.meta.outputs.tags }}" | xargs -I {} echo "-t {}")
 
           docker buildx imagetools create $TAGS \
-            ${BASE_IMAGE}:sha-${{ github.sha }}-amd64 \
-            ${BASE_IMAGE}:sha-${{ github.sha }}-arm64
+            ${BASE_IMAGE}:git-${{ steps.vars.outputs.sha_short }}-amd64 \
+            ${BASE_IMAGE}:git-${{ steps.vars.outputs.sha_short }}-arm64
