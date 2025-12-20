@@ -58,14 +58,10 @@ class Http2FrameReader {
     Http2WindowUpdate read_window_update() const;
     Http2GoAwayPayload read_goaway() const;
 
-    std::span<const uint8_t> read_headers_block() const {
+    std::span<const uint8_t> headers_block() const {
         if (priority()) {
             return payload_.subspan(5);  // skip exclusive (1), stream dependency (31) & weight (8)
         }
-        return payload_;
-    }
-
-    std::span<const uint8_t> read_data() const {
         return payload_;
     }
 

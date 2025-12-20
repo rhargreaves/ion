@@ -217,7 +217,7 @@ void Http2Connection::process_frame(const Http2FrameReader& frame) {
                           frame.is_end_stream(), frame.length());
 
             log_dynamic_tables();
-            auto hdrs = decoder_.decode(frame.read_headers_block());
+            auto hdrs = decoder_.decode(frame.headers_block());
             if (!hdrs) {
                 update_state(Http2ConnectionState::ProtocolError);
                 return;
