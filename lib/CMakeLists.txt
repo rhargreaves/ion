@@ -47,6 +47,8 @@ add_library(ion
         system_clock.h
         access_log.cpp
         access_log.h
+        stop_reason.cpp
+        stop_reason.h
 )
 
 target_compile_options(ion PRIVATE

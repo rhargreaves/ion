@@ -70,10 +70,11 @@ void Http2Server::start(uint16_t port) {
         }
     }
 
-    spdlog::info("server shutting down...");
+    spdlog::info("server shutting down (reason: {})", StopReasonHelper::to_string(stop_reason_));
 }
 
-void Http2Server::stop() {
+void Http2Server::stop(StopReason reason) {
+    stop_reason_ = reason;
     user_req_termination_ = 1;
 }
 

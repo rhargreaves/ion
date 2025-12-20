@@ -1,5 +1,7 @@
 #include "signal_handler.h"
 
+#include <unistd.h>
+
 #include <csignal>
 
 SignalHandler SignalHandler::setup(ion::Http2Server& server) {
@@ -24,29 +26,22 @@ SignalHandler::~SignalHandler() {
     server_.store(nullptr);
 };
 
-void SignalHandler::stop_server() {
+void SignalHandler::stop_server(ion::StopReason reason) {
     if (ion::Http2Server* server = server_.load()) {
-        server->stop();
+        server->stop(reason);
     }
 }
 
 void SignalHandler::signal_handler(int) {
-    spdlog::info("stopping server (signal)...");
-    stop_server();
+    stop_server(ion::StopReason::Signal);
 }
 
 void SignalHandler::sigpipe_handler(int) {
-    char dummy;
-
+    constexpr char dummy = 0;
     if (write(STDOUT_FILENO, &dummy, 0) < 0 && errno == EPIPE) {
-        spdlog::error("stdout pipe broken, terminating");
-        stop_server();
+        stop_server(ion::StopReason::StdOutPipeBroken);
     }
-
     if (write(STDERR_FILENO, &dummy, 0) < 0 && errno == EPIPE) {
-        spdlog::error("stderr pipe broken, terminating");
-        stop_server();
+        stop_server(ion::StopReason::StdErrPipeBroken);
     }
-
-    spdlog::debug("SIGPIPE from network connection, ignoring");
 }

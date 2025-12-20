@@ -10,11 +10,11 @@ class SignalHandler {
 
     SignalHandler(const SignalHandler&) = delete;
     SignalHandler& operator=(const SignalHandler&) = delete;
-    SignalHandler(SignalHandler&&) noexcept = default;
+    SignalHandler(SignalHandler&&) = delete;
 
    private:
     explicit SignalHandler(ion::Http2Server& server);
-    static void stop_server();
+    static void stop_server(ion::StopReason reason);
     static void signal_handler(int);
     static void sigpipe_handler(int);
 
