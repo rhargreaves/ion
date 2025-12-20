@@ -39,6 +39,7 @@ RUN apt-get update && apt-get install -y \
 RUN useradd --system --shell /usr/sbin/nologin ion
 
 WORKDIR /app
+RUN chown ion:ion /app
 COPY --from=builder --chown=ion:ion \
     /build-context/build/app/ion-server /app/ion-server
 USER ion
