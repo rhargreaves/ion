@@ -2,3 +2,8 @@ build/
 .idea/
 .venv/
 .git/
+.github/
+.devcontainer/
+*.pem
+benchmark/
+docs/
