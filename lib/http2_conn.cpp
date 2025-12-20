@@ -127,6 +127,9 @@ void Http2Connection::populate_read_buffer() {
                 spdlog::error("TLS protocol error");
                 update_state(Http2ConnectionState::ProtocolError);
                 break;
+            case TlsError::WriteError:
+                spdlog::error("TLS write error");
+                break;
             case TlsError::OtherError:
                 spdlog::error("TLS other error (presumed non fatal)");
                 break;

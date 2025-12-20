@@ -190,15 +190,16 @@ std::expected<ssize_t, TlsError> TlsConnection::read(std::span<uint8_t> buffer) 
     return bytes_read;
 }
 
-ssize_t TlsConnection::write(std::span<const uint8_t> buffer) const {
+std::expected<ssize_t, TlsError> TlsConnection::write(std::span<const uint8_t> buffer) const {
     const auto bytes_written = SSL_write(ssl_, buffer.data(), static_cast<int>(buffer.size()));
     if (bytes_written < 0) {
         const int ssl_error = SSL_get_error(ssl_, bytes_written);
-        throw std::runtime_error("SSL write error: " + std::to_string(ssl_error));
+        spdlog::error("SSL write error: {}", std::to_string(ssl_error));
+        return std::unexpected(TlsError::WriteError);
     }
     if (bytes_written != static_cast<int>(buffer.size())) {
         spdlog::error("SSL partial write: wrote {} of {} bytes", bytes_written, buffer.size());
-        throw std::runtime_error("SSL write error: partial write");
+        return std::unexpected(TlsError::WriteError);
     }
     spdlog::trace("successfully wrote {} bytes to SSL", bytes_written);
     return bytes_written;

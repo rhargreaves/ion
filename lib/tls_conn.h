@@ -10,7 +10,7 @@
 
 namespace ion {
 
-enum class TlsError { WantReadOrWrite, ConnectionClosed, ProtocolError, OtherError };
+enum class TlsError { WantReadOrWrite, WriteError, ConnectionClosed, ProtocolError, OtherError };
 enum class ClientIpError { GetPeerNameFailed, UnknownIpFormat };
 
 class TlsConnection {
@@ -27,7 +27,7 @@ class TlsConnection {
 
     static void print_debug_to_stderr();
     std::expected<ssize_t, TlsError> read(std::span<uint8_t> buffer) const;
-    ssize_t write(std::span<const uint8_t> buffer) const;
+    std::expected<ssize_t, TlsError> write(std::span<const uint8_t> buffer) const;
     [[nodiscard]] bool has_data() const;
     [[nodiscard]] bool handshake() const;
     void graceful_shutdown() const;
