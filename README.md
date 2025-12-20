@@ -79,14 +79,13 @@ make build
 Docker:
 
 ```sh
-docker build -t ion .
-
+docker build -f build.Dockerfile -t ion .
 docker run -it \
   -e BUILD_SUFFIX=docker \
   -p 8443:8443 \
   -w /workspace \
   -v $(pwd):/workspace ion \
-  make run
+  make build
 ```
 
 Make:
@@ -95,11 +94,30 @@ Make:
 make build
 ```
 
-## Demo App Usage
+## Standalone App Usage
+
+You can also run the server as a standalone app.
+
+Local:
 
 ```sh
 ./build/make/app/ion-server &
-curl -k --http2 -v https://localhost:8443/
+curl -k --http2 -v https://localhost:8443/_test/ok
+```
+
+Docker:
+
+```sh
+# build server image
+docker build -f app.Dockerfile -t ion-server .
+
+# run server
+docker run -v $(pwd):/certs \
+  -p 8443:8443 \
+  -e ION_TLS_CERT_PATH=/certs/cert.pem \
+  -e ION_TLS_KEY_PATH=/certs/key.pem \
+  -it \
+  ion-server
 ```
 
 ### Command Line Options
