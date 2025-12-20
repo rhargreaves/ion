@@ -38,7 +38,6 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /build-context/build/app/ion-server /app/ion-server
-COPY cert.pem key.pem /app/
 ENTRYPOINT ["/app/ion-server"]
 EXPOSE 8443
 
