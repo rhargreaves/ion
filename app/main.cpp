@@ -1,4 +1,5 @@
 #include <spdlog/spdlog.h>
+#include <version.h>
 
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
@@ -53,7 +54,7 @@ int main(int argc, char* argv[]) {
     }
 
     spdlog::set_level(args.log_level_enum());
-    spdlog::info("ion started ⚡️");
+    spdlog::info("ion {} started ⚡️", ion::BUILD_VERSION);
     try {
         setup_access_logs(args.access_log_path);
         run_server(args.port, args.static_map, args.cleartext);

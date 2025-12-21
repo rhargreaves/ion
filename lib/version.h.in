@@ -3,6 +3,6 @@
 namespace ion {
 
 inline constexpr std::string_view BUILD_VERSION = "@ION_BUILD_VERSION@";
-inline constexpr std::string_view SERVER_HEADER = "ion/@ION_BUILD_VERSION@";
+inline constexpr std::string_view SERVER_HEADER = "ion";
 
 }

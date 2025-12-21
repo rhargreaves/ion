@@ -46,7 +46,7 @@ async def test_httpx_returns_server_header():
         response = await client.get(OK_URL)
 
         assert response.status_code == 200
-        assert response.headers["server"].startswith("ion/")
+        assert response.headers["server"] == "ion"
     finally:
         stop_server(server)
 

@@ -1,6 +1,7 @@
 from utils import run_server_custom_args
 import os
 import pytest
+import re
 
 
 def build_version():
@@ -22,4 +23,5 @@ def test_displays_version(version_flag):
     result = run_server_custom_args([version_flag])
 
     assert result.returncode == 0
-    assert build_version() in result.stdout
+    version = result.stdout.strip()
+    assert re.match(r"^\d+\.\d+\.\d+(-[0-9a-f]+)?$", version)
