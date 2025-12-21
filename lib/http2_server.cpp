@@ -13,12 +13,18 @@ namespace ion {
 
 static constexpr std::size_t MAX_CONNECTIONS = 128;
 
+Http2Server::Http2Server() : Http2Server(ServerConfiguration::from_env()) {}
+
+Http2Server::Http2Server(const ServerConfiguration& config) : config_(config) {
+    config_.validate();
+}
+
 std::unique_ptr<Transport> Http2Server::create_transport(SocketFd&& fd) const {
     if (config_.cleartext) {
         return std::make_unique<TcpTransport>(std::move(fd));
     }
 
-    auto tls = std::make_unique<TlsTransport>(std::move(fd), config_.cert_path, config_.key_path);
+    auto tls = std::make_unique<TlsTransport>(std::move(fd), *config_.cert_path, *config_.key_path);
     if (!tls->handshake()) {
         spdlog::warn("TLS handshake failed");
         return nullptr;
