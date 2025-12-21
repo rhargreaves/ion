@@ -6,8 +6,8 @@
 #include <vector>
 
 #include "tcp_listener.h"
-#include "tcp_transport.h"
-#include "tls_transport.h"
+#include "transports/tcp_transport.h"
+#include "transports/tls_transport.h"
 
 namespace ion {
 

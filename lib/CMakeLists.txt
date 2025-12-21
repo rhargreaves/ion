@@ -6,8 +6,8 @@ configure_file(
 
 add_library(ion
         socket_fd.h
-        tls_transport.cpp
-        tls_transport.h
+        transports/tls_transport.cpp
+        transports/tls_transport.h
         tcp_listener.h
         tcp_listener.cpp
         http2_frames.h
@@ -49,8 +49,8 @@ add_library(ion
         access_log.h
         stop_reason.cpp
         stop_reason.h
-        transport.h
-        tcp_transport.cpp
+        transports/transport.h
+        transports/tcp_transport.cpp
         socket_fd.cpp
 )
 
