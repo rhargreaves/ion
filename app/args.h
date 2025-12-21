@@ -4,6 +4,8 @@
 #include <CLI/App.hpp>
 #include <CLI/Formatter.hpp>
 
+#include "server_config.h"
+
 static constexpr uint16_t DEFAULT_PORT = 8443;
 static constexpr std::string_view DEFAULT_LOG_LEVEL = "info";
 
@@ -14,7 +16,10 @@ class Args {
     std::vector<std::string> static_map;
     std::string access_log_path{};
     bool cleartext{};
+    std::string cert_path{};
+    std::string key_path{};
 
     static Args register_opts(CLI::App& app);
-    spdlog::level::level_enum log_level_enum() const;
+    [[nodiscard]] spdlog::level::level_enum log_level_enum() const;
+    [[nodiscard]] ion::ServerConfiguration to_server_config() const;
 };

@@ -15,7 +15,6 @@ class Http2Server {
     void start(uint16_t port);
     void stop(StopReason reason = StopReason::Other);
 
-    Http2Server();
     explicit Http2Server(const ServerConfiguration& config);
 
     Router& router() {

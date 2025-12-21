@@ -13,8 +13,6 @@ namespace ion {
 
 static constexpr std::size_t MAX_CONNECTIONS = 128;
 
-Http2Server::Http2Server() : Http2Server(ServerConfiguration::from_env()) {}
-
 Http2Server::Http2Server(const ServerConfiguration& config) : config_(config) {
     config_.validate();
 }

@@ -25,6 +25,12 @@ Args Args::register_opts(CLI::App& app) {
     app.add_flag("--cleartext", args.cleartext,
                  "Disables TLS and handles requests in HTTP/2 cleartext (h2c)");
 
+    app.add_option("--tls-cert-path", args.cert_path, "Path to certificate file for TLS")
+        ->envname("ION_TLS_CERT_PATH");
+
+    app.add_option("--tls-key-path", args.key_path, "Path to private key file for TLS")
+        ->envname("ION_TLS_KEY_PATH");
+
     app.set_version_flag("-v,--version", std::string(ion::BUILD_VERSION));
 
     return args;
@@ -41,4 +47,17 @@ spdlog::level::level_enum Args::log_level_enum() const {
         return it->second;
     }
     throw CLI::ValidationError("Invalid log level: " + log_level);
+}
+
+ion::ServerConfiguration Args::to_server_config() const {
+    auto config = ion::ServerConfiguration{};
+    config.cleartext = cleartext;
+    if (!cert_path.empty()) {
+        config.cert_path = cert_path;
+    }
+    if (!key_path.empty()) {
+        config.key_path = key_path;
+    }
+    config.key_path = key_path;
+    return config;
 }

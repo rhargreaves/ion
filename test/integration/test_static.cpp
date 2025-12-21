@@ -9,16 +9,13 @@
 #include "curl_client.h"
 #include "http2_server.h"
 #include "static_file_handler.h"
+#include "test_helpers.h"
 #include "test_server_runner.h"
 
 static constexpr uint16_t TEST_PORT = 8443;
 
-inline ion::Http2Server create_test_server() {
-    return ion::Http2Server{};
-}
-
 TEST_CASE("static: basic static file mapping") {
-    auto server = create_test_server();
+    auto server = TestHelpers::create_test_server();
 
     auto sfh = std::make_unique<ion::StaticFileHandler>("/static", "./test/system/static");
 

@@ -9,7 +9,6 @@ struct ServerConfiguration {
     std::optional<std::filesystem::path> key_path;
     bool cleartext;
 
-    static ServerConfiguration from_env();
     void validate() const;
 };
 

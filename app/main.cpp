@@ -10,23 +10,21 @@
 #include "signal_handler.h"
 #include "spdlog/sinks/basic_file_sink.h"
 
-void run_server(uint16_t port, const std::vector<std::string>& static_map, bool cleartext) {
-    auto config = ion::ServerConfiguration::from_env();
-    config.cleartext = cleartext;
-
-    ion::Http2Server server{config};
+void run_server(const Args& args) {
+    ion::Http2Server server{args.to_server_config()};
     auto signal_handler = SignalHandler::setup(server);
 
     auto& router = server.router();
     router.add_route("/_tests/ok", "GET", [] { return ion::HttpResponse{.status_code = 200}; });
     router.add_route("/_tests/no_content", "GET",
                      [] { return ion::HttpResponse{.status_code = 204}; });
-    if (static_map.size() == 2) {
-        auto sth = std::make_unique<ion::StaticFileHandler>(static_map[0], static_map[1]);
+
+    if (args.static_map.size() == 2) {
+        auto sth = std::make_unique<ion::StaticFileHandler>(args.static_map[0], args.static_map[1]);
         router.add_static_handler(std::move(sth));
     }
 
-    server.start(port);
+    server.start(args.port);
 }
 
 void setup_access_logs(const std::string& log_path) {
@@ -57,7 +55,7 @@ int main(int argc, char* argv[]) {
     spdlog::info("ion {} started ⚡️", ion::BUILD_VERSION);
     try {
         setup_access_logs(args.access_log_path);
-        run_server(args.port, args.static_map, args.cleartext);
+        run_server(args);
         spdlog::info("exiting");
         return 0;
     } catch (const std::exception& e) {

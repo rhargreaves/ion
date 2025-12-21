@@ -14,6 +14,8 @@ add_executable(int-test
         test_server_runner.h
         test_static.cpp
         wait_for_port.cpp
+        test_helpers.h
+        test_helpers.cpp
 )
 
 target_link_libraries(int-test
