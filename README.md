@@ -37,7 +37,7 @@ If using TLS, ensure you have set environment variables:
 * `ION_TLS_KEY_PATH`: Private key path
 
 Or use `--cleartext` to run the server in h2c mode.
-Note that the server does not support the HTTP1.1 upgrade mechanism, so you will need to ensure the client behaves
+Note that the server does not support the HTTP/1.1 upgrade mechanism, so you will need to ensure the client behaves
 accordingly (e.g. `curl --http2-prior-knowledge`).
 
 ```c++
