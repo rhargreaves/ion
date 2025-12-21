@@ -13,7 +13,7 @@
 
 static constexpr uint16_t TEST_PORT = 8443;
 
-TEST_CASE("server: returns x-server header (frontends overwrite server header)") {
+TEST_CASE("server: returns x-powered-by header (frontends overwrite server header)") {
     auto server = TestHelpers::create_test_server();
 
     TestServerRunner run(server, TEST_PORT);
@@ -21,7 +21,7 @@ TEST_CASE("server: returns x-server header (frontends overwrite server header)")
     CurlClient client;
     const auto res = client.get(std::format("https://localhost:{}/", TEST_PORT));
     REQUIRE(res.status_code == 404);
-    REQUIRE(res.headers.at("x-server") == "ion");
+    REQUIRE(res.headers.at("x-powered-by") == "ion");
 }
 
 TEST_CASE("server: returns static code") {
