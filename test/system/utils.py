@@ -72,6 +72,7 @@ def wait_for_port(port, timeout=5):
 def curl(url, args=None):
     if args is None:
         args = []
+
     args = ["curl"] + args + ["--verbose", url]
     result = subprocess.run(
         args,

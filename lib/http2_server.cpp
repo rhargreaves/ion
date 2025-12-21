@@ -13,27 +13,36 @@ namespace ion {
 
 static constexpr std::size_t MAX_CONNECTIONS = 128;
 
+std::unique_ptr<Transport> Http2Server::create_transport(SocketFd&& fd) const {
+    if (config_.cleartext) {
+        return std::make_unique<TcpTransport>(std::move(fd));
+    }
+
+    auto tls = std::make_unique<TlsTransport>(std::move(fd), config_.cert_path, config_.key_path);
+    if (!tls->handshake()) {
+        spdlog::warn("TLS handshake failed");
+        return nullptr;
+    }
+    spdlog::debug("SSL handshake completed successfully");
+    return tls;
+}
+
 std::unique_ptr<Http2Connection> Http2Server::try_establish_conn(
     TcpListener& listener, std::chrono::milliseconds timeout) {
     auto fd = listener.try_accept(timeout);
     if (!fd) {
         return nullptr;
     }
+    const auto client_ip_res = fd->client_ip();
+    spdlog::info("client connected (ip: {})", client_ip_res.value_or("unknown"));
 
-    if (config_.cleartext) {
-        auto tcp_transport = std::make_unique<TcpTransport>(std::move(fd.value()));
-        spdlog::info("client connected (ip: {})", tcp_transport->client_ip().value_or("unknown"));
-        return std::make_unique<Http2Connection>(std::move(tcp_transport), router_);
-    }
-
-    auto tls_transport =
-        std::make_unique<TlsTransport>(std::move(fd.value()), config_.cert_path, config_.key_path);
-    spdlog::info("client connected (ip: {})", tls_transport->client_ip().value_or("unknown"));
-    if (!tls_transport->handshake()) {
+    auto transport = create_transport(std::move(fd.value()));
+    if (!transport) {
         return nullptr;
     }
-    spdlog::debug("SSL handshake completed successfully");
-    return std::make_unique<Http2Connection>(std::move(tls_transport), router_);
+
+    return std::make_unique<Http2Connection>(std::move(transport), client_ip_res.value_or(""),
+                                             router_);
 }
 
 void Http2Server::start(uint16_t port) {

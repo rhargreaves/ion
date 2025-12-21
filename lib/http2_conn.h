@@ -16,7 +16,8 @@ enum class Http2ConnectionState { AwaitingPreface, AwaitingFrame, ProtocolError,
 
 class Http2Connection {
    public:
-    explicit Http2Connection(std::unique_ptr<Transport> transport, const Router& router);
+    explicit Http2Connection(std::unique_ptr<Transport> transport, const std::string& client_ip,
+                             const Router& router);
     Http2ProcessResult process_state();
     void close();
 

@@ -8,7 +8,6 @@
 #include "hpack/header_block_decoder.h"
 #include "http2_frame_reader.h"
 #include "http2_server.h"
-#include "system_clock.h"
 #include "version.h"
 
 namespace ion {
@@ -26,12 +25,9 @@ static constexpr std::string_view CLIENT_PREFACE{"PRI * HTTP/2.0\r\n\r\nSM\r\n\r
 
 static constexpr size_t READ_BUFFER_SIZE = 512 * 1024;
 
-Http2Connection::Http2Connection(std::unique_ptr<Transport> transport, const Router& router)
-    : transport_(std::move(transport)), router_(router) {
-    if (auto client_ip = transport_->client_ip(); client_ip.has_value()) {
-        client_ip_ = std::move(*client_ip);
-    }
-}
+Http2Connection::Http2Connection(std::unique_ptr<Transport> transport, const std::string& client_ip,
+                                 const Router& router)
+    : transport_(std::move(transport)), client_ip_(client_ip), router_(router) {}
 
 Http2WindowUpdate Http2Connection::process_window_update_payload(std::span<const uint8_t> payload) {
     return Http2WindowUpdate::parse(payload.subspan<0, Http2WindowUpdate::wire_size>());

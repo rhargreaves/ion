@@ -27,7 +27,6 @@ class TlsTransport : public Transport {
     std::expected<ssize_t, TransportError> write(std::span<const uint8_t> buffer) const override;
     [[nodiscard]] bool handshake() const;
     void graceful_shutdown() const override;
-    std::expected<std::string, ClientIpError> client_ip() const override;
 
    private:
     SocketFd client_fd_;

@@ -2,7 +2,11 @@
 #include <spdlog/spdlog.h>
 #include <unistd.h>
 
+#include <expected>
+
 namespace ion {
+
+enum class ClientIpError { GetPeerNameFailed, UnknownIpFormat };
 
 class SocketFd {
    public:
@@ -26,6 +30,8 @@ class SocketFd {
     ~SocketFd() {
         close();
     }
+
+    std::expected<std::string, ClientIpError> client_ip() const;
 
     operator int() const noexcept {
         return fd_;

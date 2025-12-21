@@ -18,7 +18,6 @@ class TcpTransport : public Transport {
     std::expected<ssize_t, TransportError> read(std::span<uint8_t> buffer) const override;
     std::expected<ssize_t, TransportError> write(std::span<const uint8_t> buffer) const override;
     void graceful_shutdown() const override;
-    std::expected<std::string, ClientIpError> client_ip() const override;
 
    private:
     SocketFd client_fd_;

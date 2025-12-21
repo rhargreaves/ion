@@ -14,8 +14,6 @@ enum class TransportError {
     OtherError
 };
 
-enum class ClientIpError { GetPeerNameFailed, UnknownIpFormat };
-
 class Transport {
    public:
     virtual ~Transport() = default;
@@ -23,7 +21,6 @@ class Transport {
     virtual std::expected<ssize_t, TransportError> read(std::span<uint8_t> buffer) const = 0;
     virtual std::expected<ssize_t, TransportError> write(std::span<const uint8_t> buffer) const = 0;
     virtual void graceful_shutdown() const = 0;
-    virtual std::expected<std::string, ClientIpError> client_ip() const = 0;
 };
 
 }  // namespace ion
