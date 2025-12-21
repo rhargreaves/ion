@@ -9,7 +9,7 @@ BUILD_TYPE=RelWithDebInfo
 SERVER_PORT=8443
 LOG_LEVEL=info
 
-export BUILD_VERSION=0.1.1
+export BUILD_VERSION=0.1.2
 export ION_PATH=$(BUILD_DIR)/app/ion-server
 export ION_TLS_CERT_PATH=cert.pem
 export ION_TLS_KEY_PATH=key.pem
