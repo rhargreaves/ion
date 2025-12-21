@@ -14,7 +14,7 @@ I'm documenting non-obvious stuff I've learnt along the way in [LEARNINGS.md](do
 
 ## Progress
 
-* Basic HTTP/2 over TLS
+* HTTP/2 over TLS or cleartext (h2c)
 * Support for HPACK (headers):
     * Static table entries
     * Dynamic table entries
@@ -136,6 +136,8 @@ OPTIONS:
                               off)
   -s,     --static TEXT x 2   Map URL prefix to directory. Usage: --static /url/path ./fs/path
           --access-log TEXT
+          --cleartext         Disables TLS and handles requests in HTTP/2 cleartext (h2c)
+  -v,     --version           Display program version information and exit
 ```
 
 ## Test
