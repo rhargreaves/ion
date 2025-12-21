@@ -10,7 +10,7 @@ SERVER_PORT=8443
 LOG_LEVEL=info
 
 GIT_SHA=$(shell git rev-parse --short HEAD 2>/dev/null)
-export BASE_VERSION=0.1.3
+export BASE_VERSION=0.1.4
 ifneq ($(GIT_SHA),)
 	export BUILD_VERSION=$(BASE_VERSION)-$(GIT_SHA)
 else
