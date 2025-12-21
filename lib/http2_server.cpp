@@ -19,9 +19,10 @@ std::unique_ptr<Http2Connection> Http2Server::try_establish_conn(
         return nullptr;
     }
 
-    TlsConnection tls_conn{(std::move(fd.value())), config_.cert_path, config_.key_path};
-    spdlog::info("client connected (ip: {})", tls_conn.client_ip().value_or("unknown"));
-    if (!tls_conn.handshake()) {
+    auto tls_conn =
+        std::make_unique<TlsConnection>(std::move(fd.value()), config_.cert_path, config_.key_path);
+    spdlog::info("client connected (ip: {})", tls_conn->client_ip().value_or("unknown"));
+    if (!tls_conn->handshake()) {
         return nullptr;
     }
     spdlog::debug("SSL handshake completed successfully");

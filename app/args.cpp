@@ -22,6 +22,10 @@ Args Args::register_opts(CLI::App& app) {
 
     app.add_option("--access-log", args.access_log_path)->default_val(std::nullopt);
 
+    app.add_option("--cleartext", args.cleartext,
+                   "Disables TLS and handles requests in HTTP/2 cleartext (h2c)")
+        ->default_val(false);
+
     app.set_version_flag("-v,--version", std::string(ion::BUILD_VERSION));
 
     return args;

@@ -16,7 +16,7 @@ enum class Http2ConnectionState { AwaitingPreface, AwaitingFrame, ProtocolError,
 
 class Http2Connection {
    public:
-    explicit Http2Connection(TlsConnection&& tls_conn, const Router& router);
+    explicit Http2Connection(std::unique_ptr<TlsConnection> transport, const Router& router);
     Http2ProcessResult process_state();
     void close();
 
@@ -26,7 +26,7 @@ class Http2Connection {
     Http2Connection& operator=(Http2Connection&&) = delete;
 
    private:
-    TlsConnection tls_conn_;
+    std::unique_ptr<TlsConnection> transport_;
     std::string client_ip_;
     const Router& router_;
     std::vector<uint8_t> buffer_;

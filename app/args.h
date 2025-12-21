@@ -13,6 +13,7 @@ class Args {
     std::string log_level{DEFAULT_LOG_LEVEL};
     std::vector<std::string> static_map;
     std::string access_log_path{};
+    bool cleartext{};
 
     static Args register_opts(CLI::App& app);
     spdlog::level::level_enum log_level_enum() const;

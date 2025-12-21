@@ -26,9 +26,9 @@ static constexpr std::string_view CLIENT_PREFACE{"PRI * HTTP/2.0\r\n\r\nSM\r\n\r
 
 static constexpr size_t READ_BUFFER_SIZE = 512 * 1024;
 
-Http2Connection::Http2Connection(TlsConnection&& conn, const Router& router)
-    : tls_conn_(std::move(conn)), router_(router) {
-    if (auto client_ip = tls_conn_.client_ip(); client_ip.has_value()) {
+Http2Connection::Http2Connection(std::unique_ptr<TlsConnection> transport, const Router& router)
+    : transport_(std::move(transport)), router_(router) {
+    if (auto client_ip = transport_->client_ip(); client_ip.has_value()) {
         client_ip_ = std::move(*client_ip);
     }
 }
@@ -40,7 +40,7 @@ Http2WindowUpdate Http2Connection::process_window_update_payload(std::span<const
 void Http2Connection::write_frame_header(const Http2FrameHeader& header) {
     std::array<uint8_t, Http2FrameHeader::wire_size> header_bytes{};
     header.serialize(header_bytes);
-    tls_conn_.write(header_bytes);
+    transport_->write(header_bytes);
 }
 
 void Http2Connection::write_settings(const std::vector<Http2Setting>& settings) {
@@ -55,7 +55,7 @@ void Http2Connection::write_settings(const std::vector<Http2Setting>& settings) 
     for (const auto& setting : settings) {
         std::array<uint8_t, Http2Setting::wire_size> setting_bytes{};
         setting.serialize(setting_bytes);
-        tls_conn_.write(setting_bytes);
+        transport_->write(setting_bytes);
     }
 }
 
@@ -73,7 +73,7 @@ void Http2Connection::write_headers_response(uint32_t stream_id,
                                   .stream_id = stream_id};
 
     write_frame_header(header);
-    tls_conn_.write(headers_data);
+    transport_->write(headers_data);
 }
 void Http2Connection::write_data_response(uint32_t stream_id, const std::vector<uint8_t>& body) {
     const Http2FrameHeader frame_header{.length = static_cast<uint32_t>(body.size()),
@@ -81,7 +81,7 @@ void Http2Connection::write_data_response(uint32_t stream_id, const std::vector<
                                         .flags = FLAG_END_STREAM,
                                         .stream_id = stream_id};
     write_frame_header(frame_header);
-    tls_conn_.write(body);
+    transport_->write(body);
 }
 
 void Http2Connection::write_goaway(uint32_t last_stream_id, ErrorCode error_code) {
@@ -97,7 +97,7 @@ void Http2Connection::write_goaway(uint32_t last_stream_id, ErrorCode error_code
 
     std::array<uint8_t, Http2GoAwayPayload::wire_size> payload_bytes{};
     payload.serialize(payload_bytes);
-    tls_conn_.write(payload_bytes);
+    transport_->write(payload_bytes);
 }
 
 void Http2Connection::write_settings() {
@@ -112,25 +112,25 @@ void Http2Connection::write_settings() {
 
 void Http2Connection::populate_read_buffer() {
     std::vector<uint8_t> temp_buffer(READ_BUFFER_SIZE);
-    const auto result = tls_conn_.read(temp_buffer);
+    const auto result = transport_->read(temp_buffer);
 
     if (!result) {
         switch (result.error()) {
-            case TlsError::WantReadOrWrite:
+            case TransportError::WantReadOrWrite:
                 spdlog::trace("TLS want read/write");
                 break;
-            case TlsError::ConnectionClosed:
+            case TransportError::ConnectionClosed:
                 spdlog::debug("TLS connection closed");
                 update_state(Http2ConnectionState::ClientClosed);
                 break;
-            case TlsError::ProtocolError:
+            case TransportError::ProtocolError:
                 spdlog::error("TLS protocol error");
                 update_state(Http2ConnectionState::ProtocolError);
                 break;
-            case TlsError::WriteError:
+            case TransportError::WriteError:
                 spdlog::error("TLS write error");
                 break;
-            case TlsError::OtherError:
+            case TransportError::OtherError:
                 spdlog::error("TLS other error (presumed non fatal)");
                 break;
         }
@@ -313,7 +313,7 @@ void Http2Connection::close() {
     write_goaway(1, (state_ != Http2ConnectionState::ProtocolError) ? ErrorCode::no_error
                                                                     : ErrorCode::protocol_error);
     spdlog::debug("GOAWAY frame sent");
-    tls_conn_.graceful_shutdown();
+    transport_->graceful_shutdown();
 }
 
 void Http2Connection::update_state(Http2ConnectionState new_state) {

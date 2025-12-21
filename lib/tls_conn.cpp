@@ -166,7 +166,7 @@ void TlsConnection::print_debug_to_stderr() {
     ERR_print_errors_fp(stderr);
 }
 
-std::expected<ssize_t, TlsError> TlsConnection::read(std::span<uint8_t> buffer) const {
+std::expected<ssize_t, TransportError> TlsConnection::read(std::span<uint8_t> buffer) const {
     spdlog::trace("reading from SSL");
     const auto bytes_read = SSL_read(ssl_, buffer.data(), static_cast<int>(buffer.size()));
     if (bytes_read <= 0) {
@@ -174,32 +174,32 @@ std::expected<ssize_t, TlsError> TlsConnection::read(std::span<uint8_t> buffer) 
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE:
                 spdlog::trace("SSL want read/write");
-                return std::unexpected(TlsError::WantReadOrWrite);
+                return std::unexpected(TransportError::WantReadOrWrite);
             case SSL_ERROR_ZERO_RETURN:
                 spdlog::debug("TLS connection closed");
-                return std::unexpected(TlsError::ConnectionClosed);
+                return std::unexpected(TransportError::ConnectionClosed);
             case SSL_ERROR_SSL:
                 spdlog::error("TLS protocol error (SSL_ERROR_SSL)");
-                return std::unexpected(TlsError::ProtocolError);
+                return std::unexpected(TransportError::ProtocolError);
             default:
                 spdlog::error("TLS read error (SSL_ERROR_*): {}", ssl_error);
-                return std::unexpected(TlsError::OtherError);
+                return std::unexpected(TransportError::OtherError);
         }
     }
     spdlog::trace("successfully read {} bytes from SSL", bytes_read);
     return bytes_read;
 }
 
-std::expected<ssize_t, TlsError> TlsConnection::write(std::span<const uint8_t> buffer) const {
+std::expected<ssize_t, TransportError> TlsConnection::write(std::span<const uint8_t> buffer) const {
     const auto bytes_written = SSL_write(ssl_, buffer.data(), static_cast<int>(buffer.size()));
     if (bytes_written < 0) {
         const int ssl_error = SSL_get_error(ssl_, bytes_written);
         spdlog::error("SSL write error: {}", std::to_string(ssl_error));
-        return std::unexpected(TlsError::WriteError);
+        return std::unexpected(TransportError::WriteError);
     }
     if (bytes_written != static_cast<int>(buffer.size())) {
         spdlog::error("SSL partial write: wrote {} of {} bytes", bytes_written, buffer.size());
-        return std::unexpected(TlsError::WriteError);
+        return std::unexpected(TransportError::WriteError);
     }
     spdlog::trace("successfully wrote {} bytes to SSL", bytes_written);
     return bytes_written;

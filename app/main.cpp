@@ -9,9 +9,12 @@
 #include "signal_handler.h"
 #include "spdlog/sinks/basic_file_sink.h"
 
-void run_server(uint16_t port, const std::vector<std::string>& static_map) {
-    ion::Http2Server server{};
-    auto handler = SignalHandler::setup(server);
+void run_server(uint16_t port, const std::vector<std::string>& static_map, bool cleartext) {
+    auto config = ion::ServerConfiguration::from_env();
+    config.cleartext = cleartext;
+
+    ion::Http2Server server{config};
+    auto signal_handler = SignalHandler::setup(server);
 
     auto& router = server.router();
     router.add_route("/_tests/ok", "GET", [] { return ion::HttpResponse{.status_code = 200}; });
@@ -53,7 +56,7 @@ int main(int argc, char* argv[]) {
     spdlog::info("ion started ⚡️");
     try {
         setup_access_logs(args.access_log_path);
-        run_server(args.port, args.static_map);
+        run_server(args.port, args.static_map, args.cleartext);
         spdlog::info("exiting");
         return 0;
     } catch (const std::exception& e) {
