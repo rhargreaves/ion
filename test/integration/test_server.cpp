@@ -61,3 +61,18 @@ TEST_CASE("server: returns body") {
     REQUIRE(res.headers.at("content-length") == "5");
     REQUIRE(res.body == "hello");
 }
+
+TEST_CASE("server: validates configuration") {
+    SECTION ("throws if TLS cert & key paths missing") {
+        REQUIRE_THROWS_AS(ion::Http2Server{ion::ServerConfiguration{}}, std::runtime_error);
+    }
+
+    SECTION ("does not throw if TLS cert & key paths provided") {
+        REQUIRE_NOTHROW(ion::Http2Server{
+            ion::ServerConfiguration{.cert_path = "cert.pem", .key_path = "key.pem"}});
+    }
+
+    SECTION ("does not throw if cleartext enabled and TLS cert & key paths missing") {
+        REQUIRE_NOTHROW(ion::Http2Server{ion::ServerConfiguration{.cleartext = true}});
+    }
+}
