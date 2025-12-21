@@ -2,11 +2,32 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <spdlog/spdlog.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 #include "transport.h"
 
 namespace ion {
+
+SocketFd::SocketFd(int fd) : fd_(fd) {}
+
+SocketFd::SocketFd(SocketFd&& other) noexcept : fd_(other.fd_) {
+    other.fd_ = -1;
+}
+
+SocketFd& SocketFd::operator=(SocketFd&& other) noexcept {
+    if (this != &other) {
+        close();
+        fd_ = other.fd_;
+        other.fd_ = -1;
+    }
+    return *this;
+}
+
+SocketFd::~SocketFd() {
+    close();
+}
 
 std::expected<std::string, ClientIpError> SocketFd::client_ip() const {
     sockaddr_storage addr{};
@@ -29,6 +50,18 @@ std::expected<std::string, ClientIpError> SocketFd::client_ip() const {
         return std::unexpected(ClientIpError::UnknownIpFormat);
     }
     return std::string(ip_str);
+}
+
+SocketFd::operator int() const noexcept {
+    return fd_;
+}
+
+void SocketFd::close() noexcept {
+    if (fd_ >= 0) {
+        spdlog::trace("closing socket fd {}", fd_);
+        ::close(fd_);
+        fd_ = -1;
+    }
 }
 
 }  // namespace ion
