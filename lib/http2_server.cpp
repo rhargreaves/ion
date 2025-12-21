@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "tcp_listener.h"
+#include "tcp_transport.h"
 #include "tls_transport.h"
 
 namespace ion {
@@ -17,6 +18,12 @@ std::unique_ptr<Http2Connection> Http2Server::try_establish_conn(
     auto fd = listener.try_accept(timeout);
     if (!fd) {
         return nullptr;
+    }
+
+    if (config_.cleartext) {
+        auto tcp_transport = std::make_unique<TcpTransport>(std::move(fd.value()));
+        spdlog::info("client connected (ip: {})", tcp_transport->client_ip().value_or("unknown"));
+        return std::make_unique<Http2Connection>(std::move(tcp_transport), router_);
     }
 
     auto tls_transport =

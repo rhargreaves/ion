@@ -205,17 +205,6 @@ std::expected<ssize_t, TransportError> TlsTransport::write(std::span<const uint8
     return bytes_written;
 }
 
-bool TlsTransport::has_data() const {
-    if (SSL_pending(ssl_) > 0) {
-        return true;
-    }
-
-    constexpr int timeout_ms = 100;
-    pollfd pfd = {client_fd_, POLLIN, 0};
-    const int result = poll(&pfd, 1, timeout_ms);
-    return result > 0 && (pfd.revents & POLLIN);
-}
-
 std::expected<std::string, ClientIpError> TlsTransport::client_ip() const {
     sockaddr_storage addr{};
     socklen_t len = sizeof(addr);

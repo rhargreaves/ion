@@ -69,10 +69,10 @@ def wait_for_port(port, timeout=5):
     return False
 
 
-def curl_http2(url, custom_args=None):
-    if custom_args is None:
-        custom_args = []
-    args = ["curl"] + custom_args + ["--http2", "--insecure", "--verbose", url]
+def curl(url, args=None):
+    if args is None:
+        args = []
+    args = ["curl"] + args + ["--verbose", url]
     result = subprocess.run(
         args,
         capture_output=True,
@@ -82,6 +82,13 @@ def curl_http2(url, custom_args=None):
     print(result.stdout)
     print(result.stderr)
     return result
+
+
+def curl_http2(url, custom_args=None):
+    if custom_args is None:
+        custom_args = []
+
+    return curl(url, custom_args + ["--http2", "--insecure"])
 
 
 def assert_curl_response_ok(result):

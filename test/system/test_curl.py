@@ -1,6 +1,6 @@
 import pytest
 
-from utils import wait_for_port, curl_http2, assert_curl_response_ok, run_server, stop_server
+from utils import wait_for_port, curl_http2, assert_curl_response_ok, run_server, stop_server, curl
 
 SERVER_CLEARTEXT_PORT = 8080
 SERVER_PORT = 8443
@@ -58,12 +58,11 @@ def test_http2_returns_200_many_times_same_server():
         stop_server(server)
 
 
-@pytest.mark.skip(reason="work in progress")
 def test_supports_cleartext_http2():
     server = run_server(SERVER_CLEARTEXT_PORT, ["--cleartext"])
-    assert wait_for_port(SERVER_PORT)
+    assert wait_for_port(SERVER_CLEARTEXT_PORT)
     try:
-        result = curl_http2(OK_URL, ["--http2-prior-knowledge"])
+        result = curl(f"http://localhost:{SERVER_CLEARTEXT_PORT}/_tests/ok", ["--http2-prior-knowledge"])
 
         assert result.returncode == 0
         assert_curl_response_ok(result)

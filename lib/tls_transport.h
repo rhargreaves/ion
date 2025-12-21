@@ -25,7 +25,6 @@ class TlsTransport : public Transport {
     static void print_debug_to_stderr();
     std::expected<ssize_t, TransportError> read(std::span<uint8_t> buffer) const override;
     std::expected<ssize_t, TransportError> write(std::span<const uint8_t> buffer) const override;
-    [[nodiscard]] bool has_data() const override;
     [[nodiscard]] bool handshake() const;
     void graceful_shutdown() const override;
     std::expected<std::string, ClientIpError> client_ip() const override;

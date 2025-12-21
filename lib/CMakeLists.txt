@@ -50,6 +50,7 @@ add_library(ion
         stop_reason.cpp
         stop_reason.h
         transport.h
+        tcp_transport.cpp
 )
 
 target_compile_options(ion PRIVATE
