@@ -13,6 +13,17 @@
 
 static constexpr uint16_t TEST_PORT = 8443;
 
+TEST_CASE("server: returns x-server header (frontends overwrite server header)") {
+    auto server = TestHelpers::create_test_server();
+
+    TestServerRunner run(server, TEST_PORT);
+
+    CurlClient client;
+    const auto res = client.get(std::format("https://localhost:{}/", TEST_PORT));
+    REQUIRE(res.status_code == 404);
+    REQUIRE(res.headers.at("x-server") == "ion");
+}
+
 TEST_CASE("server: returns static code") {
     auto server = TestHelpers::create_test_server();
 
@@ -38,7 +49,7 @@ TEST_CASE("server: returns custom headers") {
     CurlClient client;
     const auto res = client.get(std::format("https://localhost:{}/hdrs", TEST_PORT));
     REQUIRE(res.status_code == 200);
-    REQUIRE(res.headers.size() == 2);
+    REQUIRE(res.headers.size() == 3);
     REQUIRE(res.headers.at("x-foo") == "bar");
 }
 

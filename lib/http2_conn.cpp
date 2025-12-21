@@ -353,6 +353,7 @@ HttpResponse Http2Connection::process_request(const std::vector<HttpHeader>& hea
         resp.headers.push_back({"content-length", std::to_string(resp.body.size())});
     }
     resp.headers.push_back({"server", std::string{SERVER_HEADER}});
+    resp.headers.push_back({"x-server", std::string{SERVER_HEADER}});
     return resp;
 }
 
