@@ -6,8 +6,8 @@ configure_file(
 
 add_library(ion
         socket_fd.h
-        tls_conn.cpp
-        tls_conn.h
+        tls_transport.cpp
+        tls_transport.h
         tcp_listener.h
         tcp_listener.cpp
         http2_frames.h

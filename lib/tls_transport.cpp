@@ -1,4 +1,4 @@
-#include "tls_conn.h"
+#include "tls_transport.h"
 
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -14,10 +14,10 @@
 
 namespace ion {
 
-TlsConnection::TlsConnection(TlsConnection&& other) noexcept
+TlsTransport::TlsTransport(TlsTransport&& other) noexcept
     : client_fd_(std::move(other.client_fd_)), ssl_(std::exchange(other.ssl_, nullptr)) {}
 
-TlsConnection& TlsConnection::operator=(TlsConnection&& other) noexcept {
+TlsTransport& TlsTransport::operator=(TlsTransport&& other) noexcept {
     if (this == &other) {
         return *this;
     }
@@ -30,8 +30,8 @@ TlsConnection& TlsConnection::operator=(TlsConnection&& other) noexcept {
     return *this;
 }
 
-TlsConnection::TlsConnection(SocketFd&& client_fd, const std::filesystem::path& cert_path,
-                             const std::filesystem::path& key_path)
+TlsTransport::TlsTransport(SocketFd&& client_fd, const std::filesystem::path& cert_path,
+                           const std::filesystem::path& key_path)
     : client_fd_(std::move(client_fd)) {
     if (!exists(cert_path)) {
         throw std::runtime_error("certificate file not found");
@@ -83,7 +83,7 @@ TlsConnection::TlsConnection(SocketFd&& client_fd, const std::filesystem::path& 
     }
 }
 
-bool TlsConnection::handshake() const {
+bool TlsTransport::handshake() const {
     constexpr int timeout_ms = 100;
     constexpr int max_retries = 100;
 
@@ -123,7 +123,7 @@ bool TlsConnection::handshake() const {
     return false;
 }
 
-TlsConnection::~TlsConnection() {
+TlsTransport::~TlsTransport() {
     if (ssl_) {
         spdlog::debug("freeing OpenSSL");
         SSL_free(ssl_);
@@ -131,7 +131,7 @@ TlsConnection::~TlsConnection() {
     }
 }
 
-void TlsConnection::graceful_shutdown() const {
+void TlsTransport::graceful_shutdown() const {
     BIO_flush(SSL_get_wbio(ssl_));
     // Bidirectional shutdown
     spdlog::debug("shutting down SSL (client notify)");
@@ -142,8 +142,8 @@ void TlsConnection::graceful_shutdown() const {
 }
 
 // ReSharper disable once CppDFAConstantFunctionResult
-int TlsConnection::alpn_callback(SSL*, const unsigned char** out, unsigned char* outlen,
-                                 const unsigned char* in, unsigned int inlen, void*) {
+int TlsTransport::alpn_callback(SSL*, const unsigned char** out, unsigned char* outlen,
+                                const unsigned char* in, unsigned int inlen, void*) {
     static constexpr std::array<unsigned char, 3> supported_protos{'\x02', 'h', '2'};
 
     const int result =
@@ -162,11 +162,11 @@ int TlsConnection::alpn_callback(SSL*, const unsigned char** out, unsigned char*
     return SSL_TLSEXT_ERR_OK;
 }
 
-void TlsConnection::print_debug_to_stderr() {
+void TlsTransport::print_debug_to_stderr() {
     ERR_print_errors_fp(stderr);
 }
 
-std::expected<ssize_t, TransportError> TlsConnection::read(std::span<uint8_t> buffer) const {
+std::expected<ssize_t, TransportError> TlsTransport::read(std::span<uint8_t> buffer) const {
     spdlog::trace("reading from SSL");
     const auto bytes_read = SSL_read(ssl_, buffer.data(), static_cast<int>(buffer.size()));
     if (bytes_read <= 0) {
@@ -190,7 +190,7 @@ std::expected<ssize_t, TransportError> TlsConnection::read(std::span<uint8_t> bu
     return bytes_read;
 }
 
-std::expected<ssize_t, TransportError> TlsConnection::write(std::span<const uint8_t> buffer) const {
+std::expected<ssize_t, TransportError> TlsTransport::write(std::span<const uint8_t> buffer) const {
     const auto bytes_written = SSL_write(ssl_, buffer.data(), static_cast<int>(buffer.size()));
     if (bytes_written < 0) {
         const int ssl_error = SSL_get_error(ssl_, bytes_written);
@@ -205,7 +205,7 @@ std::expected<ssize_t, TransportError> TlsConnection::write(std::span<const uint
     return bytes_written;
 }
 
-bool TlsConnection::has_data() const {
+bool TlsTransport::has_data() const {
     if (SSL_pending(ssl_) > 0) {
         return true;
     }
@@ -216,7 +216,7 @@ bool TlsConnection::has_data() const {
     return result > 0 && (pfd.revents & POLLIN);
 }
 
-std::expected<std::string, ClientIpError> TlsConnection::client_ip() const {
+std::expected<std::string, ClientIpError> TlsTransport::client_ip() const {
     sockaddr_storage addr{};
     socklen_t len = sizeof(addr);
 

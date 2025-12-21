@@ -19,17 +19,17 @@ enum class TransportError {
 };
 enum class ClientIpError { GetPeerNameFailed, UnknownIpFormat };
 
-class TlsConnection {
+class TlsTransport {
    public:
-    explicit TlsConnection(SocketFd&& client_fd, const std::filesystem::path& cert_path,
-                           const std::filesystem::path& key_path);
-    ~TlsConnection();
+    explicit TlsTransport(SocketFd&& client_fd, const std::filesystem::path& cert_path,
+                          const std::filesystem::path& key_path);
+    ~TlsTransport();
 
-    TlsConnection(TlsConnection&& other) noexcept;
-    TlsConnection& operator=(TlsConnection&& other) noexcept;
+    TlsTransport(TlsTransport&& other) noexcept;
+    TlsTransport& operator=(TlsTransport&& other) noexcept;
 
-    TlsConnection(const TlsConnection&) = delete;
-    TlsConnection& operator=(const TlsConnection&) = delete;
+    TlsTransport(const TlsTransport&) = delete;
+    TlsTransport& operator=(const TlsTransport&) = delete;
 
     static void print_debug_to_stderr();
     std::expected<ssize_t, TransportError> read(std::span<uint8_t> buffer) const;

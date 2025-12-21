@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "tcp_listener.h"
-#include "tls_conn.h"
+#include "tls_transport.h"
 
 namespace ion {
 
@@ -19,14 +19,14 @@ std::unique_ptr<Http2Connection> Http2Server::try_establish_conn(
         return nullptr;
     }
 
-    auto tls_conn =
-        std::make_unique<TlsConnection>(std::move(fd.value()), config_.cert_path, config_.key_path);
-    spdlog::info("client connected (ip: {})", tls_conn->client_ip().value_or("unknown"));
-    if (!tls_conn->handshake()) {
+    auto tls_transport =
+        std::make_unique<TlsTransport>(std::move(fd.value()), config_.cert_path, config_.key_path);
+    spdlog::info("client connected (ip: {})", tls_transport->client_ip().value_or("unknown"));
+    if (!tls_transport->handshake()) {
         return nullptr;
     }
     spdlog::debug("SSL handshake completed successfully");
-    return std::make_unique<Http2Connection>(std::move(tls_conn), router_);
+    return std::make_unique<Http2Connection>(std::move(tls_transport), router_);
 }
 
 void Http2Server::start(uint16_t port) {
