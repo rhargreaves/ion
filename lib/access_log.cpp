@@ -35,7 +35,7 @@ void AccessLog::log_request(std::vector<HttpHeader>& req_headers, uint16_t statu
         }
     }
     const auto entry =
-        std::format("{} - - {} \"{} {} HTTP/2\" {} {} \"{}\" \"{}\"",
+        std::format(R"({} - - {} "{} {} HTTP/2" {} {} "{}" "{}")",
                     (client_ip.empty() ? "-" : client_ip), SystemClock::clf_timestamp(), method,
                     path, status_code, content_length, referrer, user_agent);
     access_log->info(entry);
