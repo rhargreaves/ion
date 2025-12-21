@@ -26,7 +26,7 @@ static constexpr std::string_view CLIENT_PREFACE{"PRI * HTTP/2.0\r\n\r\nSM\r\n\r
 
 static constexpr size_t READ_BUFFER_SIZE = 512 * 1024;
 
-Http2Connection::Http2Connection(std::unique_ptr<TlsTransport> transport, const Router& router)
+Http2Connection::Http2Connection(std::unique_ptr<Transport> transport, const Router& router)
     : transport_(std::move(transport)), router_(router) {
     if (auto client_ip = transport_->client_ip(); client_ip.has_value()) {
         client_ip_ = std::move(*client_ip);

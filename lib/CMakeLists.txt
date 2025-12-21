@@ -49,6 +49,7 @@ add_library(ion
         access_log.h
         stop_reason.cpp
         stop_reason.h
+        transport.h
 )
 
 target_compile_options(ion PRIVATE

@@ -7,7 +7,7 @@
 #include "http2_frame_reader.h"
 #include "http2_frames.h"
 #include "router.h"
-#include "tls_transport.h"
+#include "transport.h"
 
 namespace ion {
 
@@ -16,7 +16,7 @@ enum class Http2ConnectionState { AwaitingPreface, AwaitingFrame, ProtocolError,
 
 class Http2Connection {
    public:
-    explicit Http2Connection(std::unique_ptr<TlsTransport> transport, const Router& router);
+    explicit Http2Connection(std::unique_ptr<Transport> transport, const Router& router);
     Http2ProcessResult process_state();
     void close();
 
@@ -26,7 +26,7 @@ class Http2Connection {
     Http2Connection& operator=(Http2Connection&&) = delete;
 
    private:
-    std::unique_ptr<TlsTransport> transport_;
+    std::unique_ptr<Transport> transport_;
     std::string client_ip_;
     const Router& router_;
     std::vector<uint8_t> buffer_;
