@@ -31,15 +31,6 @@ I'm documenting non-obvious stuff I've learnt along the way in [LEARNINGS.md](do
 
 ## Example Usage
 
-If using TLS, ensure you have set environment variables:
-
-* `ION_TLS_CERT_PATH`: TLS certificate path
-* `ION_TLS_KEY_PATH`: Private key path
-
-Or use `--cleartext` to run the server in h2c mode.
-Note that the server does not support the HTTP/1.1 upgrade mechanism, so you will need to ensure the client behaves
-accordingly (e.g. `curl --http2-prior-knowledge`).
-
 ```c++
 #include "ion/http2_server.h"
 
@@ -63,6 +54,11 @@ int main() {
 ```
 
 See [app/main.cpp](app/main.cpp) for a more complete example, including signal handling.
+
+### HTTP/2 cleartext (h2c) support
+
+Use `--cleartext` to run the server in h2c mode. The HTTP/1.1 upgrade mechanism is not supported, so you will
+need to ensure the client behaves accordingly (e.g. use `curl --http2-prior-knowledge`).
 
 ## Build
 
@@ -144,6 +140,10 @@ OPTIONS:
   -s,     --static TEXT x 2   Map URL prefix to directory. Usage: --static /url/path ./fs/path
           --access-log TEXT
           --cleartext         Disables TLS and handles requests in HTTP/2 cleartext (h2c)
+          --tls-cert-path TEXT (Env:ION_TLS_CERT_PATH)
+                              Path to certificate file for TLS
+          --tls-key-path TEXT (Env:ION_TLS_KEY_PATH)
+                              Path to private key file for TLS
   -v,     --version           Display program version information and exit
 ```
 
