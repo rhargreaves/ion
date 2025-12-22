@@ -9,7 +9,8 @@ BUILD_TYPE=RelWithDebInfo
 SERVER_PORT=8443
 LOG_LEVEL=info
 
-export GIT_SHA=$(shell git rev-parse --short HEAD 2>/dev/null)
+GIT_SHA ?= $(shell git rev-parse --short HEAD 2>/dev/null)
+export GIT_SHA
 export ION_PATH=$(BUILD_DIR)/app/ion-server
 export ION_TLS_CERT_PATH=cert.pem
 export ION_TLS_KEY_PATH=key.pem
