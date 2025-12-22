@@ -80,12 +80,13 @@ run-docker-app:
 		$(ARGS)
 .PHONY: run-docker-app
 
-build-docker:
+build-and-test-in-docker:
 	docker build -f build.Dockerfile -t ion .
 	docker run \
 		-e BUILD_SUFFIX=docker \
+		-e BUILD_TYPE=$(BUILD_TYPE) \
 		-e GIT_SHA=$(GIT_SHA) \
 		-w /workspace -v $(PWD):/workspace \
 		-it ion \
 		make build test
-.PHONY: build-docker
+.PHONY: build-and-test-in-docker
