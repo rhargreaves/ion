@@ -28,21 +28,24 @@ RUN ARCH=$(uname -m) && \
 WORKDIR /build-context
 COPY . .
 ARG GIT_SHA
-RUN cmake -DCMAKE_BUILD_TYPE=Release -S . -B build && \
+RUN cmake -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CXX_FLAGS="-fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE" \
+    -DCMAKE_EXE_LINKER_FLAGS="-Wl,-z,relro,-z,now" \
+    -S . -B build && \
     cmake --build build --target ion-server --parallel
+RUN ldd /build-context/build/app/ion-server # for troubleshooting subsequent failures
 
-FROM ubuntu:24.04
-RUN apt-get update && apt-get install -y \
-    libssl3 \
-    ca-certificates \
-    libc++1 \
-    && rm -rf /var/lib/apt/lists/*
-RUN useradd --system --shell /usr/sbin/nologin ion
+# create minimal filesystem
+RUN mkdir -p /runtime-root/etc /runtime-root/lib /runtime-root/usr/lib /runtime-root/app
+RUN cp $(ldd build/app/ion-server | grep -o '/lib/[^ ]*' | xargs) /runtime-root/lib/
+RUN cp /etc/ssl/certs/ca-certificates.crt /runtime-root/etc/
+RUN echo "ion:x:1000:1000:ion:/app:/usr/sbin/nologin" > /runtime-root/etc/passwd
+RUN echo "ion:x:1000:" > /runtime-root/etc/group
+RUN cp build/app/ion-server /runtime-root/app/ion-server
 
-WORKDIR /app
-RUN chown ion:ion /app
-COPY --from=builder --chown=ion:ion \
-    /build-context/build/app/ion-server /app/ion-server
+FROM scratch
+COPY --from=builder /runtime-root /
 USER ion
+WORKDIR /app
 EXPOSE 8443
 ENTRYPOINT ["/app/ion-server"]

@@ -23,9 +23,21 @@ build:
 
 build-docker-app:
 	docker build -f app.Dockerfile \
+		--progress=plain \
 		--build-arg GIT_SHA="$(GIT_SHA)" \
 		-t ion-app .
 .PHONY: build-docker-app
+
+run-docker-app:
+	docker run \
+		-p $(SERVER_PORT):$(SERVER_PORT) \
+		-v $(PWD)/$(CERT_PEM):/certs/$(CERT_PEM):ro \
+		-v $(PWD)/$(KEY_PEM):/certs/$(KEY_PEM):ro \
+		-e ION_TLS_CERT_PATH=/certs/$(CERT_PEM) \
+		-e ION_TLS_KEY_PATH=/certs/$(KEY_PEM) \
+		-it ion-app \
+		$(ARGS)
+.PHONY: run-docker-app
 
 test: test-unit test-integration test-system
 .PHONY: test
