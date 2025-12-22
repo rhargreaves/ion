@@ -14,6 +14,13 @@ target_include_directories(ion-server PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+
+if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_options(-fstack-protector-strong -fPIC)
+    add_definitions(-D_FORTIFY_SOURCE=2)
+endif ()
+
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(ion-server PRIVATE
             -fsanitize=address

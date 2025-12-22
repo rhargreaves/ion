@@ -21,24 +21,6 @@ build:
 	cmake --build $(BUILD_DIR) --parallel
 .PHONY: build
 
-build-docker-app:
-	docker build -f app.Dockerfile \
-		--progress=plain \
-		--build-arg GIT_SHA="$(GIT_SHA)" \
-		-t ion-app .
-.PHONY: build-docker-app
-
-run-docker-app:
-	docker run \
-		-p $(SERVER_PORT):$(SERVER_PORT) \
-		-v $(PWD)/$(CERT_PEM):/certs/$(CERT_PEM):ro \
-		-v $(PWD)/$(KEY_PEM):/certs/$(KEY_PEM):ro \
-		-e ION_TLS_CERT_PATH=/certs/$(CERT_PEM) \
-		-e ION_TLS_KEY_PATH=/certs/$(KEY_PEM) \
-		-it ion-app \
-		$(ARGS)
-.PHONY: run-docker-app
-
 test: test-unit test-integration test-system
 .PHONY: test
 
@@ -79,3 +61,31 @@ $(CERT_PEM) $(KEY_PEM):
 		-out $(CERT_PEM) \
 		-days 365 \
 		-nodes -subj "/CN=localhost"
+
+build-docker-app:
+	docker build -f app.Dockerfile \
+		--progress=plain \
+		--build-arg GIT_SHA="$(GIT_SHA)" \
+		-t ion-app .
+.PHONY: build-docker-app
+
+run-docker-app:
+	docker run \
+		-p $(SERVER_PORT):$(SERVER_PORT) \
+		-v $(PWD)/$(CERT_PEM):/certs/$(CERT_PEM):ro \
+		-v $(PWD)/$(KEY_PEM):/certs/$(KEY_PEM):ro \
+		-e ION_TLS_CERT_PATH=/certs/$(CERT_PEM) \
+		-e ION_TLS_KEY_PATH=/certs/$(KEY_PEM) \
+		-it ion-app \
+		$(ARGS)
+.PHONY: run-docker-app
+
+build-docker:
+	docker build -f build.Dockerfile -t ion .
+	docker run \
+		-e BUILD_SUFFIX=docker \
+		-e GIT_SHA=$(GIT_SHA) \
+		-w /workspace -v $(PWD):/workspace \
+		-it ion \
+		make build test
+.PHONY: build-docker
