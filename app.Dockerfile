@@ -36,7 +36,13 @@ RUN strip --strip-unneeded build/app/ion-server
 
 # create minimal filesystem
 RUN mkdir -p /runtime-root/etc /runtime-root/lib /runtime-root/usr/lib /runtime-root/app
-RUN cp $(ldd build/app/ion-server | grep -o '/lib/[^ ]*' | xargs) /runtime-root/lib/
+RUN ldd build/app/ion-server | grep "=>" \
+        | awk '{print $3}' \
+        | xargs -r cp -L --parents -t /runtime-root/
+RUN ldd build/app/ion-server | grep -v "=>" \
+        | grep -v "linux-vdso" \
+        | awk '{print $1}' \
+        | xargs -r cp -L --parents -t /runtime-root/
 RUN cp /etc/ssl/certs/ca-certificates.crt /runtime-root/etc/
 RUN echo "ion:x:1000:1000:ion:/app:/usr/sbin/nologin" > /runtime-root/etc/passwd
 RUN echo "ion:x:1000:" > /runtime-root/etc/group
