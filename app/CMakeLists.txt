@@ -14,11 +14,6 @@ target_include_directories(ion-server PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-
-target_compile_options(ion-server PRIVATE
-        -Wall -Wextra -Wpedantic -Werror
-)
-
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(ion-server PRIVATE
             -fsanitize=address
@@ -28,5 +23,18 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_link_options(ion-server PRIVATE
             -fsanitize=address
     )
+else ()
+    target_compile_options(ion-server PRIVATE -fPIE)
+    if (APPLE)
+        # macOS uses ASLR by default
+        target_link_options(ion-server PRIVATE -Wl,-pie)
+    else ()
+        # Linux-specific hardening
+        target_link_options(ion-server PRIVATE
+                -pie
+                "LINKER:-z,relro"
+                "LINKER:-z,now"
+        )
+    endif ()
 endif ()
 

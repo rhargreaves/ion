@@ -15,9 +15,15 @@ else ()
 endif ()
 project(ion VERSION ${ION_BASE_VERSION})
 
-# Link libc++abi on Linux
 if (UNIX AND NOT APPLE)
     link_libraries(c++abi)
+endif ()
+
+add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+
+if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_options(-fstack-protector-strong -fPIC)
+    add_definitions(-D_FORTIFY_SOURCE=2)
 endif ()
 
 find_package(OpenSSL REQUIRED)

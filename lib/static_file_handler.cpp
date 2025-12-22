@@ -18,20 +18,17 @@ bool StaticFileHandler::matches(const std::string& path) const {
 }
 
 std::string StaticFileHandler::get_relative_path(const std::string& url_path) const {
-    // Remove URL prefix
     std::string rel_path = url_path.substr(url_prefix_.length());
 
-    // Handle root path -> index.html
     if (rel_path.empty() || rel_path == "/") {
         rel_path = "/index.html";
     }
 
-    // Remove leading slash
     if (rel_path.starts_with("/")) {
         rel_path = rel_path.substr(1);
     }
 
-    // Remove query string
+    // remove query string
     if (const auto query_pos = rel_path.find('?'); query_pos != std::string::npos) {
         rel_path = rel_path.substr(0, query_pos);
     }
@@ -42,32 +39,28 @@ std::string StaticFileHandler::get_relative_path(const std::string& url_path) co
 HttpResponse StaticFileHandler::handle(const std::string& path) const {
     std::string rel_path = get_relative_path(path);
 
-    // Sanitize and resolve path
     auto safe_path = FileReader::sanitize_path(filesystem_root_, rel_path);
     if (!safe_path) {
         spdlog::warn("Invalid file path requested: {}", path);
         return HttpResponse{403};  // Forbidden
     }
 
-    // Check if file exists and is readable
     if (!FileReader::is_readable(*safe_path)) {
         spdlog::debug("File not found or not readable: {}", *safe_path);
         return HttpResponse{404};
     }
 
-    // Read file contents
     auto content = FileReader::read_file(*safe_path);
     if (!content) {
         spdlog::error("Failed to read file: {}", *safe_path);
         return HttpResponse{500};
     }
 
-    // Determine MIME type
     auto mime_type = FileReader::get_mime_type(*safe_path);
     spdlog::info("Serving static file: {} ({} bytes, {})", *safe_path, content->size(), mime_type);
 
     return HttpResponse{
-        .status_code = 200, .headers = {{"content-type", mime_type}}, .body = std::move(*content)};
+        .status_code = 200, .body = std::move(*content), .headers = {{"content-type", mime_type}}};
 }
 
 }  // namespace ion
