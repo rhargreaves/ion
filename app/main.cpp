@@ -51,13 +51,12 @@ void setup_access_logs(const std::string& log_path) {
     }
 }
 
-void ensure_no_new_privs_on_linux() {
+void enable_no_new_privs_on_linux() {
 #ifdef __linux__
     if (ProcessControl::enable_no_new_privs()) {
-        throw std::runtime_error(
-            std::format("failed to set PR_SET_NO_NEW_PRIVS: {}", std::strerror(errno)));
+        spdlog::warn("failed to set PR_SET_NO_NEW_PRIVS: {}", std::strerror(errno));
     }
-    spdlog::debug("security: PR_SET_NO_NEW_PRIVS enabled");
+    spdlog::debug("PR_SET_NO_NEW_PRIVS enabled");
 #endif
 }
 
@@ -73,7 +72,7 @@ int main(int argc, char* argv[]) {
     spdlog::set_level(args.log_level_enum());
     spdlog::info("ion {} started ⚡️", ion::BUILD_VERSION);
     try {
-        ensure_no_new_privs_on_linux();
+        enable_no_new_privs_on_linux();
         setup_access_logs(args.access_log_path);
         run_server(args);
         spdlog::info("exiting");
