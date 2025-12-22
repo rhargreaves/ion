@@ -8,7 +8,7 @@ BUILD_DIR=build/$(BUILD_SUFFIX)
 BUILD_TYPE ?= RelWithDebInfo
 SERVER_PORT=8443
 LOG_LEVEL=info
-
+TTY_ARG := $(shell [ -t 0 ] && echo "-t")
 GIT_SHA ?= $(shell git rev-parse --short HEAD 2>/dev/null)
 export GIT_SHA
 export ION_PATH=$(BUILD_DIR)/app/ion-server
@@ -87,6 +87,6 @@ build-and-test-in-docker:
 		-e BUILD_TYPE=$(BUILD_TYPE) \
 		-e GIT_SHA=$(GIT_SHA) \
 		-w /workspace -v $(PWD):/workspace \
-		-it ion \
+		-i $(TTY_ARG) ion \
 		make build test
 .PHONY: build-and-test-in-docker
