@@ -21,7 +21,9 @@ build:
 .PHONY: build
 
 build-docker-app:
-	docker build -f app.Dockerfile -t ion-app .
+	docker build -f app.Dockerfile \
+		--build-arg GIT_SHA="$(GIT_SHA)" \
+		-t ion-app .
 .PHONY: build-docker-app
 
 test: test-unit test-integration test-system
