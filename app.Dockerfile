@@ -32,6 +32,7 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release \
     -S . -B build && \
     cmake --build build --target ion-server --parallel
 RUN ldd /build-context/build/app/ion-server # for troubleshooting subsequent failures
+RUN strip --strip-unneeded build/app/ion-server
 
 # create minimal filesystem
 RUN mkdir -p /runtime-root/etc /runtime-root/lib /runtime-root/usr/lib /runtime-root/app
