@@ -3,6 +3,7 @@
     <words>
       <w>inlen</w>
       <w>outlen</w>
+      <w>privs</w>
       <w>sslkeylogfile</w>
     </words>
   </dictionary>
