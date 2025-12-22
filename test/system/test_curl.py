@@ -1,6 +1,7 @@
 import pytest
 
-from utils import wait_for_port, curl_http2, assert_curl_response_ok, run_server, stop_server, curl
+from utils import wait_for_port, curl_http2, assert_curl_response_ok, run_server, stop_server, \
+    curl
 
 SERVER_CLEARTEXT_PORT = 8080
 SERVER_PORT = 8443

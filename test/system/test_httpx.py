@@ -1,4 +1,5 @@
-from utils import wait_for_port, run_server, stop_server, ACCESS_LOG_PATH, assert_last_log_line_is_valid
+from utils import wait_for_port, run_server, stop_server, ACCESS_LOG_PATH, assert_last_log_line_is_valid, \
+    run_server_with_args
 import httpx
 import pytest
 import logging
@@ -131,3 +132,15 @@ async def test_httpx_logs_requests_in_access_logs():
     finally:
         stop_server(server)
         os.remove(ACCESS_LOG_PATH)
+
+
+@pytest.mark.asyncio
+async def test_httpx_test_routes_not_available_if_not_under_test():
+    server = run_server_with_args(SERVER_PORT)
+    assert wait_for_port(SERVER_PORT)
+    try:
+        client = httpx.AsyncClient(http2=True, verify=False)
+        response = await client.get(OK_URL)
+        assert response.status_code == 404
+    finally:
+        stop_server(server)

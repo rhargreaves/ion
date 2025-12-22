@@ -16,16 +16,17 @@ void run_server(const Args& args) {
     auto signal_handler = SignalHandler::setup(server);
 
     auto& router = server.router();
-    router.add_route("/_tests/ok", "GET", [] { return ion::HttpResponse{.status_code = 200}; });
-    router.add_route("/_tests/no_content", "GET",
-                     [] { return ion::HttpResponse{.status_code = 204}; });
-
-    router.add_route("/_tests/no_new_privs", "GET", [] {
-        if (ProcessControl::check_no_new_privs()) {
-            return ion::HttpResponse{.status_code = 200};
-        }
-        return ion::HttpResponse{.status_code = 500};
-    });
+    if (args.under_test) {
+        router.add_route("/_tests/ok", "GET", [] { return ion::HttpResponse{.status_code = 200}; });
+        router.add_route("/_tests/no_content", "GET",
+                         [] { return ion::HttpResponse{.status_code = 204}; });
+        router.add_route("/_tests/no_new_privs", "GET", [] {
+            if (ProcessControl::check_no_new_privs()) {
+                return ion::HttpResponse{.status_code = 200};
+            }
+            return ion::HttpResponse{.status_code = 500};
+        });
+    }
 
     if (args.static_map.size() == 2) {
         auto sth = std::make_unique<ion::StaticFileHandler>(args.static_map[0], args.static_map[1]);

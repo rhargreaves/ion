@@ -31,6 +31,9 @@ Args Args::register_opts(CLI::App& app) {
     app.add_option("--tls-key-path", args.key_path, "Path to private key file for TLS")
         ->envname("ION_TLS_KEY_PATH");
 
+    app.add_flag("--under-test", args.under_test,
+                 "Adds routes used for internal testing. Do not enable in production");
+
     app.set_version_flag("-v,--version", std::string(ion::BUILD_VERSION));
 
     return args;

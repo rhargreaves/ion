@@ -18,6 +18,7 @@ class Args {
     bool cleartext{};
     std::string cert_path{};
     std::string key_path{};
+    bool under_test{};
 
     static Args register_opts(CLI::App& app);
     [[nodiscard]] spdlog::level::level_enum log_level_enum() const;
