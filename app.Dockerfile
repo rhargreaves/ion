@@ -27,6 +27,7 @@ RUN ARCH=$(uname -m) && \
     rm /tmp/cmake.sh
 WORKDIR /build-context
 COPY . .
+ARG GIT_SHA
 RUN cmake -DCMAKE_BUILD_TYPE=Release -S . -B build && \
     cmake --build build --target ion-server --parallel
 
