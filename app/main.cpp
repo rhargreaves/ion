@@ -10,6 +10,10 @@
 #include "signal_handler.h"
 #include "spdlog/sinks/basic_file_sink.h"
 
+#ifdef __linux__
+#include <sys/prctl.h>
+#endif
+
 void run_server(const Args& args) {
     ion::Http2Server server{args.to_server_config()};
     auto signal_handler = SignalHandler::setup(server);
@@ -18,6 +22,20 @@ void run_server(const Args& args) {
     router.add_route("/_tests/ok", "GET", [] { return ion::HttpResponse{.status_code = 200}; });
     router.add_route("/_tests/no_content", "GET",
                      [] { return ion::HttpResponse{.status_code = 204}; });
+    router.add_route("/_tests/no_new_privs", "GET", [] {
+        bool no_new_privs = false;
+#ifdef __linux__
+        int result = prctl(PR_GET_NO_NEW_PRIVS, 0, 0, 0, 0);
+        if (result == 1)
+            no_new_privs = true;
+#endif
+
+        if (no_new_privs) {
+            return ion::HttpResponse{.status_code = 200};
+        } else {
+            return ion::HttpResponse{.status_code = 500};
+        }
+    });
 
     if (args.static_map.size() == 2) {
         auto sth = std::make_unique<ion::StaticFileHandler>(args.static_map[0], args.static_map[1]);
@@ -43,6 +61,14 @@ void setup_access_logs(const std::string& log_path) {
 }
 
 int main(int argc, char* argv[]) {
+#ifdef __linux__
+    if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) == -1) {
+        spdlog::critical("failed to set PR_SET_NO_NEW_PRIVS: {}", std::strerror(errno));
+        return EXIT_FAILURE;
+    }
+    spdlog::debug("security: PR_SET_NO_NEW_PRIVS enabled");
+#endif
+
     CLI::App app{"ion: the light-weight HTTP/2 server ⚡️"};
     auto args = Args::register_opts(app);
     try {
@@ -57,9 +83,9 @@ int main(int argc, char* argv[]) {
         setup_access_logs(args.access_log_path);
         run_server(args);
         spdlog::info("exiting");
-        return 0;
+        return EXIT_SUCCESS;
     } catch (const std::exception& e) {
-        spdlog::error("fatal error: {}", e.what());
-        return 1;
+        spdlog::critical("fatal error: {}", e.what());
+        return EXIT_FAILURE;
     }
 }
