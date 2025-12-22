@@ -47,6 +47,7 @@ jobs:
           docker build -f build.Dockerfile -t ion .
           docker run \
             -e BUILD_SUFFIX=docker \
+            -e BUILD_TYPE=Release \
             -e GIT_SHA=${{ steps.vars.outputs.sha_short }} \
             -i -w /workspace -v $(pwd):/workspace \
             ion make build test

@@ -5,7 +5,7 @@ CERT_PEM=cert.pem
 KEY_PEM=key.pem
 BUILD_SUFFIX?=make
 BUILD_DIR=build/$(BUILD_SUFFIX)
-BUILD_TYPE=RelWithDebInfo
+BUILD_TYPE ?= RelWithDebInfo
 SERVER_PORT=8443
 LOG_LEVEL=info
 
