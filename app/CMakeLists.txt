@@ -25,11 +25,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     )
 else ()
     target_compile_options(ion-server PRIVATE -fPIE)
-    if (APPLE)
-        # macOS uses ASLR by default
-        target_link_options(ion-server PRIVATE -Wl,-pie)
-    else ()
-        # Linux-specific hardening
+    if (NOT APPLE)
         target_link_options(ion-server PRIVATE
                 -pie
                 "LINKER:-z,relro"
