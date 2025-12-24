@@ -23,4 +23,20 @@ TEST_CASE("router: middleware support") {
 
         REQUIRE(handler(dummy_req).status_code == 202);
     }
+
+    SECTION ("manipulates default handler") {
+        router.add_middleware([](auto next) {
+            return [next](const auto& req) {
+                auto res = next(req);
+                if (res.status_code == 404) {
+                    res.status_code = 201;
+                }
+                return res;
+            };
+        });
+
+        auto handler = router.get_handler("/bar", "GET");
+
+        REQUIRE(handler(dummy_req).status_code == 201);
+    }
 }
