@@ -180,7 +180,8 @@ bool Http2Connection::try_read_preface() {
     const std::string_view received(reinterpret_cast<const char*>(preface_span.data()),
                                     preface_span.size());
     if (received != CLIENT_PREFACE) {
-        throw std::runtime_error("invalid HTTP/2 preface");
+        spdlog::error("invalid HTTP/2 preface received");
+        return false;
     }
 
     spdlog::info("valid HTTP/2 preface received");
@@ -368,7 +369,8 @@ HttpResponse Http2Connection::process_request(const std::vector<HttpHeader>& hea
     auto method = get_header(headers, ":method");
 
     if (!path || !method) {
-        throw std::runtime_error("invalid request: missing path or method");
+        spdlog::error("invalid request: missing path or method");
+        return HttpResponse{.status_code = 400};
     }
 
     auto handler = router_.get_handler(path.value(), method.value());
