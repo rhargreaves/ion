@@ -24,10 +24,9 @@ std::unique_ptr<Transport> Http2Server::create_transport(SocketFd&& fd) const {
 
     auto tls = std::make_unique<TlsTransport>(std::move(fd), *config_.cert_path, *config_.key_path);
     if (!tls->handshake()) {
-        spdlog::warn("TLS handshake failed");
         return nullptr;
     }
-    spdlog::debug("SSL handshake completed successfully");
+    spdlog::debug("TLS handshake completed successfully");
     return tls;
 }
 

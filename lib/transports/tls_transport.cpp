@@ -85,7 +85,7 @@ TlsTransport::TlsTransport(SocketFd&& client_fd, const std::filesystem::path& ce
 
 bool TlsTransport::handshake() const {
     constexpr int timeout_ms = 100;
-    constexpr int max_retries = 100;
+    constexpr int max_retries = 50;
 
     for (int attempt = 0; attempt < max_retries; attempt++) {
         const int result = SSL_accept(ssl_);
@@ -113,13 +113,13 @@ bool TlsTransport::handshake() const {
             default: {
                 char err_buf[256];
                 ERR_error_string_n(ERR_get_error(), err_buf, sizeof(err_buf));
-                spdlog::error("SSL handshake failed: {}", err_buf);
+                spdlog::error("TLS handshake failed: {}", err_buf);
                 return false;
             }
         }
     }
 
-    spdlog::warn("SSL handshake timed out after {} attempts", max_retries);
+    spdlog::error("SSL handshake timed out after {} attempts", max_retries);
     return false;
 }
 
