@@ -117,7 +117,7 @@ bool TlsTransport::handshake() const {
             case SSL_ERROR_SSL: {
                 const unsigned long err = ERR_get_error();
                 if (ERR_GET_REASON(err) == SSL_R_UNEXPECTED_EOF_WHILE_READING) {
-                    spdlog::info("Client disconnected during handshake (EOF)");
+                    spdlog::info("client disconnected during handshake (EOF)");
                     return false;
                 }
                 [[fallthrough]];

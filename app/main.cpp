@@ -22,7 +22,11 @@ void run_server(const Args& args) {
     }
 
     if (args.static_map.size() == 2) {
-        auto sth = std::make_unique<ion::StaticFileHandler>(args.static_map[0], args.static_map[1]);
+        auto& url_prefix = args.static_map[0];
+        auto& filesystem_root = args.static_map[1];
+
+        spdlog::info("serving static files at '{}' -> '{}'", url_prefix, filesystem_root);
+        auto sth = std::make_unique<ion::StaticFileHandler>(url_prefix, filesystem_root);
         router.add_static_handler(std::move(sth));
     }
 

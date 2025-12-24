@@ -9,9 +9,7 @@ namespace ion {
 
 StaticFileHandler::StaticFileHandler(const std::string& url_prefix,
                                      const std::string& filesystem_root)
-    : url_prefix_(url_prefix), filesystem_root_(filesystem_root) {
-    spdlog::info("StaticFileHandler created: '{}' -> '{}'", url_prefix_, filesystem_root_);
-}
+    : url_prefix_(url_prefix), filesystem_root_(filesystem_root) {}
 
 bool StaticFileHandler::matches(const std::string& path) const {
     return path.starts_with(url_prefix_);
