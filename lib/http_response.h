@@ -12,4 +12,10 @@ struct HttpResponse {
     std::vector<HttpHeader> headers{};
 };
 
+struct HttpRequest {
+    std::string method;
+    std::string path;
+    std::vector<HttpHeader> headers{};
+};
+
 }  // namespace ion

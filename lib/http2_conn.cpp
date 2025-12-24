@@ -374,7 +374,8 @@ HttpResponse Http2Connection::process_request(const std::vector<HttpHeader>& hea
     }
 
     auto handler = router_.get_handler(path.value(), method.value());
-    auto resp = handler();
+    HttpRequest req{.method = *method, .path = *path, .headers = headers};
+    auto resp = handler(req);
     resp.headers.insert(resp.headers.begin(),
                         HttpHeader{":status", std::to_string(resp.status_code)});
     if (!resp.body.empty()) {

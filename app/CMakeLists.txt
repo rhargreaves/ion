@@ -5,6 +5,8 @@ add_executable(ion-server
         signal_handler.h
         proc_ctrl.cpp
         proc_ctrl.h
+        test_routes.cpp
+        test_routes.h
 )
 
 target_link_libraries(ion-server PRIVATE

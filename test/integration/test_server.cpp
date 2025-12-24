@@ -27,8 +27,8 @@ TEST_CASE("server: returns x-powered-by header (frontends overwrite server heade
 TEST_CASE("server: returns static code") {
     auto server = TestHelpers::create_test_server();
 
-    server.router().add_route(
-        "/", "GET", []() -> ion::HttpResponse { return ion::HttpResponse{.status_code = 200}; });
+    server.router().add_route("/", "GET",
+                              [](auto&) { return ion::HttpResponse{.status_code = 200}; });
     TestServerRunner run(server, TEST_PORT);
 
     CurlClient client;
@@ -39,7 +39,7 @@ TEST_CASE("server: returns static code") {
 TEST_CASE("server: returns custom headers") {
     auto server = TestHelpers::create_test_server();
 
-    server.router().add_route("/hdrs", "GET", []() -> ion::HttpResponse {
+    server.router().add_route("/hdrs", "GET", [](auto&) {
         auto resp = ion::HttpResponse{.status_code = 200};
         resp.headers.push_back({"x-foo", "bar"});
         return resp;
@@ -56,8 +56,8 @@ TEST_CASE("server: returns custom headers") {
 TEST_CASE("server: returns body") {
     auto server = TestHelpers::create_test_server();
 
-    server.router().add_route("/body", "GET", [] {
-        const std::string body_text = "hello";
+    server.router().add_route("/body", "GET", [](auto&) {
+        constexpr std::string body_text = "hello";
         const std::vector<uint8_t> body_bytes(body_text.begin(), body_text.end());
 
         return ion::HttpResponse{

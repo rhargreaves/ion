@@ -4,42 +4,21 @@
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
 
-#include "../lib/http2_server.h"
 #include "access_log.h"
 #include "args.h"
+#include "http2_server.h"
 #include "proc_ctrl.h"
 #include "signal_handler.h"
 #include "spdlog/sinks/basic_file_sink.h"
+#include "test_routes.h"
 
 void run_server(const Args& args) {
     ion::Http2Server server{args.to_server_config()};
     auto signal_handler = SignalHandler::setup(server);
-
     auto& router = server.router();
+
     if (args.under_test) {
-        router.add_route("/_tests/ok", "GET", [] { return ion::HttpResponse{.status_code = 200}; });
-        router.add_route("/_tests/no_content", "GET",
-                         [] { return ion::HttpResponse{.status_code = 204}; });
-        router.add_route("/_tests/no_new_privs", "GET", [] {
-            if (ProcessControl::check_no_new_privs()) {
-                return ion::HttpResponse{.status_code = 200};
-            }
-            return ion::HttpResponse{.status_code = 500};
-        });
-        router.add_route("/_tests/medium_body", "GET", [] {
-            constexpr size_t content_size = 128 * 1024;
-            std::string body(content_size, 'A');
-
-            return ion::HttpResponse{.status_code = 200,
-                                     .body = std::vector<uint8_t>{body.begin(), body.end()}};
-        });
-        router.add_route("/_tests/large_body", "GET", [] {
-            constexpr size_t content_size = 16 * 1024 * 1024;
-            std::string body(content_size, 'A');
-
-            return ion::HttpResponse{.status_code = 200,
-                                     .body = std::vector<uint8_t>{body.begin(), body.end()}};
-        });
+        TestRoutes::add_test_routes(router);
     }
 
     if (args.static_map.size() == 2) {

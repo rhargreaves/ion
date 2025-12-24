@@ -3,11 +3,10 @@
 namespace ion {
 
 Router::Router() {
-    default_handler_ = [] { return HttpResponse{404}; };
+    default_handler_ = [](auto&) { return HttpResponse{404}; };
 }
 
-std::function<HttpResponse()> Router::get_handler(const std::string& path,
-                                                  const std::string& method) const {
+RouteHandler Router::get_handler(const std::string& path, const std::string& method) const {
     for (const auto& route : routes_) {
         if (route.path == path && route.method == method) {
             return route.handler;
@@ -17,7 +16,9 @@ std::function<HttpResponse()> Router::get_handler(const std::string& path,
     if (method == "GET") {
         for (const auto& handler : static_handlers_) {
             if (handler->matches(path)) {
-                return [&handler, path]() -> HttpResponse { return handler->handle(path); };
+                return [&handler, path](const HttpRequest&) -> HttpResponse {
+                    return handler->handle(path);
+                };
             }
         }
     }
@@ -26,7 +27,7 @@ std::function<HttpResponse()> Router::get_handler(const std::string& path,
 }
 
 void Router::add_route(const std::string& path, const std::string& method,
-                       const std::function<HttpResponse()>& handler) {
+                       const RouteHandler& handler) {
     const Route route{path, method, handler};
     routes_.push_back(route);
 }
