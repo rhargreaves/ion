@@ -71,6 +71,18 @@ def test_supports_cleartext_http2():
         stop_server(server)
 
 
+def text_curl_returns_large_body():
+    server = run_server(SERVER_PORT)
+    assert wait_for_port(SERVER_PORT)
+    try:
+        result = curl_http2(URL + "/_tests/large_body")
+
+        assert result.returncode == 0
+        assert_curl_response_ok(result)
+    finally:
+        stop_server(server)
+
+
 def test_http2_test_server_closes_connection_cleanly():
     for _ in range(10):
         test_http2_returns_200()

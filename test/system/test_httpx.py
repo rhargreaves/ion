@@ -105,6 +105,35 @@ async def test_httpx_returns_static_content():
 
 
 @pytest.mark.asyncio
+async def test_httpx_returns_medium_body():
+    server = run_server(SERVER_PORT)
+    assert wait_for_port(SERVER_PORT)
+    try:
+        client = httpx.AsyncClient(http2=True, verify=False)
+        response = await client.get(BASE_URL + "/_tests/medium_body")
+
+        assert response.status_code == 200
+        assert len(response.content) == 128 * 1024
+    finally:
+        stop_server(server)
+
+
+@pytest.mark.skip("wip")
+@pytest.mark.asyncio
+async def test_httpx_returns_large_body():
+    server = run_server(SERVER_PORT)
+    assert wait_for_port(SERVER_PORT)
+    try:
+        client = httpx.AsyncClient(http2=True, verify=False)
+        response = await client.get(BASE_URL + "/_tests/large_body")
+
+        assert response.status_code == 200
+        assert len(response.content) == 16 * 1024 * 1024
+    finally:
+        stop_server(server)
+
+
+@pytest.mark.asyncio
 async def test_httpx_returns_200_for_multiple_requests_over_persistent_connection():
     server = run_server(SERVER_PORT)
     assert wait_for_port(SERVER_PORT)

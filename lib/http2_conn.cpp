@@ -23,6 +23,8 @@ static constexpr uint8_t FLAG_END_STREAM = 0x01;
 
 static constexpr std::string_view CLIENT_PREFACE{"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"};
 
+static constexpr size_t MAX_FRAME_SIZE = 16384;
+
 static constexpr size_t READ_BUFFER_SIZE = 512 * 1024;
 
 Http2Connection::Http2Connection(std::unique_ptr<Transport> transport, const std::string& client_ip,
@@ -71,13 +73,39 @@ void Http2Connection::write_headers_response(uint32_t stream_id,
     write_frame_header(header);
     transport_->write(headers_data);
 }
+
 void Http2Connection::write_data_response(uint32_t stream_id, const std::vector<uint8_t>& body) {
-    const Http2FrameHeader frame_header{.length = static_cast<uint32_t>(body.size()),
-                                        .type = FRAME_TYPE_DATA,
-                                        .flags = FLAG_END_STREAM,
-                                        .stream_id = stream_id};
-    write_frame_header(frame_header);
-    transport_->write(body);
+    size_t remaining_bytes = body.size();
+    size_t start = 0;
+
+    while (remaining_bytes != 0) {
+        size_t chunk_size = std::min(remaining_bytes, MAX_FRAME_SIZE - 128);
+        remaining_bytes -= chunk_size;
+
+        const Http2FrameHeader frame_header{
+            .length = static_cast<uint32_t>(chunk_size),
+            .type = FRAME_TYPE_DATA,
+            .flags = remaining_bytes == 0 ? FLAG_END_STREAM : static_cast<uint8_t>(0),
+            .stream_id = stream_id};
+
+        write_frame_header(frame_header);
+
+        spdlog::trace("Writing data frame for stream {} with size {} & remaining {}", stream_id,
+                      chunk_size, remaining_bytes);
+
+        auto bytes_written_res = transport_->write(std::span(body.data() + start, chunk_size));
+        if (!bytes_written_res) {
+            spdlog::error("Failed to write data frame for stream {}: error: {}", stream_id,
+                          static_cast<int>(bytes_written_res.error()));
+        }
+
+        if (*bytes_written_res != chunk_size) {
+            spdlog::error("Failed to write data frame for stream {}: only wrote {} of {} bytes",
+                          stream_id, *bytes_written_res, chunk_size);
+        }
+
+        start += chunk_size;
+    }
 }
 
 void Http2Connection::write_goaway(uint32_t last_stream_id, ErrorCode error_code) {
@@ -97,11 +125,9 @@ void Http2Connection::write_goaway(uint32_t last_stream_id, ErrorCode error_code
 }
 
 void Http2Connection::write_settings() {
-    const std::vector<Http2Setting> settings = {
-        {0x0003, 100},    // MAX_CONCURRENT_STREAMS
-        {0x0004, 65535},  // INITIAL_WINDOW_SIZE
-        {0x0005, 16384}   // MAX_FRAME_SIZE
-    };
+    const std::vector<Http2Setting> settings = {{0x0003, 100},    // MAX_CONCURRENT_STREAMS
+                                                {0x0004, 65535},  // INITIAL_WINDOW_SIZE
+                                                {0x0005, MAX_FRAME_SIZE}};
     write_settings(settings);
     spdlog::debug("SETTINGS frame sent");
 }

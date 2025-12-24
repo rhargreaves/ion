@@ -26,6 +26,20 @@ void run_server(const Args& args) {
             }
             return ion::HttpResponse{.status_code = 500};
         });
+        router.add_route("/_tests/medium_body", "GET", [] {
+            constexpr size_t content_size = 128 * 1024;
+            std::string body(content_size, 'A');
+
+            return ion::HttpResponse{.status_code = 200,
+                                     .body = std::vector<uint8_t>{body.begin(), body.end()}};
+        });
+        router.add_route("/_tests/large_body", "GET", [] {
+            constexpr size_t content_size = 16 * 1024 * 1024;
+            std::string body(content_size, 'A');
+
+            return ion::HttpResponse{.status_code = 200,
+                                     .body = std::vector<uint8_t>{body.begin(), body.end()}};
+        });
     }
 
     if (args.static_map.size() == 2) {

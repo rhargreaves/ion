@@ -44,6 +44,7 @@ PHONY: test-h2spec
 run: build $(CERT_PEM) $(KEY_PEM)
 	$(ION_PATH) -p $(SERVER_PORT) \
 		-l $(LOG_LEVEL) \
+		--under-test \
 		$(ARGS)
 .PHONY: run
 
