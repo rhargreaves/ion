@@ -93,6 +93,10 @@ bool TlsTransport::handshake() const {
             return true;
         }
         switch (const int ssl_error = SSL_get_error(ssl_, result)) {
+            case SSL_ERROR_ZERO_RETURN:
+                spdlog::debug(
+                    "TLS connection closed by peer before handshake (likely health check)");
+                return false;
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE: {
                 pollfd pfd = {client_fd_, 0, 0};
@@ -110,10 +114,18 @@ bool TlsTransport::handshake() const {
                 }
                 break;
             }
+            case SSL_ERROR_SSL: {
+                const unsigned long err = ERR_get_error();
+                if (ERR_GET_REASON(err) == SSL_R_UNEXPECTED_EOF_WHILE_READING) {
+                    spdlog::info("Client disconnected during handshake (EOF)");
+                    return false;
+                }
+                [[fallthrough]];
+            }
             default: {
                 char err_buf[256];
                 ERR_error_string_n(ERR_get_error(), err_buf, sizeof(err_buf));
-                spdlog::error("TLS handshake failed: {}", err_buf);
+                spdlog::error("TLS handshake failed: ({}) {}", ssl_error, err_buf);
                 return false;
             }
         }
