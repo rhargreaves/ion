@@ -105,6 +105,24 @@ async def test_httpx_returns_static_content():
 
 
 @pytest.mark.asyncio
+async def test_httpx_returns_custom_404_page():
+    server = run_server(SERVER_PORT, [
+        "--custom-404-file-path",
+        os.path.join(os.path.dirname(__file__), "static/404.html")
+    ])
+    assert wait_for_port(SERVER_PORT)
+    try:
+        client = httpx.AsyncClient(http2=True, verify=False)
+        response = await client.get(BASE_URL + "/foo")
+
+        assert response.status_code == 404
+        assert response.headers["content-type"] == "text/html; charset=utf-8"
+        assert "404 :(" in response.text
+    finally:
+        stop_server(server)
+
+
+@pytest.mark.asyncio
 async def test_httpx_returns_medium_body():
     server = run_server(SERVER_PORT)
     assert wait_for_port(SERVER_PORT)

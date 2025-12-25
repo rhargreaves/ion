@@ -19,6 +19,7 @@ class Args {
     std::string cert_path{};
     std::string key_path{};
     bool under_test{};
+    std::string status_404_file_path{};
 
     static Args register_opts(CLI::App& app);
     [[nodiscard]] spdlog::level::level_enum log_level_enum() const;

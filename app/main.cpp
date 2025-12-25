@@ -30,6 +30,22 @@ void run_server(const Args& args) {
         router.add_static_handler(std::move(sth));
     }
 
+    if (!args.status_404_file_path.empty()) {
+        router.add_middleware([args](auto next) {
+            return [args, next](const auto& req) {
+                auto res = next(req);
+
+                if (res.status_code == 404) {
+                    auto file_res =
+                        ion::StaticFileHandler::file_response(args.status_404_file_path);
+                    file_res.status_code = 404;
+                    return file_res;
+                }
+                return res;
+            };
+        });
+    }
+
     server.start(args.port);
 }
 

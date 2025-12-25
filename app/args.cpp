@@ -31,6 +31,8 @@ Args Args::register_opts(CLI::App& app) {
     app.add_option("--tls-key-path", args.key_path, "Path to private key file for TLS")
         ->envname("ION_TLS_KEY_PATH");
 
+    app.add_option("--custom-404-file-path", args.status_404_file_path, "Path to custom 404 page");
+
     app.add_flag("--under-test", args.under_test,
                  "Adds routes used for internal testing. Do not enable in production");
 

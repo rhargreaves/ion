@@ -34,6 +34,25 @@ std::string StaticFileHandler::get_relative_path(const std::string& url_path) co
     return rel_path;
 }
 
+HttpResponse StaticFileHandler::file_response(const std::string& path) {
+    if (!FileReader::is_readable(path)) {
+        spdlog::debug("file not found or not readable: {}", path);
+        return HttpResponse{404};
+    }
+
+    auto content = FileReader::read_file(path);
+    if (!content) {
+        spdlog::error("failed to read file: {}", path);
+        return HttpResponse{500};
+    }
+
+    auto mime_type = FileReader::get_mime_type(path);
+    spdlog::info("serving static file: {} ({} bytes, {})", path, content->size(), mime_type);
+
+    return HttpResponse{
+        .status_code = 200, .body = std::move(*content), .headers = {{"content-type", mime_type}}};
+}
+
 HttpResponse StaticFileHandler::handle(const std::string& path) const {
     std::string rel_path = get_relative_path(path);
 
@@ -43,22 +62,7 @@ HttpResponse StaticFileHandler::handle(const std::string& path) const {
         return HttpResponse{403};
     }
 
-    if (!FileReader::is_readable(*safe_path)) {
-        spdlog::debug("file not found or not readable: {}", *safe_path);
-        return HttpResponse{404};
-    }
-
-    auto content = FileReader::read_file(*safe_path);
-    if (!content) {
-        spdlog::error("failed to read file: {}", *safe_path);
-        return HttpResponse{500};
-    }
-
-    auto mime_type = FileReader::get_mime_type(*safe_path);
-    spdlog::info("serving static file: {} ({} bytes, {})", *safe_path, content->size(), mime_type);
-
-    return HttpResponse{
-        .status_code = 200, .body = std::move(*content), .headers = {{"content-type", mime_type}}};
+    return file_response(*safe_path);
 }
 
 }  // namespace ion

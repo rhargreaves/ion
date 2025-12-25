@@ -28,6 +28,7 @@ def run_server(port, extra_args=None):
         "-s",
         "/static",
         os.path.join(os.path.dirname(__file__), "static"),
+        "-l", "trace",
         "--under-test",
     ] + extra_args)
 

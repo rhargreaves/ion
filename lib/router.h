@@ -19,6 +19,7 @@ struct Route {
 class Router {
    public:
     Router();
+
     RouteHandler get_handler(const std::string& path, const std::string& method) const;
     void add_route(const std::string& path, const std::string& method, const RouteHandler& handler);
     void add_static_handler(std::unique_ptr<StaticFileHandler> handler);

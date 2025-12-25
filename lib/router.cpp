@@ -1,5 +1,7 @@
 #include "router.h"
 
+#include "spdlog/spdlog.h"
+
 namespace ion {
 
 Router::Router() {

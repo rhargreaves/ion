@@ -13,7 +13,7 @@ namespace ion {
 
 static constexpr std::size_t MAX_CONNECTIONS = 128;
 
-Http2Server::Http2Server(const ServerConfiguration& config) : config_(config) {
+Http2Server::Http2Server(const ServerConfiguration& config) : config_(config), router_(Router{}) {
     config_.validate();
 }
 
