@@ -4,6 +4,16 @@ import re
 import asyncio
 import io
 
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+TLS_CERT_PATH = os.path.join(os.path.dirname(__file__), "../../cert.pem")
+TLS_KEY_PATH = os.path.join(os.path.dirname(__file__), "../../key.pem")
+
+DEFAULT_ARGS = ["-s", "/static", STATIC_DIR,
+                "-l", "debug",
+                "--under-test",
+                "--tls-cert-path", TLS_CERT_PATH,
+                "--tls-key-path", TLS_KEY_PATH]
+
 
 async def wait_for_port(port, timeout=5):
     print(f"waiting for port {port} to be open")
@@ -20,11 +30,14 @@ async def wait_for_port(port, timeout=5):
 
 
 class ServerRunner:
-    def __init__(self, port, extra_args=None, wait_for_port=True, with_defaults=True):
+    def __init__(self, port, args=None, extra_args=None, wait_for_port=True):
+        if args is None:
+            args = DEFAULT_ARGS
+        self.args = args
+        if extra_args is not None:
+            self.args += extra_args
         self.port = port
-        self.extra_args = extra_args or []
         self._wait_for_port = wait_for_port
-        self._with_defaults = with_defaults
         self.proc = None
         self._stdout_buffer = io.StringIO()
         self._stderr_buffer = io.StringIO()
@@ -33,25 +46,14 @@ class ServerRunner:
     async def start(self):
         cmd = [os.environ.get('ION_PATH', 'ion-server'),
                "-p", str(self.port)
-               ]
-
-        if self._with_defaults:
-            static_dir = os.path.join(os.path.dirname(__file__), "static")
-            cert_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "cert.pem")
-            key_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "key.pem")
-            cmd += ["-s", "/static", static_dir,
-                    "-l", "info",
-                    "--under-test",
-                    "--tls-cert-path", cert_path,
-                    "--tls-key-path", key_path]
-
-        cmd += self.extra_args
+               ] + self.args
 
         self.proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
         )
+
         print(f"server pid = {self.proc.pid}")
 
         self._tasks.append(asyncio.create_task(self._read_stream(self.proc.stdout, self._stdout_buffer)))

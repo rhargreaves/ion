@@ -49,7 +49,7 @@ async def test_http2_returns_200_many_times_same_server():
 
 @pytest.mark.asyncio
 async def test_supports_cleartext_http2():
-    async with ServerRunner(SERVER_CLEARTEXT_PORT, ["--cleartext"]) as runner:
+    async with ServerRunner(SERVER_CLEARTEXT_PORT, ["--cleartext", "--under-test"]) as runner:
         result = await curl(f"http://localhost:{SERVER_CLEARTEXT_PORT}/_tests/ok", ["--http2-prior-knowledge"])
 
         assert result.returncode == 0

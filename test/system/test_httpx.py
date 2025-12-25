@@ -137,7 +137,7 @@ async def test_httpx_logs_requests_in_access_logs():
 
 @pytest.mark.asyncio
 async def test_httpx_test_routes_not_available_if_not_under_test():
-    async with ServerRunner(SERVER_PORT, with_defaults=False) as runner:
+    async with ServerRunner(SERVER_PORT, args=[]) as runner:
         client = httpx.AsyncClient(http2=True, verify=False)
         response = await client.get(OK_URL)
         assert response.status_code == 404
