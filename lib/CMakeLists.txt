@@ -52,6 +52,7 @@ add_library(ion
         transports/transport.h
         transports/tcp_transport.cpp
         socket_fd.cpp
+        hpack/byte_reader.cpp
 )
 
 target_compile_options(ion PUBLIC ${ION_DEV_FLAGS})

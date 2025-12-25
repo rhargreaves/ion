@@ -12,42 +12,10 @@ class ByteReader {
     ByteReader(ByteReader&&) = default;
     ByteReader& operator=(ByteReader&&) = default;
 
-    [[nodiscard]] bool has_bytes(size_t count = 1) const {
-        return pos_ + count <= data_.size();
-    }
-
-    uint8_t read_byte() {
-        if (!has_bytes()) {
-            throw std::out_of_range("Attempted to read beyond buffer");
-        }
-        return data_[pos_++];
-    }
-
-    [[nodiscard]] uint8_t peek_byte() const {
-        if (!has_bytes()) {
-            throw std::out_of_range("Attempted to read beyond buffer");
-        }
-        return data_[pos_];
-    }
-
-    std::span<const uint8_t> read_bytes(size_t count) {
-        if (!has_bytes(count)) {
-            throw std::out_of_range("Attempted to read beyond buffer");
-        }
-        auto result = data_.subspan(pos_, count);
-        pos_ += count;
-
-        // ReSharper disable once CppDFALocalValueEscapesFunction
-        return result;
-    }
-
-    [[nodiscard]] size_t position() const {
-        return pos_;
-    }
-
-    [[nodiscard]] size_t remaining() const {
-        return data_.size() - pos_;
-    }
+    [[nodiscard]] bool has_bytes(size_t count = 1) const;
+    uint8_t read_byte();
+    [[nodiscard]] uint8_t peek_byte() const;
+    std::span<const uint8_t> read_bytes(size_t count);
 
    private:
     std::span<const uint8_t> data_;
