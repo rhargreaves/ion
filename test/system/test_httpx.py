@@ -1,5 +1,4 @@
-from utils import wait_for_port, run_server, stop_server, ACCESS_LOG_PATH, assert_last_log_line_is_valid, \
-    run_server_with_args
+from utils import ServerRunner, ACCESS_LOG_PATH, assert_last_log_line_is_valid
 import httpx
 import pytest
 import logging
@@ -25,169 +24,121 @@ logging.basicConfig(
 
 @pytest.mark.asyncio
 async def test_httpx_sends_custom_header_two_different_values():  # support dynamic table name lookup & decoded value
-    server = run_server(SERVER_PORT)
-    assert wait_for_port(SERVER_PORT)
-    try:
+    async with ServerRunner(SERVER_PORT) as runner:
         client = httpx.AsyncClient(http2=True, verify=False)
         resp1 = await client.get(OK_URL, headers={"foo": "bar"})
         assert resp1.status_code == 200
 
         resp2 = await client.get(OK_URL, headers={"foo": "baz"})
         assert resp2.status_code == 200
-    finally:
-        stop_server(server)
 
 
 @pytest.mark.asyncio
 async def test_httpx_returns_server_header():
-    server = run_server(SERVER_PORT)
-    assert wait_for_port(SERVER_PORT)
-    try:
+    async with ServerRunner(SERVER_PORT) as runner:
         client = httpx.AsyncClient(http2=True, verify=False)
         response = await client.get(OK_URL)
 
         assert response.status_code == 200
         assert response.headers["server"] == "ion"
-    finally:
-        stop_server(server)
 
 
 @pytest.mark.asyncio
 async def test_httpx_returns_200():
-    server = run_server(SERVER_PORT)
-    assert wait_for_port(SERVER_PORT)
-    try:
+    async with ServerRunner(SERVER_PORT) as runner:
         client = httpx.AsyncClient(http2=True, verify=False)
         response = await client.get(OK_URL)
 
         assert response.status_code == 200
-    finally:
-        stop_server(server)
 
 
 @pytest.mark.asyncio
 async def test_httpx_returns_404_for_invalid_path():
-    server = run_server(SERVER_PORT)
-    assert wait_for_port(SERVER_PORT)
-    try:
+    async with ServerRunner(SERVER_PORT) as runner:
         client = httpx.AsyncClient(http2=True, verify=False)
         response = await client.get(BASE_URL + "/invalid-path")
 
         assert response.status_code == 404
-    finally:
-        stop_server(server)
 
 
 @pytest.mark.asyncio
 async def test_httpx_returns_204_for_no_content():
-    server = run_server(SERVER_PORT)
-    assert wait_for_port(SERVER_PORT)
-    try:
+    async with ServerRunner(SERVER_PORT) as runner:
         client = httpx.AsyncClient(http2=True, verify=False)
         response = await client.get(BASE_URL + "/_tests/no_content")
 
         assert response.status_code == 204
-    finally:
-        stop_server(server)
 
 
 @pytest.mark.asyncio
 async def test_httpx_returns_static_content():
-    server = run_server(SERVER_PORT)
-    assert wait_for_port(SERVER_PORT)
-    try:
+    async with ServerRunner(SERVER_PORT) as runner:
         client = httpx.AsyncClient(http2=True, verify=False)
         response = await client.get(BASE_URL + "/static/index.html")
 
         assert response.status_code == 200
-    finally:
-        stop_server(server)
 
 
 @pytest.mark.asyncio
 async def test_httpx_returns_custom_404_page():
-    server = run_server(SERVER_PORT, [
+    async with ServerRunner(SERVER_PORT, [
         "--custom-404-file-path",
         os.path.join(os.path.dirname(__file__), "static/404.html")
-    ])
-    assert wait_for_port(SERVER_PORT)
-    try:
+    ]) as runner:
         client = httpx.AsyncClient(http2=True, verify=False)
         response = await client.get(BASE_URL + "/foo")
 
         assert response.status_code == 404
         assert response.headers["content-type"] == "text/html; charset=utf-8"
         assert "404 :(" in response.text
-    finally:
-        stop_server(server)
 
 
 @pytest.mark.asyncio
 async def test_httpx_returns_medium_body():
-    server = run_server(SERVER_PORT)
-    assert wait_for_port(SERVER_PORT)
-    try:
+    async with ServerRunner(SERVER_PORT) as runner:
         client = httpx.AsyncClient(http2=True, verify=False)
         response = await client.get(BASE_URL + "/_tests/medium_body")
 
         assert response.status_code == 200
         assert len(response.content) == 128 * 1024
-    finally:
-        stop_server(server)
 
 
 @pytest.mark.skip("wip")
 @pytest.mark.asyncio
 async def test_httpx_returns_large_body():
-    server = run_server(SERVER_PORT)
-    assert wait_for_port(SERVER_PORT)
-    try:
+    async with ServerRunner(SERVER_PORT) as runner:
         client = httpx.AsyncClient(http2=True, verify=False)
         response = await client.get(BASE_URL + "/_tests/large_body")
 
         assert response.status_code == 200
         assert len(response.content) == 16 * 1024 * 1024
-    finally:
-        stop_server(server)
 
 
 @pytest.mark.asyncio
 async def test_httpx_returns_200_for_multiple_requests_over_persistent_connection():
-    server = run_server(SERVER_PORT)
-    assert wait_for_port(SERVER_PORT)
-    try:
+    async with ServerRunner(SERVER_PORT) as runner:
         client = httpx.AsyncClient(http2=True, verify=False)
         for i in range(10):
             print(f"request {i}:")
             response = await client.get(OK_URL)
             assert response.status_code == 200
-    finally:
-        stop_server(server)
 
 
 @pytest.mark.asyncio
 async def test_httpx_logs_requests_in_access_logs():
-    server = run_server(SERVER_PORT, extra_args=["--access-log", ACCESS_LOG_PATH])
-    assert wait_for_port(SERVER_PORT)
-    try:
+    async with ServerRunner(SERVER_PORT, extra_args=["--access-log", ACCESS_LOG_PATH]) as runner:
         client = httpx.AsyncClient(http2=True, verify=False)
         response = await client.get(OK_URL)
         assert response.status_code == 200
 
         assert_last_log_line_is_valid(ACCESS_LOG_PATH)
 
-    finally:
-        stop_server(server)
         os.remove(ACCESS_LOG_PATH)
 
 
 @pytest.mark.asyncio
 async def test_httpx_test_routes_not_available_if_not_under_test():
-    server = run_server_with_args(SERVER_PORT)
-    assert wait_for_port(SERVER_PORT)
-    try:
+    async with ServerRunner(SERVER_PORT, with_defaults=False) as runner:
         client = httpx.AsyncClient(http2=True, verify=False)
         response = await client.get(OK_URL)
         assert response.status_code == 404
-    finally:
-        stop_server(server)

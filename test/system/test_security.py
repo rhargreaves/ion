@@ -1,6 +1,6 @@
 import pytest
 import sys
-from utils import wait_for_port, curl_http2, assert_curl_response_ok, run_server, stop_server, curl
+from utils import ServerRunner, curl_http2, assert_curl_response_ok, curl
 
 SERVER_CLEARTEXT_PORT = 8080
 SERVER_PORT = 8443
@@ -9,13 +9,10 @@ SECURITY_URL = URL + "/_tests/no_new_privs"
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="PR_SET_NO_NEW_PRIVS is Linux-specific")
-def test_server_enforces_no_new_privs_on_linux():
-    server = run_server(SERVER_PORT)
-    assert wait_for_port(SERVER_PORT)
-    try:
-        result = curl_http2(SECURITY_URL)
+@pytest.mark.asyncio
+async def test_server_enforces_no_new_privs_on_linux():
+    async with ServerRunner(SERVER_PORT) as runner:
+        result = await curl_http2(SECURITY_URL)
 
         assert result.returncode == 0
         assert_curl_response_ok(result)
-    finally:
-        stop_server(server)

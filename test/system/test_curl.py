@@ -1,7 +1,6 @@
 import pytest
 
-from utils import wait_for_port, curl_http2, assert_curl_response_ok, run_server, stop_server, \
-    curl
+from utils import ServerRunner, curl_http2, assert_curl_response_ok, curl
 
 SERVER_CLEARTEXT_PORT = 8080
 SERVER_PORT = 8443
@@ -9,94 +8,76 @@ URL = f"https://localhost:{SERVER_PORT}"
 OK_URL = URL + "/_tests/ok"
 
 
-def test_http2_returns_200():
-    server = run_server(SERVER_PORT)
-    assert wait_for_port(SERVER_PORT)
-    try:
-        result = curl_http2(OK_URL)
+@pytest.mark.asyncio
+async def test_http2_returns_200():
+    async with ServerRunner(SERVER_PORT) as runner:
+        result = await curl_http2(OK_URL)
 
         assert result.returncode == 0
         assert_curl_response_ok(result)
-    finally:
-        stop_server(server)
 
 
-def test_http2_request_sends_custom_header_with_short_value():
-    server = run_server(SERVER_PORT)
-    assert wait_for_port(SERVER_PORT)
-    try:
-        result = curl_http2(OK_URL, ["--header", "x-foo: bar"])  # non-huffman compressed value
+@pytest.mark.asyncio
+async def test_http2_request_sends_custom_header_with_short_value():
+    async with ServerRunner(SERVER_PORT) as runner:
+        result = await curl_http2(OK_URL, ["--header", "x-foo: bar"])  # non-huffman compressed value
 
         assert result.returncode == 0
         assert_curl_response_ok(result)
-    finally:
-        stop_server(server)
 
 
-def test_http2_request_sends_custom_header_with_long_value():
-    server = run_server(SERVER_PORT)
-    assert wait_for_port(SERVER_PORT)
-    try:
-        result = curl_http2(OK_URL,
-                            ["--header", "x-foo: foo bar baz foo bar baz foo bar baz"])  # huffman compressed value
+@pytest.mark.asyncio
+async def test_http2_request_sends_custom_header_with_long_value():
+    async with ServerRunner(SERVER_PORT) as runner:
+        result = await curl_http2(OK_URL,
+                                  ["--header",
+                                   "x-foo: foo bar baz foo bar baz foo bar baz"])  # huffman compressed value
 
         assert result.returncode == 0
         assert_curl_response_ok(result)
-    finally:
-        stop_server(server)
 
 
-def test_http2_returns_200_many_times_same_server():
-    server = run_server(SERVER_PORT)
-    try:
+@pytest.mark.asyncio
+async def test_http2_returns_200_many_times_same_server():
+    async with ServerRunner(SERVER_PORT) as runner:
         for run in range(5):
             print(f"------- run {run} -------")
-            assert wait_for_port(SERVER_PORT)
-            result = curl_http2(OK_URL)
+            result = await curl_http2(OK_URL)
             assert result.returncode == 0
             assert_curl_response_ok(result)
-    finally:
-        stop_server(server)
 
 
-def test_supports_cleartext_http2():
-    server = run_server(SERVER_CLEARTEXT_PORT, ["--cleartext"])
-    assert wait_for_port(SERVER_CLEARTEXT_PORT)
-    try:
-        result = curl(f"http://localhost:{SERVER_CLEARTEXT_PORT}/_tests/ok", ["--http2-prior-knowledge"])
+@pytest.mark.asyncio
+async def test_supports_cleartext_http2():
+    async with ServerRunner(SERVER_CLEARTEXT_PORT, ["--cleartext"]) as runner:
+        result = await curl(f"http://localhost:{SERVER_CLEARTEXT_PORT}/_tests/ok", ["--http2-prior-knowledge"])
 
         assert result.returncode == 0
         assert_curl_response_ok(result)
-    finally:
-        stop_server(server)
 
 
-def test_drops_http1_connections():
-    server = run_server(SERVER_CLEARTEXT_PORT, ["--cleartext"])
-    assert wait_for_port(SERVER_CLEARTEXT_PORT)
-    try:
-        result = curl(f"http://localhost:{SERVER_CLEARTEXT_PORT}/_tests/ok", ["--http1.1"])
+@pytest.mark.asyncio
+async def test_drops_http1_connections():
+    async with ServerRunner(SERVER_CLEARTEXT_PORT, ["--cleartext"]) as runner:
+        result = await curl(f"http://localhost:{SERVER_CLEARTEXT_PORT}/_tests/ok", ["--http1.1"])
         assert result.returncode == 1
-        stop_server(server)
 
-        stdout, _ = server.communicate()
+        await runner.stop()
+        stdout = runner.get_stdout()
         assert stdout.count("invalid HTTP/2 preface received") == 1
-    finally:
-        stop_server(server)
 
 
-def text_curl_returns_large_body():
-    server = run_server(SERVER_PORT)
-    assert wait_for_port(SERVER_PORT)
-    try:
-        result = curl_http2(URL + "/_tests/large_body")
+@pytest.mark.asyncio
+@pytest.mark.skip("wip")
+async def test_curl_returns_large_body():
+    async with ServerRunner(SERVER_PORT) as runner:
+        result = await curl_http2(URL + "/_tests/large_body")
 
         assert result.returncode == 0
         assert_curl_response_ok(result)
-    finally:
-        stop_server(server)
 
 
-def test_http2_test_server_closes_connection_cleanly():
+@pytest.mark.asyncio
+async def test_http2_test_server_closes_connection_cleanly():
     for _ in range(10):
-        test_http2_returns_200()
+        await test_http2_returns_200()
