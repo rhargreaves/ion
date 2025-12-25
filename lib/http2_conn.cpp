@@ -97,11 +97,15 @@ void Http2Connection::write_data_response(uint32_t stream_id, const std::vector<
         if (!bytes_written_res) {
             spdlog::error("Failed to write data frame for stream {}: error: {}", stream_id,
                           static_cast<int>(bytes_written_res.error()));
-        }
-
-        if (*bytes_written_res != chunk_size) {
-            spdlog::error("Failed to write data frame for stream {}: only wrote {} of {} bytes",
-                          stream_id, *bytes_written_res, chunk_size);
+            if (bytes_written_res.error() == TransportError::ProtocolError) {
+                update_state(Http2ConnectionState::ProtocolError);
+                return;
+            }
+        } else {
+            if (*bytes_written_res != chunk_size) {
+                spdlog::error("Failed to write data frame for stream {}: only wrote {} of {} bytes",
+                              stream_id, *bytes_written_res, chunk_size);
+            }
         }
 
         start += chunk_size;

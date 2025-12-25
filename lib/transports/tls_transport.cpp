@@ -205,9 +205,21 @@ std::expected<ssize_t, TransportError> TlsTransport::read(std::span<uint8_t> buf
 std::expected<ssize_t, TransportError> TlsTransport::write(std::span<const uint8_t> buffer) const {
     const auto bytes_written = SSL_write(ssl_, buffer.data(), static_cast<int>(buffer.size()));
     if (bytes_written < 0) {
-        const int ssl_error = SSL_get_error(ssl_, bytes_written);
-        spdlog::error("SSL write error: {}", std::to_string(ssl_error));
-        return std::unexpected(TransportError::WriteError);
+        switch (const int ssl_error = SSL_get_error(ssl_, bytes_written)) {
+            case SSL_ERROR_WANT_READ:
+            case SSL_ERROR_WANT_WRITE:
+                spdlog::trace("SSL want read/write");
+                return std::unexpected(TransportError::WantReadOrWrite);
+            case SSL_ERROR_ZERO_RETURN:
+                spdlog::debug("TLS connection closed");
+                return std::unexpected(TransportError::ConnectionClosed);
+            case SSL_ERROR_SSL:
+                spdlog::error("TLS protocol error (SSL_ERROR_SSL)");
+                return std::unexpected(TransportError::ProtocolError);
+            default:
+                spdlog::error("TLS protocol error (SSL_ERROR={})", ssl_error);
+                return std::unexpected(TransportError::ProtocolError);
+        }
     }
     if (bytes_written != static_cast<int>(buffer.size())) {
         spdlog::error("SSL partial write: wrote {} of {} bytes", bytes_written, buffer.size());

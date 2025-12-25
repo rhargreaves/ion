@@ -8,7 +8,7 @@ TLS_CERT_PATH = os.path.join(os.path.dirname(__file__), "../../../cert.pem")
 TLS_KEY_PATH = os.path.join(os.path.dirname(__file__), "../../../key.pem")
 
 DEFAULT_ARGS = ["-s", "/static", STATIC_DIR,
-                "-l", "debug",
+                "-l", "trace",
                 "--under-test",
                 "--tls-cert-path", TLS_CERT_PATH,
                 "--tls-key-path", TLS_KEY_PATH]
@@ -64,7 +64,6 @@ async def curl(url, args=None):
         stderr=asyncio.subprocess.PIPE
     )
     stdout, stderr = await proc.communicate()
-    print(f"STDOUT: {stdout.decode()}")
     print(f"STDERR: {stderr.decode()}")
 
     class Result:
@@ -84,8 +83,6 @@ async def curl_http2(url, custom_args=None):
 
 
 def assert_curl_response_ok(result):
-    print("stdout: " + result.stdout)
-    print("stderr: " + result.stderr)
     assert "< HTTP/2 200" in result.stderr
 
 
