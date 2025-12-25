@@ -3,9 +3,9 @@ import os
 import re
 import asyncio
 
-STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
-TLS_CERT_PATH = os.path.join(os.path.dirname(__file__), "../../cert.pem")
-TLS_KEY_PATH = os.path.join(os.path.dirname(__file__), "../../key.pem")
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "../static")
+TLS_CERT_PATH = os.path.join(os.path.dirname(__file__), "../../../cert.pem")
+TLS_KEY_PATH = os.path.join(os.path.dirname(__file__), "../../../key.pem")
 
 DEFAULT_ARGS = ["-s", "/static", STATIC_DIR,
                 "-l", "debug",

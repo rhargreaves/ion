@@ -34,7 +34,7 @@ test-integration: $(CERT_PEM) $(KEY_PEM)
 
 test-system: $(CERT_PEM) $(KEY_PEM)
 	pip3 install -q -r test/system/requirements.txt
-	python3 -m pytest test/system/ $(PYTEST_ARGS)
+	PYTHONPATH=test/system python3 -m pytest test/system/ $(PYTEST_ARGS)
 .PHONY: test-system
 
 test-h2spec:

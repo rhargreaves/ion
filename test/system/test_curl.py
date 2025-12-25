@@ -1,7 +1,7 @@
 import pytest
 
-from server_runner import ServerRunner
-from utils import curl_http2, assert_curl_response_ok, curl
+from helpers.server_runner import ServerRunner
+from helpers.utils import curl_http2, assert_curl_response_ok, curl
 
 SERVER_CLEARTEXT_PORT = 8080
 SERVER_PORT = 8443

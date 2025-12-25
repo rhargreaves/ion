@@ -1,9 +1,9 @@
 import pytest
 
 SERVER_PORT = 8443
-from h2_helpers import create_connection, send_request, close_connection
+from helpers.h2_helpers import create_connection, send_request, close_connection
 
-from server_runner import ServerRunner
+from helpers.server_runner import ServerRunner
 
 
 @pytest.mark.asyncio

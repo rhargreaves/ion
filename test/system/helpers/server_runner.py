@@ -1,7 +1,7 @@
 import os
 import asyncio
 import io
-from utils import DEFAULT_ARGS, wait_for_port
+from .utils import DEFAULT_ARGS, wait_for_port
 
 
 class ServerRunner:

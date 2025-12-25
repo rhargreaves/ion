@@ -1,5 +1,5 @@
-from utils import assert_last_log_line_is_valid
-from server_runner import ServerRunner
+from helpers.utils import assert_last_log_line_is_valid
+from helpers.server_runner import ServerRunner
 import httpx
 import pytest
 import logging
