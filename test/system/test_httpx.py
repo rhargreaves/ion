@@ -1,4 +1,4 @@
-from utils import ServerRunner, ACCESS_LOG_PATH, assert_last_log_line_is_valid
+from utils import ServerRunner, assert_last_log_line_is_valid
 import httpx
 import pytest
 import logging
