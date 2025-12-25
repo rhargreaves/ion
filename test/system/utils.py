@@ -5,8 +5,6 @@ import re
 import asyncio
 import io
 
-ACCESS_LOG_PATH = "/tmp/ion-system-tests-access.log"
-
 
 async def wait_for_port(port, timeout=5):
     print(f"waiting for port {port} to be open")
@@ -170,11 +168,10 @@ def assert_curl_response_ok(result):
     assert "< HTTP/2 200" in result.stderr
 
 
-def assert_last_log_line_is_valid(log_path):
-    with open(log_path, 'r') as f:
-        lines = [line.strip() for line in f.readlines() if line.strip()]
-        assert lines, "Access log is empty"
-        last_line = lines[-1]
+def assert_last_log_line_is_valid(buffer):
+    lines = [line.strip() for line in buffer.splitlines() if line.strip()]
+    assert lines, "Access log is empty"
+    last_line = lines[-1]
 
     # Combined Log Format Regex:
     # 1. IP

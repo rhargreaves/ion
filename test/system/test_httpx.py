@@ -126,14 +126,13 @@ async def test_httpx_returns_200_for_multiple_requests_over_persistent_connectio
 
 @pytest.mark.asyncio
 async def test_httpx_logs_requests_in_access_logs():
-    async with ServerRunner(SERVER_PORT, extra_args=["--access-log", ACCESS_LOG_PATH]) as runner:
+    async with ServerRunner(SERVER_PORT, extra_args=["--access-log", "/dev/stderr"]) as runner:
         client = httpx.AsyncClient(http2=True, verify=False)
         response = await client.get(OK_URL)
         assert response.status_code == 200
 
-        assert_last_log_line_is_valid(ACCESS_LOG_PATH)
-
-        os.remove(ACCESS_LOG_PATH)
+        await runner.stop()
+        assert_last_log_line_is_valid(runner.get_stderr())
 
 
 @pytest.mark.asyncio
