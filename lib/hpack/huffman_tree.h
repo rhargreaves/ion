@@ -1,4 +1,5 @@
 #pragma once
+#include <expected>
 #include <memory>
 #include <optional>
 #include <span>
@@ -16,13 +17,15 @@ struct HuffmanNode {
     }
 };
 
+enum class HuffmanDecodeError { InvalidCode };
+
 class HuffmanTree {
    public:
     HuffmanTree() = default;
     ~HuffmanTree() = default;
 
     void insert_symbol(int16_t symbol, uint32_t lsb_aligned_code, uint8_t code_len);
-    std::vector<uint8_t> decode(std::span<const uint8_t> data);
+    std::expected<std::vector<uint8_t>, HuffmanDecodeError> decode(std::span<const uint8_t> data);
 
    private:
     std::unique_ptr<HuffmanNode> root_ = std::make_unique<HuffmanNode>();

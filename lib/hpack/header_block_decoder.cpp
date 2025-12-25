@@ -43,14 +43,17 @@ std::expected<std::string, FrameError> HeaderBlockDecoder::read_length_and_strin
     return read_string(is_huffman, str_size, reader.read_bytes(str_size));
 }
 
-std::string HeaderBlockDecoder::read_string(bool is_huffman, size_t size,
-                                            std::span<const uint8_t> data) {
+std::expected<std::string, FrameError> HeaderBlockDecoder::read_string(
+    bool is_huffman, size_t size, std::span<const uint8_t> data) {
     if (is_huffman) {
-        auto raw_bytes = huffman_tree_.decode(data.subspan(0, size));
-        return {raw_bytes.begin(), raw_bytes.end()};
+        auto bytes_res = huffman_tree_.decode(data.subspan(0, size));
+        if (!bytes_res) {
+            return std::unexpected{FrameError::ProtocolError};
+        }
+        return std::string{bytes_res->begin(), bytes_res->end()};
     }
     auto raw_data = data.subspan(0, size);
-    return {raw_data.begin(), raw_data.end()};
+    return std::string{raw_data.begin(), raw_data.end()};
 }
 
 std::expected<HttpHeader, FrameError> HeaderBlockDecoder::read_indexed_header(size_t index) {

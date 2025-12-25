@@ -3,6 +3,7 @@
 #include <format>
 
 #include "bit_reader.h"
+#include "spdlog/spdlog.h"
 
 namespace ion {
 
@@ -33,7 +34,8 @@ void HuffmanTree::insert_symbol(int16_t symbol, uint32_t lsb_aligned_code, uint8
     current->symbol = symbol;
 }
 
-std::vector<uint8_t> HuffmanTree::decode(std::span<const uint8_t> data) {
+std::expected<std::vector<uint8_t>, HuffmanDecodeError> HuffmanTree::decode(
+    std::span<const uint8_t> data) {
     std::vector<uint8_t> result;
 
     BitReader br{data};
@@ -50,9 +52,9 @@ std::vector<uint8_t> HuffmanTree::decode(std::span<const uint8_t> data) {
         if (!current) {
             while (br.has_more()) {
                 if (!br.read_bit()) {
-                    throw std::runtime_error(std::format(
-                        "remaining unmatched Huffman code is not padding: (bit pos = {})",
-                        bits_processed));
+                    spdlog::error("remaining unmatched Huffman code is not padding: (bit pos = {})",
+                                  bits_processed);
+                    return std::unexpected{HuffmanDecodeError::InvalidCode};
                 }
                 bits_processed++;
             }

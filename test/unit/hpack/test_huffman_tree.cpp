@@ -17,7 +17,7 @@ TEST_CASE("huffman tree builds & decodes correctly") {
 
         std::array<uint8_t, 4> encoded = {0b1111'1111, 0b1100'0111, 0b1111'1101, 0b0111'1111};
 
-        auto symbols = tree.decode(encoded);
+        auto symbols = *tree.decode(encoded);
 
         REQUIRE(symbols.size() == 2);
         REQUIRE(symbols[0] == 0);
@@ -31,7 +31,7 @@ TEST_CASE("huffman tree builds & decodes correctly") {
         writer.write_bits(0x00, 5);
         auto test_data = writer.finalize();
 
-        auto symbols = tree.decode(test_data);
+        auto symbols = *tree.decode(test_data);
 
         REQUIRE(symbols.size() == 1);
         REQUIRE(symbols[0] == 48);
@@ -45,7 +45,7 @@ TEST_CASE("huffman tree builds & decodes correctly") {
             writer.write_bits(code.lsb_aligned_code, code.code_len);
         }
         auto bitstream = writer.finalize();
-        auto symbols = tree.decode(bitstream);
+        auto symbols = *tree.decode(bitstream);
 
         REQUIRE(symbols.size() == ion::HUFFMAN_CODES.size());
     }
@@ -55,8 +55,8 @@ TEST_CASE("huffman tree builds & decodes correctly") {
 
         std::array<uint8_t, 1> encoded = {0x0};
 
-        CHECK_THROWS_MATCHES(tree.decode(encoded), std::runtime_error,
-                             Catch::Matchers::Message(
-                                 "remaining unmatched Huffman code is not padding: (bit pos = 1)"));
+        auto res = tree.decode(encoded);
+        REQUIRE(!res);
+        REQUIRE(res.error() == ion::HuffmanDecodeError::InvalidCode);
     }
 }
