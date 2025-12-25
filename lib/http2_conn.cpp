@@ -169,11 +169,11 @@ void Http2Connection::discard_processed_buffer(size_t length) {
     buffer_.erase(buffer_.begin(), buffer_.begin() + length);
 }
 
-bool Http2Connection::try_read_preface() {
+ReadPrefaceResult Http2Connection::read_preface() {
     if (buffer_.size() < CLIENT_PREFACE.length()) {
         spdlog::trace("not enough data for preface ({} < {})", buffer_.size(),
                       CLIENT_PREFACE.length());
-        return false;
+        return ReadPrefaceResult::NotEnoughData;
     }
     std::span<const uint8_t, CLIENT_PREFACE.size()> preface_span{buffer_.data(),
                                                                  CLIENT_PREFACE.size()};
@@ -181,14 +181,14 @@ bool Http2Connection::try_read_preface() {
                                     preface_span.size());
     if (received != CLIENT_PREFACE) {
         spdlog::error("invalid HTTP/2 preface received");
-        return false;
+        return ReadPrefaceResult::ProtocolError;
     }
 
     spdlog::info("valid HTTP/2 preface received");
     write_settings();
     update_state(Http2ConnectionState::AwaitingFrame);
     discard_processed_buffer(CLIENT_PREFACE.size());
-    return true;
+    return ReadPrefaceResult::Success;
 }
 
 bool Http2Connection::try_read_frame() {
@@ -308,10 +308,14 @@ Http2ProcessResult Http2Connection::process_state() {
 
     switch (state_) {
         case Http2ConnectionState::AwaitingPreface: {
-            if (try_read_preface()) {
-                return Http2ProcessResult::Complete;
+            switch (read_preface()) {
+                case ReadPrefaceResult::Success:
+                    return Http2ProcessResult::Complete;
+                case ReadPrefaceResult::NotEnoughData:
+                    return Http2ProcessResult::Incomplete;
+                case ReadPrefaceResult::ProtocolError:
+                    return Http2ProcessResult::ProtocolError;
             }
-            return Http2ProcessResult::Incomplete;
         }
         case Http2ConnectionState::AwaitingFrame: {
             if (try_read_frame()) {

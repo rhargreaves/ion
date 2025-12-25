@@ -71,6 +71,20 @@ def test_supports_cleartext_http2():
         stop_server(server)
 
 
+def test_drops_http1_connections():
+    server = run_server(SERVER_CLEARTEXT_PORT, ["--cleartext"])
+    assert wait_for_port(SERVER_CLEARTEXT_PORT)
+    try:
+        result = curl(f"http://localhost:{SERVER_CLEARTEXT_PORT}/_tests/ok", ["--http1.1"])
+        assert result.returncode == 1
+        stop_server(server)
+
+        stdout, _ = server.communicate()
+        assert stdout.count("invalid HTTP/2 preface received") == 1
+    finally:
+        stop_server(server)
+
+
 def text_curl_returns_large_body():
     server = run_server(SERVER_PORT)
     assert wait_for_port(SERVER_PORT)

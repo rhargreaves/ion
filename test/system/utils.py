@@ -15,7 +15,10 @@ def run_server_with_args(port, args=None):
            str(port)
            ] + args
 
-    p = subprocess.Popen(cmd)
+    p = subprocess.Popen(cmd,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE,
+                         text=True)
     print(f"server pid = {p.pid}")
     return p
 
@@ -28,7 +31,7 @@ def run_server(port, extra_args=None):
         "-s",
         "/static",
         os.path.join(os.path.dirname(__file__), "static"),
-        "-l", "trace",
+        "-l", "info",
         "--under-test",
     ] + extra_args)
 
