@@ -27,20 +27,21 @@ HeaderBlockDecoder::HeaderBlockDecoder(DynamicTable& dynamic_table)
 
 std::expected<std::string, FrameError> HeaderBlockDecoder::read_length_and_string(
     ByteReader& reader) {
-    if (!reader.has_bytes()) {
+    const auto length_byte_res = reader.read_byte();
+    if (!length_byte_res) {
         spdlog::error("Unexpected end of data while reading header length & string");
         return std::unexpected(FrameError::ProtocolError);
     }
 
-    uint8_t length_byte = reader.read_byte();
-    bool is_huffman = length_byte & 0x80;
-    auto str_size = length_byte & 0x7F;
+    const bool is_huffman = *length_byte_res & 0x80;
+    const auto str_size = *length_byte_res & 0x7F;
 
-    if (!reader.has_bytes(str_size)) {
+    const auto str_span_res = reader.read_bytes(str_size);
+    if (!str_span_res) {
         spdlog::error("Insufficient data for string");
         return std::unexpected(FrameError::ProtocolError);
     }
-    return read_string(is_huffman, str_size, reader.read_bytes(str_size));
+    return read_string(is_huffman, str_size, *str_span_res);
 }
 
 std::expected<std::string, FrameError> HeaderBlockDecoder::read_string(
@@ -144,7 +145,7 @@ std::expected<std::vector<HttpHeader>, FrameError> HeaderBlockDecoder::decode(
     ByteReader reader(data);
 
     while (reader.has_bytes()) {
-        uint8_t first_byte = reader.peek_byte();
+        uint8_t first_byte = *reader.peek_byte();
         auto type = HeaderField::from_byte(first_byte);
         spdlog::trace("header type: {}, byte: 0x{:02X}", HeaderField::to_string(type), first_byte);
         switch (type) {

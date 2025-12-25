@@ -4,23 +4,23 @@ bool ByteReader::has_bytes(size_t count) const {
     return pos_ + count <= data_.size();
 }
 
-uint8_t ByteReader::read_byte() {
+std::expected<uint8_t, ByteReaderError> ByteReader::read_byte() {
     if (!has_bytes()) {
-        throw std::out_of_range("Attempted to read beyond buffer");
+        return std::unexpected(ByteReaderError::NotEnoughBytes);
     }
     return data_[pos_++];
 }
 
-uint8_t ByteReader::peek_byte() const {
+std::expected<uint8_t, ByteReaderError> ByteReader::peek_byte() const {
     if (!has_bytes()) {
-        throw std::out_of_range("Attempted to read beyond buffer");
+        return std::unexpected(ByteReaderError::NotEnoughBytes);
     }
     return data_[pos_];
 }
 
-std::span<const uint8_t> ByteReader::read_bytes(size_t count) {
+std::expected<std::span<const uint8_t>, ByteReaderError> ByteReader::read_bytes(size_t count) {
     if (!has_bytes(count)) {
-        throw std::out_of_range("Attempted to read beyond buffer");
+        return std::unexpected(ByteReaderError::NotEnoughBytes);
     }
     const auto result = data_.subspan(pos_, count);
     pos_ += count;

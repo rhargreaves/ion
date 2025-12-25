@@ -1,6 +1,9 @@
 #pragma once
 
+#include <expected>
 #include <span>
+
+enum class ByteReaderError { NotEnoughBytes };
 
 class ByteReader {
    public:
@@ -13,9 +16,9 @@ class ByteReader {
     ByteReader& operator=(ByteReader&&) = default;
 
     [[nodiscard]] bool has_bytes(size_t count = 1) const;
-    uint8_t read_byte();
-    [[nodiscard]] uint8_t peek_byte() const;
-    std::span<const uint8_t> read_bytes(size_t count);
+    std::expected<uint8_t, ByteReaderError> read_byte();
+    [[nodiscard]] std::expected<uint8_t, ByteReaderError> peek_byte() const;
+    std::expected<std::span<const uint8_t>, ByteReaderError> read_bytes(size_t count);
 
    private:
     std::span<const uint8_t> data_;
