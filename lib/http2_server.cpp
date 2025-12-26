@@ -33,7 +33,7 @@ std::unique_ptr<Transport> Http2Server::create_transport(SocketFd&& fd) const {
 }
 
 void Http2Server::establish_conn(TcpListener& listener) {
-    auto fd = listener.try_accept(std::chrono::milliseconds{0});
+    auto fd = listener.try_accept();
     if (!fd) {
         return;
     }
@@ -89,6 +89,10 @@ void Http2Server::start(uint16_t port) {
             continue;
         }
         if (ret < 0) {
+            if (errno == EINTR) {
+                spdlog::warn("poll interrupted by signal");
+                continue;
+            }
             spdlog::error("poll failed: {}", strerror(errno));
             continue;
         }

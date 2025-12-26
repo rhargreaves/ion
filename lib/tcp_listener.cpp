@@ -62,7 +62,7 @@ TcpListener::TcpListener(uint16_t port) {
     bind_socket(port);
 }
 
-void TcpListener::listen() const {
+void TcpListener::listen() {
     if (::listen(server_fd_, 1) < 0) {
         throw std::system_error(errno, std::system_category(), "listen");
     }
@@ -72,34 +72,22 @@ int TcpListener::raw_fd() const {
     return server_fd_;
 }
 
-std::optional<SocketFd> TcpListener::try_accept(std::chrono::milliseconds timeout) {
-    pollfd pfd = {server_fd_, POLLIN, 0};
-    const int result = poll(&pfd, 1, to_poll_timeout_ms(timeout));
-    if (result < 0) {
-        if (errno == EINTR) {
-            spdlog::warn("poll interrupted by signal (ignoring)");
-            return std::nullopt;
-        }
+std::optional<SocketFd> TcpListener::try_accept() {
+    sockaddr_in client_addr{};
+    socklen_t client_len = sizeof(client_addr);
 
-        throw std::system_error(errno, std::system_category(), "poll");
+    const int fd = ::accept(server_fd_, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
+    if (fd >= 0) {
+        auto client_fd = SocketFd(fd);
+        set_nonblocking_socket(client_fd);  // required for Linux. macOS inherits from server_fd!
+        return client_fd;
     }
 
-    if (pfd.revents & POLLIN) {
-        sockaddr_in client_addr{};
-        socklen_t client_len = sizeof(client_addr);
-        const int fd = ::accept(server_fd_, reinterpret_cast<sockaddr*>(&client_addr), &client_len);
-        if (fd >= 0) {
-            auto client_fd = SocketFd(fd);
-            set_nonblocking_socket(
-                client_fd);  // required for Linux. macOS inherits from server_fd!
-            return client_fd;
-        }
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            return std::nullopt;
-        }
-        throw std::system_error(errno, std::system_category(), "accept");
+    if (errno == EAGAIN || errno == EINTR) {
+        return std::nullopt;
     }
-    return std::nullopt;
+
+    throw std::system_error(errno, std::system_category(), "accept");
 }
 
 void TcpListener::close() {
