@@ -21,7 +21,8 @@ I'm documenting non-obvious stuff I've learnt along the way in [LEARNINGS.md](do
     * Huffman encoded & plain text strings
 * Supports response body, status codes
 * Route registration
-* Static file serving
+* Middleware support for manipulating requests/responses
+* Static file serving (GET, HEAD requests)
 * Combined Log Format (CLF) access logs
 * Close server using Ctrl+C (`SIGINT`) or `SIGTERM`
 
