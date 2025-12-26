@@ -36,19 +36,16 @@ std::optional<std::vector<uint8_t>> FileReader::read_file(const std::string& pat
 }
 
 std::optional<size_t> FileReader::get_file_size(const std::string& path) {
-    std::ifstream file(path, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
-        spdlog::warn("Failed to open file: {}", path);
-        return std::nullopt;
+    std::error_code ec;
+    if (std::filesystem::exists(path, ec) && std::filesystem::is_regular_file(path, ec)) {
+        auto size = std::filesystem::file_size(path, ec);
+        if (!ec) {
+            return size;
+        }
     }
 
-    const auto size = file.tellg();
-    if (size == -1) {
-        spdlog::error("Failed to get file size: {}", path);
-        return std::nullopt;
-    }
-
-    return size;
+    spdlog::warn("Failed to get file size for {}: {}", path, ec.message());
+    return std::nullopt;
 }
 
 std::string FileReader::get_mime_type(const std::string& path) {
