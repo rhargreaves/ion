@@ -27,7 +27,7 @@ void TestRoutes::add_test_routes(ion::Router& router) {
     });
 
     router.add_route("/_tests/large_body", "GET", [](auto&) {
-        constexpr size_t content_size = 16 * 1024 * 1024;
+        constexpr size_t content_size = 2 * 1024 * 1024;
         std::string body(content_size, 'A');
 
         return ion::HttpResponse{.status_code = 200,

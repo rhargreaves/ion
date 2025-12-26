@@ -90,8 +90,8 @@ void Http2Connection::write_data_response(uint32_t stream_id, const std::vector<
 
         write_frame_header(frame_header);
 
-        spdlog::trace("Writing data frame for stream {} with size {} & remaining {}", stream_id,
-                      chunk_size, remaining_bytes);
+        spdlog::trace("enqueuing data frame for write (size: {}, rem: {})", chunk_size,
+                      remaining_bytes);
 
         enqueue_write(std::span(body.data() + start, chunk_size));
 
@@ -305,6 +305,11 @@ Http2ProcessResult Http2Connection::internal_process() {
 
     flush_write_buffer();
 
+    // If we still have data to send, we are blocked on writing
+    if (!write_buffer_.empty()) {
+        return Http2ProcessResult::WantWrite;
+    }
+
     if (state_ == Http2ConnectionState::AwaitingPreface ||
         state_ == Http2ConnectionState::AwaitingFrame) {
         populate_read_buffer();  // updates connection state on error
@@ -343,7 +348,8 @@ Http2ProcessResult Http2Connection::internal_process() {
 void Http2Connection::close() {
     write_goaway(1, (state_ != Http2ConnectionState::ProtocolError) ? ErrorCode::no_error
                                                                     : ErrorCode::protocol_error);
-    spdlog::debug("GOAWAY frame sent");
+    spdlog::debug("GOAWAY frame enqueued");
+    flush_write_buffer();
     transport_->graceful_shutdown();
 }
 
@@ -403,29 +409,7 @@ HttpResponse Http2Connection::process_request(const std::vector<HttpHeader>& hea
 }
 
 void Http2Connection::enqueue_write(std::span<const uint8_t> data) {
-    // append to the buffer if pending (we'll let process() flush this)
-    if (!write_buffer_.empty()) {
-        write_buffer_.insert(write_buffer_.end(), data.begin(), data.end());
-        return;
-    }
-
-    // try to write directly
-    auto result = transport_->write(data);
-    if (!result) {
-        if (result.error() == TransportError::WantReadOrWrite) {
-            write_buffer_.insert(write_buffer_.end(), data.begin(), data.end());
-        } else {
-            spdlog::error("failed to write to transport: error: {}",
-                          static_cast<int>(result.error()));
-            update_state(Http2ConnectionState::ProtocolError);
-        }
-        return;
-    }
-
-    // if partial write, buffer the rest
-    if (*result < data.size()) {
-        write_buffer_.insert(write_buffer_.end(), data.begin() + *result, data.end());
-    }
+    write_buffer_.insert(write_buffer_.end(), data.begin(), data.end());
 }
 
 void Http2Connection::flush_write_buffer() {
@@ -433,9 +417,16 @@ void Http2Connection::flush_write_buffer() {
         return;
     }
 
+    // try to write the entire pending buffer.
+    // if transport_->write uses SSL_write, we must pass the same write_buffer_.data()
+    // until it succeeds or we will error out with SSL_ERROR_SSL!
     auto result = transport_->write(write_buffer_);
     if (!result) {
-        if (result.error() != TransportError::WantReadOrWrite) {
+        if (result.error() == TransportError::WantReadOrWrite) {
+            // do nothing. The buffer remains intact for the next attempt.
+            // SSL_write requirement: address and size stay the same.
+            spdlog::trace("transport busy, write will be resumed later");
+        } else {
             spdlog::error("failed to flush write buffer: error: {}",
                           static_cast<int>(result.error()));
             update_state(Http2ConnectionState::ProtocolError);

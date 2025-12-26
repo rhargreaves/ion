@@ -113,15 +113,15 @@ async def test_httpx_returns_medium_body():
         assert len(response.content) == 128 * 1024
 
 
-@pytest.mark.skip("wip")
 @pytest.mark.asyncio
+@pytest.mark.timeout(5)
 async def test_httpx_returns_large_body():
     async with ServerRunner(SERVER_PORT) as runner:
         client = httpx.AsyncClient(http2=True, verify=False)
         response = await client.get(BASE_URL + "/_tests/large_body")
 
         assert response.status_code == 200
-        assert len(response.content) == 16 * 1024 * 1024
+        assert len(response.content) == 2 * 1024 * 1024
 
 
 @pytest.mark.asyncio

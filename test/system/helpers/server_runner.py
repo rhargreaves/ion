@@ -80,4 +80,9 @@ class ServerRunner:
         return await self.start()
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is not None:
+            print(f"\n--- Test Failed/Interrupted ({exc_type.__name__}) ---")
+            print(f"Server STDOUT:\n{self.get_stdout()}")
+            print(f"Server STDERR:\n{self.get_stderr()}")
+
         await self.stop()

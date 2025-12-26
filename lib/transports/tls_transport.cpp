@@ -184,8 +184,10 @@ std::expected<ssize_t, TransportError> TlsTransport::read(std::span<uint8_t> buf
     if (bytes_read <= 0) {
         switch (const int ssl_error = SSL_get_error(ssl_, bytes_read)) {
             case SSL_ERROR_WANT_READ:
+                spdlog::trace("SSL want read");
+                return std::unexpected(TransportError::WantReadOrWrite);
             case SSL_ERROR_WANT_WRITE:
-                spdlog::trace("SSL want read/write");
+                spdlog::trace("SSL want write");
                 return std::unexpected(TransportError::WantReadOrWrite);
             case SSL_ERROR_ZERO_RETURN:
                 spdlog::debug("TLS connection closed");
@@ -207,8 +209,10 @@ std::expected<ssize_t, TransportError> TlsTransport::write(std::span<const uint8
     if (bytes_written < 0) {
         switch (const int ssl_error = SSL_get_error(ssl_, bytes_written)) {
             case SSL_ERROR_WANT_READ:
+                spdlog::trace("SSL want read");
+                return std::unexpected(TransportError::WantReadOrWrite);
             case SSL_ERROR_WANT_WRITE:
-                spdlog::trace("SSL want read/write");
+                spdlog::trace("SSL want write");
                 return std::unexpected(TransportError::WantReadOrWrite);
             case SSL_ERROR_ZERO_RETURN:
                 spdlog::debug("TLS connection closed");

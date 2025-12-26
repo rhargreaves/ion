@@ -68,8 +68,6 @@ async def test_drops_http1_connections():
         assert stdout.count("invalid HTTP/2 preface received") == 1
 
 
-# @pytest.mark.only
-@pytest.mark.skip("wip")
 @pytest.mark.asyncio
 async def test_curl_returns_large_body():
     async with ServerRunner(SERVER_PORT) as runner:
