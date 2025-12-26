@@ -68,6 +68,21 @@ class CurlClient {
         curl_result_.reset();
 
         curl_easy_setopt(curl_, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl_, CURLOPT_HTTPGET, 1L);
+        const auto res = curl_easy_perform(curl_);
+        if (res != CURLE_OK) {
+            throw std::runtime_error(curl_easy_strerror(res));
+        }
+
+        curl_easy_getinfo(curl_, CURLINFO_RESPONSE_CODE, &curl_result_.status_code);
+        return curl_result_;
+    }
+
+    CurlResult head(const std::string& url) {
+        curl_result_.reset();
+
+        curl_easy_setopt(curl_, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl_, CURLOPT_NOBODY, 1L);
         const auto res = curl_easy_perform(curl_);
         if (res != CURLE_OK) {
             throw std::runtime_error(curl_easy_strerror(res));

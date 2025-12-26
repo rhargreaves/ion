@@ -34,6 +34,15 @@ TEST_CASE("static: basic static file mapping") {
         CHECK(res.body.find("Hello from static") != std::string::npos);
     }
 
+    SECTION ("supports HEAD requests") {
+        const auto res =
+            client.head(std::format("https://localhost:{}/static/index.html", TEST_PORT));
+        REQUIRE(res.status_code == 200);
+        REQUIRE(res.headers.contains("content-type"));
+        CHECK(res.headers.at("content-type").starts_with("text/html"));
+        REQUIRE(res.body.empty());
+    }
+
     SECTION ("maps /static to index.html") {
         const auto res = client.get(std::format("https://localhost:{}/static", TEST_PORT));
         REQUIRE(res.status_code == 200);

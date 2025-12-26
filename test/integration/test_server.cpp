@@ -24,7 +24,7 @@ TEST_CASE("server: returns x-powered-by header (frontends overwrite server heade
     REQUIRE(res.headers.at("x-powered-by") == "ion");
 }
 
-TEST_CASE("server: returns static code") {
+TEST_CASE("server: returns status code") {
     auto server = TestHelpers::create_test_server();
 
     server.router().add_route("/", "GET",

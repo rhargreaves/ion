@@ -37,7 +37,7 @@ void run_server(const Args& args) {
 
                 if (res.status_code == 404) {
                     auto file_res =
-                        ion::StaticFileHandler::file_response(args.status_404_file_path);
+                        ion::StaticFileHandler::file_response(args.status_404_file_path, false);
                     file_res.status_code = 404;
                     return file_res;
                 }

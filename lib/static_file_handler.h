@@ -9,8 +9,8 @@ class StaticFileHandler {
    public:
     StaticFileHandler(const std::string& url_prefix, const std::string& filesystem_root);
     bool matches(const std::string& path) const;
-    HttpResponse handle(const std::string& path) const;
-    static HttpResponse file_response(const std::string& path);
+    HttpResponse handle(const std::string& path, bool is_head) const;
+    static HttpResponse file_response(const std::string& path, bool is_head);
 
    private:
     std::string url_prefix_;

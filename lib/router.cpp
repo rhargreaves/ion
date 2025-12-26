@@ -18,11 +18,11 @@ RouteHandler Router::get_handler(const std::string& path, const std::string& met
         }
     }
 
-    if (method == "GET") {
+    if (method == "GET" || method == "HEAD") {
         for (const auto& handler : static_handlers_) {
             if (handler->matches(path)) {
-                target = [&handler, path](const HttpRequest&) -> HttpResponse {
-                    return handler->handle(path);
+                target = [&handler, path, &method](const HttpRequest&) -> HttpResponse {
+                    return handler->handle(path, method == "HEAD");
                 };
             }
         }

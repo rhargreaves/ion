@@ -81,6 +81,15 @@ async def test_httpx_returns_static_content():
 
 
 @pytest.mark.asyncio
+async def test_httpx_supports_head_requests_on_static_content():
+    async with ServerRunner(SERVER_PORT) as runner:
+        client = httpx.AsyncClient(http2=True, verify=False)
+        response = await client.head(BASE_URL + "/static/index.html")
+
+        assert response.status_code == 200
+
+
+@pytest.mark.asyncio
 async def test_httpx_returns_custom_404_page():
     async with ServerRunner(SERVER_PORT, [
         "--custom-404-file-path",

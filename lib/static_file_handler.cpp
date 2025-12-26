@@ -34,10 +34,25 @@ std::string StaticFileHandler::get_relative_path(const std::string& url_path) co
     return rel_path;
 }
 
-HttpResponse StaticFileHandler::file_response(const std::string& path) {
+HttpResponse StaticFileHandler::file_response(const std::string& path, bool is_head) {
     if (!FileReader::is_readable(path)) {
         spdlog::debug("file not found or not readable: {}", path);
         return HttpResponse{404};
+    }
+
+    auto mime_type = FileReader::get_mime_type(path);
+    if (is_head) {
+        auto size = FileReader::get_file_size(path);
+        if (!size) {
+            spdlog::error("failed to get file size: {}", path);
+            return HttpResponse{500};
+        }
+
+        spdlog::info("Returning metadata for static file: {} ({} bytes, {})", path, *size,
+                     mime_type);
+        return HttpResponse{
+            .status_code = 200,
+            .headers = {{"content-length", std::to_string(*size)}, {"content-type", mime_type}}};
     }
 
     auto content = FileReader::read_file(path);
@@ -46,14 +61,13 @@ HttpResponse StaticFileHandler::file_response(const std::string& path) {
         return HttpResponse{500};
     }
 
-    auto mime_type = FileReader::get_mime_type(path);
     spdlog::info("serving static file: {} ({} bytes, {})", path, content->size(), mime_type);
 
     return HttpResponse{
         .status_code = 200, .body = std::move(*content), .headers = {{"content-type", mime_type}}};
 }
 
-HttpResponse StaticFileHandler::handle(const std::string& path) const {
+HttpResponse StaticFileHandler::handle(const std::string& path, bool is_head) const {
     std::string rel_path = get_relative_path(path);
 
     auto safe_path = FileReader::sanitize_path(filesystem_root_, rel_path);
@@ -62,7 +76,7 @@ HttpResponse StaticFileHandler::handle(const std::string& path) const {
         return HttpResponse{403};
     }
 
-    return file_response(*safe_path);
+    return file_response(*safe_path, is_head);
 }
 
 }  // namespace ion
