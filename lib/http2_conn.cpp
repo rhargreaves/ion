@@ -302,7 +302,7 @@ constexpr std::string_view state_to_string(Http2ConnectionState state) {
     return "Unknown";
 }
 
-Http2ProcessResult Http2Connection::process_state() {
+Http2ProcessResult Http2Connection::process() {
     spdlog::trace("processing state: {}", state_to_string(state_));
 
     if (state_ == Http2ConnectionState::AwaitingPreface ||

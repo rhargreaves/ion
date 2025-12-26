@@ -19,7 +19,7 @@ class Http2Connection {
    public:
     explicit Http2Connection(std::unique_ptr<Transport> transport, const std::string& client_ip,
                              const Router& router);
-    Http2ProcessResult process_state();
+    Http2ProcessResult process();
     void close();
 
     Http2Connection(const Http2Connection&) = delete;

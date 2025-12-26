@@ -50,16 +50,14 @@ void Http2Server::establish_conn(TcpListener& listener) {
                                                   router_);
     connections_[raw_fd] = std::move(conn);
     spdlog::info("HTTP connection established. total = {}", connections_.size());
-
-    return;
 }
 
 void Http2Server::start(uint16_t port) {
     TcpListener listener{port};
     listener.listen();
-    int listener_fd = listener.raw_fd();
+    const int listener_fd = listener.raw_fd();
     spdlog::info("listening on port {}", port);
-    std::vector<pollfd> poll_fds;
+    std::vector<pollfd> poll_fds{};
     std::set<int> want_write_fds{};
 
     while (!user_req_termination_) {
@@ -119,37 +117,39 @@ void Http2Server::start(uint16_t port) {
                 connections_.erase(it);
                 continue;
             }
-
-            bool trigger = false;
-            if (pfd.revents & POLLIN) {
-                trigger = true;
-            } else if (pfd.revents & POLLOUT) {
-                trigger = true;
-            }
-            if (!trigger) {
+            if (!(pfd.revents & (POLLIN | POLLOUT))) {
                 continue;
             }
 
-        repeat:
-            const auto& conn = it->second;
-            switch (conn->process_state()) {
-                case Http2ProcessResult::WantWrite:
-                    want_write_fds.insert(pfd.fd);
-                    break;
-                case Http2ProcessResult::WantRead:
-                    // rely on poll() to tell us when new data is available
-                    break;
-                case Http2ProcessResult::Complete:
-                    // need to keep pulling data until want read/write is hit
-                    goto repeat;
-                case Http2ProcessResult::ClientClosed:
-                    spdlog::info("client closed connection");
-                    connections_.erase(it);
-                    break;
-                case Http2ProcessResult::ProtocolError:
-                    spdlog::error("protocol error. closing connection");
-                    conn->close();
-                    connections_.erase(it);
+            // assume we aren't write blocked until WantWrite occurs again
+            want_write_fds.erase(pfd.fd);
+
+            bool conn_active = true;
+            while (conn_active) {
+                const auto& conn = it->second;
+                switch (conn->process()) {
+                    case Http2ProcessResult::WantWrite:
+                        want_write_fds.insert(pfd.fd);
+                        conn_active = false;
+                        break;
+                    case Http2ProcessResult::WantRead:
+                        // rely on poll() to tell us when new data is available
+                        conn_active = false;
+                        break;
+                    case Http2ProcessResult::Complete:
+                        // need to keep processing until want read/write is hit
+                        break;
+                    case Http2ProcessResult::ClientClosed:
+                        spdlog::info("client closed connection");
+                        connections_.erase(it);
+                        conn_active = false;
+                        break;
+                    case Http2ProcessResult::ProtocolError:
+                        spdlog::error("protocol error. closing connection");
+                        conn->close();
+                        connections_.erase(it);
+                        conn_active = false;
+                }
             }
         }
     }
