@@ -6,6 +6,8 @@
 
 namespace ion {
 
+DynamicTable::DynamicTable(size_t max_table_size) : max_table_size_(max_table_size) {}
+
 size_t DynamicTable::count() const {
     return table_.size();
 }
@@ -15,8 +17,24 @@ HttpHeader DynamicTable::get(size_t index) {
 }
 
 void DynamicTable::insert(const HttpHeader& header) {
+    const size_t entry_size = get_header_entry_size(header);
+    if (entry_size > max_table_size_) {
+        spdlog::debug("dynamic table: entry too big (sz: {}, max: {}), table wiped", entry_size,
+                      max_table_size_);
+        table_.clear();
+        table_size_ = 0;
+        return;
+    }
+
+    while (table_size_ + entry_size > max_table_size_) {
+        table_size_ -= get_header_entry_size(table_.back());
+        table_.pop_back();
+    }
+
     table_.push_front(header);
-    spdlog::debug("dynamic table: inserted header: {}: {}", header.name, header.value);
+    table_size_ += entry_size;
+    spdlog::debug("dynamic table: entry too big (sz: {}, max: {}), table wiped", entry_size,
+                  max_table_size_);
 }
 
 std::optional<size_t> DynamicTable::find(const HttpHeader& header) {
@@ -39,11 +57,19 @@ std::optional<size_t> DynamicTable::find_name(const std::string& name) {
 }
 
 void DynamicTable::log_contents() const {
-    spdlog::debug("dynamic table:");
+    spdlog::debug("dynamic table (size: {}, max: {}):", table_size_, max_table_size_);
     int pos = 0;
     for (const auto& header : table_) {
         spdlog::debug(" - ({}) {}: {}", pos++, header.name, header.value);
     }
+}
+
+int DynamicTable::size() const {
+    return table_size_;
+}
+
+size_t DynamicTable::get_header_entry_size(const HttpHeader& header) {
+    return header.name.size() + header.value.size() + 32;
 }
 
 }  // namespace ion
