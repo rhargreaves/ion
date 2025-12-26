@@ -67,4 +67,24 @@ TEST_CASE("DynamicTable") {
         auto result = table.find(huge_header);
         CHECK_FALSE(result.has_value());
     }
+
+    SECTION ("table resized with headers evicted to maintain new max size") {
+        table = ion::DynamicTable{120};
+
+        table.insert(ion::HttpHeader{"1234", "1234"});  // 4 + 4 + 32 = 40
+        table.insert(ion::HttpHeader{"a234", "1234"});  // 4 + 4 + 32 = 40
+        table.insert(ion::HttpHeader{"b234", "1234"});  // 4 + 4 + 32 = 40
+
+        table.set_max_table_size(81);
+        REQUIRE(table.size() == 80);
+        REQUIRE(table.count() == 2);
+
+        table.set_max_table_size(41);
+        REQUIRE(table.size() == 40);
+        REQUIRE(table.count() == 1);
+
+        table.set_max_table_size(0);
+        REQUIRE(table.size() == 0);
+        REQUIRE(table.count() == 0);
+    }
 }

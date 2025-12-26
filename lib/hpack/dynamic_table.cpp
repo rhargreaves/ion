@@ -68,6 +68,15 @@ int DynamicTable::size() const {
     return table_size_;
 }
 
+void DynamicTable::set_max_table_size(size_t new_sz) {
+    max_table_size_ = new_sz;
+    while (table_size_ > max_table_size_) {
+        assert(!table_.empty());
+        table_size_ -= get_header_entry_size(table_.back());
+        table_.pop_back();
+    }
+}
+
 size_t DynamicTable::get_header_entry_size(const HttpHeader& header) {
     return header.name.size() + header.value.size() + 32;
 }
