@@ -38,6 +38,7 @@ class Http2Connection {
     HeaderBlockDecoder decoder_{decoder_dynamic_table_};
     HeaderBlockEncoder encoder_{encoder_dynamic_table_};
 
+    Http2ProcessResult internal_process();
     ReadPrefaceResult read_preface();
     Http2WindowUpdate process_window_update_payload(std::span<const uint8_t> payload);
     bool try_read_frame();

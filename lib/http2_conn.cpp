@@ -303,6 +303,16 @@ constexpr std::string_view state_to_string(Http2ConnectionState state) {
 }
 
 Http2ProcessResult Http2Connection::process() {
+    try {
+        return internal_process();
+    } catch (const std::exception& e) {
+        spdlog::error("unhandled error processing connection: {}", e.what());
+        update_state(Http2ConnectionState::ProtocolError);
+        return Http2ProcessResult::ProtocolError;
+    }
+}
+
+Http2ProcessResult Http2Connection::internal_process() {
     spdlog::trace("processing state: {}", state_to_string(state_));
 
     if (state_ == Http2ConnectionState::AwaitingPreface ||
