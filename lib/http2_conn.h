@@ -31,7 +31,8 @@ class Http2Connection {
     std::unique_ptr<Transport> transport_;
     std::string client_ip_;
     const Router& router_;
-    std::vector<uint8_t> buffer_;
+    std::vector<uint8_t> read_buffer_;
+    std::vector<uint8_t> write_buffer_;
     Http2ConnectionState state_ = Http2ConnectionState::AwaitingPreface;
     DynamicTable decoder_dynamic_table_{};
     DynamicTable encoder_dynamic_table_{};
@@ -58,6 +59,8 @@ class Http2Connection {
 
     void log_dynamic_tables();
     HttpResponse process_request(const std::vector<HttpHeader>& req_hdrs);
+    void enqueue_write(std::span<const uint8_t> data);
+    void flush_write_buffer();
 };
 
 }  // namespace ion

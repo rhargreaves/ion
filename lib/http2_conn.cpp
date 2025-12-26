@@ -38,7 +38,7 @@ Http2WindowUpdate Http2Connection::process_window_update_payload(std::span<const
 void Http2Connection::write_frame_header(const Http2FrameHeader& header) {
     std::array<uint8_t, Http2FrameHeader::wire_size> header_bytes{};
     header.serialize(header_bytes);
-    transport_->write(header_bytes);
+    enqueue_write(header_bytes);
 }
 
 void Http2Connection::write_settings(const std::vector<Http2Setting>& settings) {
@@ -53,7 +53,7 @@ void Http2Connection::write_settings(const std::vector<Http2Setting>& settings) 
     for (const auto& setting : settings) {
         std::array<uint8_t, Http2Setting::wire_size> setting_bytes{};
         setting.serialize(setting_bytes);
-        transport_->write(setting_bytes);
+        enqueue_write(setting_bytes);
     }
 }
 
@@ -71,7 +71,7 @@ void Http2Connection::write_headers_response(uint32_t stream_id,
                                   .stream_id = stream_id};
 
     write_frame_header(header);
-    transport_->write(headers_data);
+    enqueue_write(headers_data);
 }
 
 void Http2Connection::write_data_response(uint32_t stream_id, const std::vector<uint8_t>& body) {
@@ -93,20 +93,7 @@ void Http2Connection::write_data_response(uint32_t stream_id, const std::vector<
         spdlog::trace("Writing data frame for stream {} with size {} & remaining {}", stream_id,
                       chunk_size, remaining_bytes);
 
-        auto bytes_written_res = transport_->write(std::span(body.data() + start, chunk_size));
-        if (!bytes_written_res) {
-            spdlog::error("Failed to write data frame for stream {}: error: {}", stream_id,
-                          static_cast<int>(bytes_written_res.error()));
-            if (bytes_written_res.error() == TransportError::ProtocolError) {
-                update_state(Http2ConnectionState::ProtocolError);
-                return;
-            }
-        } else {
-            if (*bytes_written_res != chunk_size) {
-                spdlog::error("Failed to write data frame for stream {}: only wrote {} of {} bytes",
-                              stream_id, *bytes_written_res, chunk_size);
-            }
-        }
+        enqueue_write(std::span(body.data() + start, chunk_size));
 
         start += chunk_size;
     }
@@ -125,7 +112,7 @@ void Http2Connection::write_goaway(uint32_t last_stream_id, ErrorCode error_code
 
     std::array<uint8_t, Http2GoAwayPayload::wire_size> payload_bytes{};
     payload.serialize(payload_bytes);
-    transport_->write(payload_bytes);
+    enqueue_write(payload_bytes);
 }
 
 void Http2Connection::write_settings() {
@@ -164,22 +151,23 @@ void Http2Connection::populate_read_buffer() {
     }
     const auto bytes_read = result.value();
     if (bytes_read > 0) {
-        buffer_.insert(buffer_.end(), temp_buffer.begin(), temp_buffer.begin() + bytes_read);
-        spdlog::trace("read {} bytes, buffer size now {}", bytes_read, buffer_.size());
+        read_buffer_.insert(read_buffer_.end(), temp_buffer.begin(),
+                            temp_buffer.begin() + bytes_read);
+        spdlog::trace("read {} bytes, buffer size now {}", bytes_read, read_buffer_.size());
     }
 }
 
 void Http2Connection::discard_processed_buffer(size_t length) {
-    buffer_.erase(buffer_.begin(), buffer_.begin() + length);
+    read_buffer_.erase(read_buffer_.begin(), read_buffer_.begin() + length);
 }
 
 ReadPrefaceResult Http2Connection::read_preface() {
-    if (buffer_.size() < CLIENT_PREFACE.length()) {
-        spdlog::trace("not enough data for preface ({} < {})", buffer_.size(),
+    if (read_buffer_.size() < CLIENT_PREFACE.length()) {
+        spdlog::trace("not enough data for preface ({} < {})", read_buffer_.size(),
                       CLIENT_PREFACE.length());
         return ReadPrefaceResult::NotEnoughData;
     }
-    std::span<const uint8_t, CLIENT_PREFACE.size()> preface_span{buffer_.data(),
+    std::span<const uint8_t, CLIENT_PREFACE.size()> preface_span{read_buffer_.data(),
                                                                  CLIENT_PREFACE.size()};
     const std::string_view received(reinterpret_cast<const char*>(preface_span.data()),
                                     preface_span.size());
@@ -196,20 +184,20 @@ ReadPrefaceResult Http2Connection::read_preface() {
 }
 
 bool Http2Connection::try_read_frame() {
-    if (buffer_.size() < Http2FrameHeader::wire_size) {
-        spdlog::trace("not enough data for frame header ({} < {})", buffer_.size(),
+    if (read_buffer_.size() < Http2FrameHeader::wire_size) {
+        spdlog::trace("not enough data for frame header ({} < {})", read_buffer_.size(),
                       Http2FrameHeader::wire_size);
         return false;
     }
 
-    std::span<const uint8_t> buffer{buffer_};
+    std::span<const uint8_t> buffer{read_buffer_};
     const auto header = Http2FrameHeader::parse(buffer.subspan<0, Http2FrameHeader::wire_size>());
     spdlog::debug("received frame header: type: {}, flag: {:#04x}, length: {}", header.type,
                   header.flags, header.length);
 
     const size_t total_frame_size = Http2FrameHeader::wire_size + header.length;
-    if (buffer_.size() < total_frame_size) {
-        spdlog::trace("not enough data for whole frame ({} < {})", buffer_.size(),
+    if (read_buffer_.size() < total_frame_size) {
+        spdlog::trace("not enough data for whole frame ({} < {})", read_buffer_.size(),
                       total_frame_size);
         return false;
     }
@@ -315,6 +303,8 @@ Http2ProcessResult Http2Connection::process() {
 Http2ProcessResult Http2Connection::internal_process() {
     spdlog::trace("processing state: {}", state_to_string(state_));
 
+    flush_write_buffer();
+
     if (state_ == Http2ConnectionState::AwaitingPreface ||
         state_ == Http2ConnectionState::AwaitingFrame) {
         populate_read_buffer();  // updates connection state on error
@@ -410,6 +400,52 @@ HttpResponse Http2Connection::process_request(const std::vector<HttpHeader>& hea
     resp.headers.push_back({"server", std::string{SERVER_HEADER}});
     resp.headers.push_back({"x-powered-by", std::string{SERVER_HEADER}});
     return resp;
+}
+
+void Http2Connection::enqueue_write(std::span<const uint8_t> data) {
+    // append to the buffer if pending (we'll let process() flush this)
+    if (!write_buffer_.empty()) {
+        write_buffer_.insert(write_buffer_.end(), data.begin(), data.end());
+        return;
+    }
+
+    // try to write directly
+    auto result = transport_->write(data);
+    if (!result) {
+        if (result.error() == TransportError::WantReadOrWrite) {
+            write_buffer_.insert(write_buffer_.end(), data.begin(), data.end());
+        } else {
+            spdlog::error("failed to write to transport: error: {}",
+                          static_cast<int>(result.error()));
+            update_state(Http2ConnectionState::ProtocolError);
+        }
+        return;
+    }
+
+    // if partial write, buffer the rest
+    if (*result < data.size()) {
+        write_buffer_.insert(write_buffer_.end(), data.begin() + *result, data.end());
+    }
+}
+
+void Http2Connection::flush_write_buffer() {
+    if (write_buffer_.empty()) {
+        return;
+    }
+
+    auto result = transport_->write(write_buffer_);
+    if (!result) {
+        if (result.error() != TransportError::WantReadOrWrite) {
+            spdlog::error("failed to flush write buffer: error: {}",
+                          static_cast<int>(result.error()));
+            update_state(Http2ConnectionState::ProtocolError);
+        }
+        return;
+    }
+    spdlog::trace("flushed {} bytes from write buffer", *result);
+
+    // remove what was actually sent
+    write_buffer_.erase(write_buffer_.begin(), write_buffer_.begin() + *result);
 }
 
 }  // namespace ion
