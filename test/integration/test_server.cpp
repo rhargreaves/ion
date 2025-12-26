@@ -36,6 +36,18 @@ TEST_CASE("server: returns status code") {
     REQUIRE(res.status_code == 200);
 }
 
+TEST_CASE("server: catches any exceptions thrown in handlers") {
+    auto server = TestHelpers::create_test_server();
+
+    server.router().add_route(
+        "/", "GET", [](auto&) -> ion::HttpResponse { throw std::runtime_error("test exception"); });
+    TestServerRunner run(server, TEST_PORT);
+
+    CurlClient client;
+    const auto res = client.get(std::format("https://localhost:{}/", TEST_PORT));
+    REQUIRE(res.status_code == 500);
+}
+
 TEST_CASE("server: returns custom headers") {
     auto server = TestHelpers::create_test_server();
 
