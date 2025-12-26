@@ -42,11 +42,11 @@ class ServerRunner:
 
     async def _read_stream(self, stream, buffer):
         try:
-            while True:
-                line = await stream.readline()
-                if not line:
+            while not stream.at_eof():
+                data = await stream.read(64 * 1024)
+                if not data:
                     break
-                buffer.write(line.decode())
+                buffer.write(data.decode(errors='replace'))
         except asyncio.CancelledError:
             pass
 

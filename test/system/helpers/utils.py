@@ -8,7 +8,7 @@ TLS_CERT_PATH = os.path.join(os.path.dirname(__file__), "../../../cert.pem")
 TLS_KEY_PATH = os.path.join(os.path.dirname(__file__), "../../../key.pem")
 
 DEFAULT_ARGS = ["-s", "/static", STATIC_DIR,
-                "-l", "trace",
+                "-l", "debug",
                 "--under-test",
                 "--tls-cert-path", TLS_CERT_PATH,
                 "--tls-key-path", TLS_KEY_PATH]

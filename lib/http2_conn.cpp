@@ -316,7 +316,7 @@ Http2ProcessResult Http2Connection::process_state() {
                 case ReadPrefaceResult::Success:
                     return Http2ProcessResult::Complete;
                 case ReadPrefaceResult::NotEnoughData:
-                    return Http2ProcessResult::Incomplete;
+                    return Http2ProcessResult::WantRead;
                 case ReadPrefaceResult::ProtocolError:
                     return Http2ProcessResult::ProtocolError;
             }
@@ -326,7 +326,7 @@ Http2ProcessResult Http2Connection::process_state() {
                 spdlog::debug("frame processed, continuing...");
                 return Http2ProcessResult::Complete;
             }
-            return Http2ProcessResult::Incomplete;
+            return Http2ProcessResult::WantRead;
         }
         case Http2ConnectionState::ProtocolError: {
             return Http2ProcessResult::ProtocolError;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <csignal>
+#include <map>
 
 #include "http2_conn.h"
 #include "router.h"
@@ -30,6 +31,7 @@ class Http2Server {
     Router router_{};
     ServerConfiguration config_;
     StopReason stop_reason_{};
+    std::map<int, std::unique_ptr<Http2Connection>> connections_;
 };
 
 }  // namespace ion
