@@ -39,7 +39,7 @@ int main() {
     ion::Http2Server server{};
     auto& router = server.router();
 
-    router.add_route("/", "GET", [] {
+    router.add_route("/", "GET", [](ion::HttpRequest&) {
         const std::string body_text = "hello";
         const std::vector<uint8_t> body_bytes(body_text.begin(), body_text.end());
 
