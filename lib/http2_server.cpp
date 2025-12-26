@@ -32,11 +32,10 @@ std::unique_ptr<Transport> Http2Server::create_transport(SocketFd&& fd) const {
     return tls;
 }
 
-std::unique_ptr<Http2Connection> Http2Server::try_establish_conn(
-    TcpListener& listener, std::chrono::milliseconds timeout) {
-    auto fd = listener.try_accept(timeout);
+void Http2Server::establish_conn(TcpListener& listener) {
+    auto fd = listener.try_accept(std::chrono::milliseconds{0});
     if (!fd) {
-        return nullptr;
+        return;
     }
     const auto client_ip_res = fd->client_ip();
     spdlog::info("client connected (ip: {})", client_ip_res.value_or("unknown"));
@@ -44,7 +43,7 @@ std::unique_ptr<Http2Connection> Http2Server::try_establish_conn(
     const int raw_fd = *fd;
     auto transport = create_transport(std::move(fd.value()));
     if (!transport) {
-        return nullptr;
+        return;
     }
 
     auto conn = std::make_unique<Http2Connection>(std::move(transport), client_ip_res.value_or(""),
@@ -52,26 +51,27 @@ std::unique_ptr<Http2Connection> Http2Server::try_establish_conn(
     connections_[raw_fd] = std::move(conn);
     spdlog::info("HTTP connection established. total = {}", connections_.size());
 
-    return conn;
+    return;
 }
 
 void Http2Server::start(uint16_t port) {
     TcpListener listener{port};
     listener.listen();
+    int listener_fd = listener.raw_fd();
     spdlog::info("listening on port {}", port);
     std::vector<pollfd> poll_fds;
     std::set<int> want_write_fds{};
 
     while (!user_req_termination_) {
+        poll_fds.clear();
+
         // if not at capacity - accept new connections
         const bool at_capacity = connections_.size() >= MAX_CONNECTIONS;
         if (!at_capacity) {
-            auto conn = try_establish_conn(
-                listener, std::chrono::milliseconds{connections_.empty() ? 100 : 0});
+            poll_fds.push_back({listener_fd, POLLIN, 0});
         }
 
         // prepare pollfd array with HTTP/2 connection states
-        poll_fds.clear();
         for (auto& [fd, conn] : connections_) {
             short events = POLLIN;
             if (want_write_fds.count(fd) > 0) {
@@ -99,6 +99,13 @@ void Http2Server::start(uint16_t port) {
                 continue;
             }
 
+            if (pfd.fd == listener_fd) {
+                // new client
+                establish_conn(listener);
+                continue;
+            }
+
+            // existing connection?
             auto it = connections_.find(pfd.fd);
             if (it == connections_.end()) {
                 continue;

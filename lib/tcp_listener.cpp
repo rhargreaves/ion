@@ -68,6 +68,10 @@ void TcpListener::listen() const {
     }
 }
 
+int TcpListener::raw_fd() const {
+    return server_fd_;
+}
+
 std::optional<SocketFd> TcpListener::try_accept(std::chrono::milliseconds timeout) {
     pollfd pfd = {server_fd_, POLLIN, 0};
     const int result = poll(&pfd, 1, to_poll_timeout_ms(timeout));

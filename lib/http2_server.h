@@ -23,8 +23,7 @@ class Http2Server {
     }
 
    private:
-    std::unique_ptr<Http2Connection> try_establish_conn(TcpListener& listener,
-                                                        std::chrono::milliseconds timeout);
+    void establish_conn(TcpListener& listener);
     std::unique_ptr<Transport> create_transport(SocketFd&& fd) const;
 
     volatile std::sig_atomic_t user_req_termination_ = 0;

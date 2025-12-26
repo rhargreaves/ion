@@ -12,6 +12,7 @@ class TcpListener {
     ~TcpListener() = default;
 
     void listen() const;
+    int raw_fd() const;
     [[nodiscard]] std::optional<SocketFd> try_accept(std::chrono::milliseconds timeout);
     void close();
 
