@@ -11,8 +11,21 @@
 
 namespace ion {
 
-enum class Http2ProcessResult { Complete, WantRead, WantWrite, ProtocolError, ClientClosed };
-enum class Http2ConnectionState { AwaitingPreface, AwaitingFrame, ProtocolError, ClientClosed };
+enum class Http2ProcessResult {
+    Complete,
+    WantRead,
+    WantWrite,
+    ProtocolError,
+    ConnectionError,
+    ClientClosed
+};
+enum class Http2ConnectionState {
+    AwaitingPreface,
+    AwaitingFrame,
+    Closing,
+    ProtocolError,
+    ClientClosed
+};
 enum class ReadPrefaceResult { Success, NotEnoughData, ProtocolError };
 
 class Http2Connection {

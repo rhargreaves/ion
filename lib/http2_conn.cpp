@@ -286,6 +286,8 @@ constexpr std::string_view state_to_string(Http2ConnectionState state) {
             return "ProtocolError";
         case Http2ConnectionState::ClientClosed:
             return "ClientClosed";
+        case Http2ConnectionState::Closing:
+            return "Closing";
     }
     return "Unknown";
 }
@@ -323,7 +325,7 @@ Http2ProcessResult Http2Connection::internal_process() {
                 case ReadPrefaceResult::NotEnoughData:
                     return Http2ProcessResult::WantRead;
                 case ReadPrefaceResult::ProtocolError:
-                    return Http2ProcessResult::ProtocolError;
+                    return Http2ProcessResult::ConnectionError;
             }
         }
         case Http2ConnectionState::AwaitingFrame: {
@@ -332,6 +334,12 @@ Http2ProcessResult Http2Connection::internal_process() {
                 return Http2ProcessResult::Complete;
             }
             return Http2ProcessResult::WantRead;
+        }
+        case Http2ConnectionState::Closing: {
+            spdlog::debug("in closing state, completing shutdown");
+            transport_->graceful_shutdown();
+            update_state(Http2ConnectionState::ClientClosed);
+            return Http2ProcessResult::ClientClosed;
         }
         case Http2ConnectionState::ProtocolError: {
             return Http2ProcessResult::ProtocolError;
@@ -346,11 +354,14 @@ Http2ProcessResult Http2Connection::internal_process() {
 }
 
 void Http2Connection::close() {
+    if (state_ == Http2ConnectionState::Closing) {
+        spdlog::error("attempting to close connection in closing state");
+        return;
+    }
     write_goaway(1, (state_ != Http2ConnectionState::ProtocolError) ? ErrorCode::no_error
                                                                     : ErrorCode::protocol_error);
     spdlog::debug("GOAWAY frame enqueued");
-    flush_write_buffer();
-    transport_->graceful_shutdown();
+    update_state(Http2ConnectionState::Closing);
 }
 
 void Http2Connection::update_state(Http2ConnectionState new_state) {

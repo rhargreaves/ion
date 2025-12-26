@@ -61,7 +61,7 @@ async def test_supports_cleartext_http2():
 async def test_drops_http1_connections():
     async with ServerRunner(SERVER_CLEARTEXT_PORT, ["--cleartext"]) as runner:
         result = await curl(f"http://localhost:{SERVER_CLEARTEXT_PORT}/_tests/ok", ["--http1.1"])
-        assert result.returncode == 1
+        assert result.returncode == 52
 
         await runner.stop()
         stdout = runner.get_stdout()

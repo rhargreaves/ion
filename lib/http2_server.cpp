@@ -149,6 +149,12 @@ void Http2Server::start(uint16_t port) {
                         conn->close();
                         connections_.erase(it);
                         conn_active = false;
+                        break;
+                    case Http2ProcessResult::ConnectionError:
+                        spdlog::error("connection error. force closing connection");
+                        connections_.erase(it);
+                        conn_active = false;
+                        break;
                 }
             }
         }
