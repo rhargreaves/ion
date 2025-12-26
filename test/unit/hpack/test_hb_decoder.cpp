@@ -293,7 +293,7 @@ TEST_CASE("headers: decodes dynamic table entries") {
         REQUIRE((*hdrs).size() == 1);
         check_header(*hdrs, 0, "x-foo", "bar");
 
-        REQUIRE(dynamic_table.size() == 0);
+        REQUIRE(dynamic_table.count() == 0);
     }
 }
 

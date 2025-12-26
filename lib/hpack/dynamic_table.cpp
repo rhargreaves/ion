@@ -6,7 +6,7 @@
 
 namespace ion {
 
-size_t DynamicTable::size() {
+size_t DynamicTable::count() const {
     return table_.size();
 }
 

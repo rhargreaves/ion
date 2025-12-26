@@ -10,7 +10,7 @@ namespace ion {
 
 class DynamicTable {
    public:
-    size_t size();
+    size_t count() const;
     HttpHeader get(size_t index);
     void insert(const HttpHeader& header);
     std::optional<size_t> find(const HttpHeader& header);
