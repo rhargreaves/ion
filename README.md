@@ -66,7 +66,7 @@ need to ensure the client behaves accordingly (e.g. use `curl --http2-prior-know
 Requirements:
 
 * CMake 4.0+
-* Clang 17+
+* LLVM/Clang 17+ (GCC not tested)
 * OpenSSL 3+
 * Python 3.13+
 
