@@ -24,3 +24,6 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = true
 line-ending = "auto"
+
+[tool.pytest.ini_options]
+timeout = 5

@@ -57,6 +57,8 @@ add_library(ion
         pollers/poll_poller.cpp
         pollers/poll_poller.h
         pollers/poller.cpp
+        pollers/epoll_poller.cpp
+        pollers/epoll_poller.h
 )
 
 target_compile_options(ion PUBLIC ${ION_DEV_FLAGS})

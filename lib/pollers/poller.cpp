@@ -2,10 +2,18 @@
 
 #include "poll_poller.h"
 
+#if __linux__
+#include "epoll_poller.h"
+#endif
+
 namespace ion {
 
 std::unique_ptr<Poller> Poller::create() {
+#if __linux__
+    return std::make_unique<EPollPoller>();
+#else
     return std::make_unique<PollPoller>();
+#endif
 }
 
 }  // namespace ion

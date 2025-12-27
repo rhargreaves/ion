@@ -89,6 +89,7 @@ void Http2Server::start(uint16_t port) {
                 has_event(events, PollEventType::Hangup)) {
                 spdlog::debug("connection closed");
                 connections_.erase(it);
+                poller->remove(fd);
                 continue;
             }
 
@@ -121,17 +122,20 @@ void Http2Server::start(uint16_t port) {
                     case Http2ProcessResult::ClientClosed:
                         spdlog::info("client closed connection");
                         connections_.erase(it);
+                        poller->remove(fd);
                         conn_active = false;
                         break;
                     case Http2ProcessResult::ProtocolError:
                         spdlog::error("protocol error. closing connection");
                         conn->close();
                         connections_.erase(it);
+                        poller->remove(fd);
                         conn_active = false;
                         break;
                     case Http2ProcessResult::ConnectionError:
                         spdlog::error("connection error. force closing connection");
                         connections_.erase(it);
+                        poller->remove(fd);
                         conn_active = false;
                         break;
                 }

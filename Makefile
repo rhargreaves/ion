@@ -15,6 +15,8 @@ export ION_PATH=$(BUILD_DIR)/app/ion-server
 export ION_TLS_CERT_PATH=cert.pem
 export ION_TLS_KEY_PATH=key.pem
 export SSLKEYLOGFILE=/tmp/ion-tls-keys.log
+export CC=clang
+export CXX=clang++
 
 build:
 	cmake -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -S . -B $(BUILD_DIR)

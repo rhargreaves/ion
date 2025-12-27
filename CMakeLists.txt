@@ -1,6 +1,4 @@
 cmake_minimum_required(VERSION 4.0)
-set(CMAKE_C_COMPILER clang)
-set(CMAKE_CXX_COMPILER clang++)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(ION_BASE_VERSION "0.1.8")
@@ -10,6 +8,14 @@ else ()
     set(ION_BUILD_VERSION "${ION_BASE_VERSION}")
 endif ()
 project(ion VERSION ${ION_BASE_VERSION})
+
+if (NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    message(FATAL_ERROR "The ion project requires Clang. You are trying to use ${CMAKE_CXX_COMPILER_ID}.")
+endif ()
+
+if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 17)
+    message(FATAL_ERROR "Clang 17 or higher is required. Found: ${CMAKE_CXX_COMPILER_VERSION}")
+endif ()
 
 set(ION_DEV_FLAGS "")
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")

@@ -2,18 +2,8 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/build/clion-debug/_deps/catch2-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/build/clion-debug/_deps/cli11-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/build/clion-debug/_deps/spdlog-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/build/clion-release/_deps/catch2-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/build/clion-release/_deps/cli11-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/build/clion-release/_deps/spdlog-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/build/docker/_deps/catch2-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/build/docker/_deps/cli11-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/build/docker/_deps/spdlog-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/build/make/_deps/catch2-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/build/make/_deps/cli11-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/build/make/_deps/spdlog-src" vcs="Git" />
+  </component>
+  <component name="VcsProjectSettings">
+    <option name="detectVcsMappingsAutomatically" value="false" />
   </component>
 </project>
