@@ -1,4 +1,5 @@
 #pragma once
+#if defined(__linux__)
 #include <sys/epoll.h>
 
 #include <expected>
@@ -29,3 +30,4 @@ class EPollPoller : public Poller {
 };
 
 }  // namespace ion
+#endif

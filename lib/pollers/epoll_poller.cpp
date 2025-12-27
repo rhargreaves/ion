@@ -1,3 +1,4 @@
+#if defined(__linux__)
 #include "epoll_poller.h"
 
 #include <unistd.h>
@@ -99,3 +100,4 @@ std::expected<std::vector<PollEvent>, PollError> EPollPoller::poll(
 }
 
 }  // namespace ion
+#endif
