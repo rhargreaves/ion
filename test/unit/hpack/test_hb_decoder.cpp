@@ -3,6 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "hpack/header_block_decoder.h"
+#include "hpack/header_block_encoder.h"
 #include "http2_frames.h"
 
 void check_header(std::vector<ion::HttpHeader>& hdrs, size_t index, const std::string& expectedName,
@@ -298,14 +299,46 @@ TEST_CASE("headers: decodes dynamic table entries") {
 }
 
 TEST_CASE("headers: dynamic table management") {
-    auto dynamic_table = ion::DynamicTable{};
+    constexpr auto max_size = 120;
+
+    auto dynamic_table = ion::DynamicTable{max_size};
     auto decoder = ion::HeaderBlockDecoder{dynamic_table};
+    auto encoder_dt = ion::DynamicTable{};
+    auto encoder = ion::HeaderBlockEncoder{encoder_dt};
 
-    SECTION ("returns error if dynamic table update received") {
-        constexpr auto hdr_block = std::to_array<uint8_t>({0x20});
+    const auto hdr_bytes1 = encoder.encode({{"x-fo1", "ba1"}});  // 40
+    const auto hdr_bytes2 = encoder.encode({{"x-fo2", "ba2"}});  // 40
+    const auto hdr_bytes3 = encoder.encode({{"x-fo3", "ba3"}});  // 40
+    const auto hdr_bytes4 = encoder.encode({{"x-fo4", "ba4"}});  // 40
 
-        auto hdrs = decoder.decode(hdr_block);
+    SECTION ("evicts headers when max size reached") {
+        decoder.decode(hdr_bytes1);
+        decoder.decode(hdr_bytes2);
+        decoder.decode(hdr_bytes3);
+        decoder.decode(hdr_bytes4);
 
-        REQUIRE(hdrs.error() == FrameError::ProtocolError);
+        REQUIRE(dynamic_table.count() == 3);
+        REQUIRE(dynamic_table.get(0).name == "x-fo4");
+        REQUIRE(dynamic_table.get(1).name == "x-fo3");
+        REQUIRE(dynamic_table.get(2).name == "x-fo2");
+    }
+
+    SECTION ("evicts headers when new max size received") {
+        decoder.decode(hdr_bytes1);
+        REQUIRE(dynamic_table.count() == 1);
+        REQUIRE(dynamic_table.size() == 40);
+
+        decoder.decode(hdr_bytes2);
+        REQUIRE(dynamic_table.count() == 2);
+        REQUIRE(dynamic_table.size() == 80);
+
+        decoder.decode(hdr_bytes3);
+        REQUIRE(dynamic_table.count() == 3);
+        REQUIRE(dynamic_table.size() == 120);
+
+        constexpr auto resize_table_to_80 = std::to_array<uint8_t>({0x3f, 0x3a});
+        decoder.decode(resize_table_to_80);
+        REQUIRE(dynamic_table.count() == 2);
+        REQUIRE(dynamic_table.size() == 80);
     }
 }

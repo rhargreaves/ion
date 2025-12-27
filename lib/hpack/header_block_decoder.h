@@ -29,6 +29,7 @@ class HeaderBlockDecoder {
     std::expected<HttpHeader, FrameError> decode_indexed_field(ByteReader& reader);
     std::expected<std::string, FrameError> read_indexed_header_name(size_t index);
     std::expected<HttpHeader, FrameError> read_indexed_header(size_t index);
+    std::expected<void, FrameError> decode_dynamic_table_size_update(ByteReader& reader);
 };
 
 }  // namespace ion

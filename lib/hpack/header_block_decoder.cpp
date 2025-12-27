@@ -139,6 +139,18 @@ std::expected<HttpHeader, FrameError> HeaderBlockDecoder::decode_literal_field(
     return HttpHeader{name.value(), *value};
 }
 
+std::expected<void, FrameError> HeaderBlockDecoder::decode_dynamic_table_size_update(
+    ByteReader& reader) {
+    const auto new_sz = IntegerDecoder::decode(reader, 5);
+    if (!new_sz) {
+        spdlog::error("failed to decode dynamic table size update (not enough bytes)");
+        return std::unexpected(FrameError::ProtocolError);
+    }
+    dynamic_table_.set_max_table_size(*new_sz);
+    spdlog::trace("dynamic table size updated to: {}", *new_sz);
+    return {};
+}
+
 std::expected<std::vector<HttpHeader>, FrameError> HeaderBlockDecoder::decode(
     std::span<const uint8_t> data) {
     auto hdrs = std::vector<HttpHeader>{};
@@ -176,8 +188,10 @@ std::expected<std::vector<HttpHeader>, FrameError> HeaderBlockDecoder::decode(
                 break;
             }
             case HeaderFieldType::SizeUpdate: {
-                spdlog::error("TODO: size update not implemented");
-                return std::unexpected(FrameError::ProtocolError);
+                if (auto res = decode_dynamic_table_size_update(reader); !res) {
+                    return std::unexpected(res.error());
+                }
+                break;
             }
             case HeaderFieldType::Invalid: {
                 spdlog::error("invalid first byte in header representation: {}", first_byte);
