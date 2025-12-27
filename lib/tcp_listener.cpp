@@ -2,6 +2,7 @@
 
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <openssl/err.h>
 #include <spdlog/spdlog.h>
 #include <sys/poll.h>
@@ -80,6 +81,13 @@ std::optional<SocketFd> TcpListener::try_accept() {
     if (fd >= 0) {
         auto client_fd = SocketFd(fd);
         set_nonblocking_socket(client_fd);  // required for Linux. macOS inherits from server_fd!
+
+        // Disable Nagle's algorithm for low-latency HTTP/2 framing
+        constexpr int enable = 1;
+        if (setsockopt(client_fd, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable)) < 0) {
+            spdlog::warn("failed to set TCP_NODELAY on client fd: {}", strerror(errno));
+        }
+
         return client_fd;
     }
 
