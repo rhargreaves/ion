@@ -10,6 +10,7 @@
 #include "tcp_listener.h"
 
 namespace ion {
+class Poller;
 
 class Http2Server {
    public:
@@ -23,7 +24,7 @@ class Http2Server {
     }
 
    private:
-    void establish_conn(TcpListener& listener);
+    void establish_conn(TcpListener& listener, Poller& poller);
     std::unique_ptr<Transport> create_transport(SocketFd&& fd) const;
 
     volatile std::sig_atomic_t user_req_termination_ = 0;

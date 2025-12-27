@@ -53,6 +53,9 @@ add_library(ion
         transports/tcp_transport.cpp
         socket_fd.cpp
         hpack/byte_reader.cpp
+        pollers/poller.h
+        pollers/poll_poller.cpp
+        pollers/poll_poller.h
 )
 
 target_compile_options(ion PUBLIC ${ION_DEV_FLAGS})

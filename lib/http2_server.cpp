@@ -1,12 +1,12 @@
 #include "http2_server.h"
 
-#include <poll.h>
 #include <spdlog/spdlog.h>
 
 #include <optional>
 #include <set>
 #include <vector>
 
+#include "pollers/poll_poller.h"
 #include "tcp_listener.h"
 #include "transports/tcp_transport.h"
 #include "transports/tls_transport.h"
@@ -32,7 +32,7 @@ std::unique_ptr<Transport> Http2Server::create_transport(SocketFd&& fd) const {
     return tls;
 }
 
-void Http2Server::establish_conn(TcpListener& listener) {
+void Http2Server::establish_conn(TcpListener& listener, Poller& poller) {
     auto fd = listener.try_accept();
     if (!fd) {
         return;
@@ -50,6 +50,8 @@ void Http2Server::establish_conn(TcpListener& listener) {
                                                   router_);
     connections_[raw_fd] = std::move(conn);
     spdlog::info("HTTP connection established. total = {}", connections_.size());
+
+    poller.set(raw_fd, PollEventType::Read);
 }
 
 void Http2Server::start(uint16_t port) {
@@ -57,79 +59,53 @@ void Http2Server::start(uint16_t port) {
     listener.listen();
     const int listener_fd = listener.raw_fd();
     spdlog::info("listening on port {}", port);
-    std::vector<pollfd> poll_fds{};
-    std::set<int> want_write_fds{};
+
+    auto poller = std::make_unique<PollPoller>();
+    poller->set(listener_fd, PollEventType::Read);
 
     while (!user_req_termination_) {
-        poll_fds.clear();
-
-        // if not at capacity - accept new connections
-        const bool at_capacity = connections_.size() >= MAX_CONNECTIONS;
-        if (!at_capacity) {
-            poll_fds.push_back({listener_fd, POLLIN, 0});
-        }
-
-        // prepare pollfd array with HTTP/2 connection states
-        for (auto& [fd, conn] : connections_) {
-            short events = POLLIN;
-            if (want_write_fds.count(fd) > 0) {
-                spdlog::trace("fd {} is in write set", fd);
-                events |= POLLOUT;
-            }
-            spdlog::trace("adding fd {} to poll list", fd);
-            poll_fds.push_back({fd, events, 0});
-        }
-
-        // wait for activity
-        const int ret = poll(poll_fds.data(), poll_fds.size(), 100);
-        if (ret == 0) {
-            spdlog::trace("poll timed out");
-            continue;
-        }
-        if (ret < 0) {
-            if (errno == EINTR) {
-                spdlog::warn("poll interrupted by signal");
-                continue;
-            }
-            spdlog::error("poll failed: {}", strerror(errno));
-            continue;
-        }
+        auto events = poller->poll(std::chrono::milliseconds{100});
 
         // dispatch events
-        for (auto& pfd : poll_fds) {
-            if (pfd.revents == 0) {
-                continue;
-            }
-
-            if (pfd.fd == listener_fd) {
+        for (auto& pe : events) {
+            if (pe.fd == listener_fd) {
                 // new client
-                establish_conn(listener);
+                const bool at_capacity = connections_.size() >= MAX_CONNECTIONS;
+                if (!at_capacity) {
+                    establish_conn(listener, *poller);
+                }
                 continue;
             }
 
             // existing connection?
-            auto it = connections_.find(pfd.fd);
+            auto it = connections_.find(pe.fd);
             if (it == connections_.end()) {
                 continue;
             }
-            if (pfd.revents & (POLLERR | POLLHUP)) {
+            if (has_event(pe.events, PollEventType::Error) ||
+                has_event(pe.events, PollEventType::Hangup)) {
                 spdlog::debug("connection closed");
                 connections_.erase(it);
                 continue;
             }
-            if (!(pfd.revents & (POLLIN | POLLOUT))) {
+
+            if (!has_event(pe.events, PollEventType::Read) &&
+                !has_event(pe.events, PollEventType::Write)) {
                 continue;
             }
 
-            // assume we aren't write blocked until WantWrite occurs again
-            want_write_fds.erase(pfd.fd);
+            // assume we are not write blocked until WantWrite occurs again
+            if (has_event(pe.events, PollEventType::Write)) {
+                poller->set(pe.fd, PollEventType::Read);
+            }
 
             bool conn_active = true;
             while (conn_active) {
                 const auto& conn = it->second;
                 switch (conn->process()) {
                     case Http2ProcessResult::WantWrite:
-                        want_write_fds.insert(pfd.fd);
+                        spdlog::trace("will poll write events for fd {}", pe.fd);
+                        poller->set(pe.fd, PollEventType::Read | PollEventType::Write);
                         conn_active = false;
                         break;
                     case Http2ProcessResult::WantRead:
