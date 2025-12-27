@@ -71,6 +71,8 @@ jobs:
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
           build-args: |
             GIT_SHA=${{ steps.vars.outputs.sha_short }}
+            CC=clang
+            CXX=clang++
 
   docker-publish:
     needs: build-and-test

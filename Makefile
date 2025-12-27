@@ -69,6 +69,8 @@ build-docker-app:
 	docker build -f app.Dockerfile \
 		--progress=plain \
 		--build-arg GIT_SHA="$(GIT_SHA)" \
+		--build-arg CC="$(CC)" \
+		--build-arg CXX="$(CXX)" \
 		-t ion-app .
 .PHONY: build-docker-app
 
