@@ -14,6 +14,8 @@
 
 namespace ion {
 
+constexpr int enable_opt = 1;
+
 inline int to_poll_timeout_ms(std::chrono::milliseconds timeout) {
     if (timeout.count() < 0) {
         return -1;  // wait forever
@@ -35,7 +37,6 @@ void TcpListener::set_nonblocking_socket(const SocketFd& socket_fd) {
 }
 
 void TcpListener::set_reusable_addr() {
-    constexpr int enable_opt = 1;
     if (setsockopt(server_fd_, SOL_SOCKET, SO_REUSEADDR, &enable_opt, sizeof(enable_opt))) {
         throw std::system_error(errno, std::system_category(), "setsockopt SO_REUSEADDR");
     }
@@ -73,6 +74,12 @@ int TcpListener::raw_fd() const {
     return server_fd_;
 }
 
+void TcpListener::set_tcp_no_delay(const SocketFd& client_fd) {
+    if (setsockopt(client_fd, IPPROTO_TCP, TCP_NODELAY, &enable_opt, sizeof(enable_opt)) < 0) {
+        spdlog::warn("failed to set TCP_NODELAY on client fd: {}", strerror(errno));
+    }
+}
+
 std::optional<SocketFd> TcpListener::try_accept() {
     sockaddr_in client_addr{};
     socklen_t client_len = sizeof(client_addr);
@@ -81,13 +88,7 @@ std::optional<SocketFd> TcpListener::try_accept() {
     if (fd >= 0) {
         auto client_fd = SocketFd(fd);
         set_nonblocking_socket(client_fd);  // required for Linux. macOS inherits from server_fd!
-
-        // Disable Nagle's algorithm for low-latency HTTP/2 framing
-        constexpr int enable = 1;
-        if (setsockopt(client_fd, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable)) < 0) {
-            spdlog::warn("failed to set TCP_NODELAY on client fd: {}", strerror(errno));
-        }
-
+        set_tcp_no_delay(client_fd);
         return client_fd;
     }
 

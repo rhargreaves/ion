@@ -20,6 +20,7 @@ class TcpListener {
     SocketFd server_fd_;
 
     static void set_nonblocking_socket(const SocketFd& socket_fd);
+    static void set_tcp_no_delay(const SocketFd& client_fd);
     void set_reusable_addr();
     void bind_socket(uint16_t port);
 };
