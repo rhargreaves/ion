@@ -1,7 +1,11 @@
 #pragma once
 #include <chrono>
+#include <expected>
+#include <vector>
 
 namespace ion {
+
+enum class PollError { Error, InterruptedBySignal, Timeout };
 
 enum class PollEventType : int { None = 0, Read = 1, Write = 2, Hangup = 4, Error = 8 };
 
@@ -32,7 +36,10 @@ class Poller {
     virtual ~Poller() = default;
     virtual void set(int fd, PollEventType events) = 0;
     virtual void remove(int fd) = 0;
-    virtual std::vector<PollEvent> poll(std::chrono::milliseconds timeout) = 0;
+    virtual std::expected<std::vector<PollEvent>, PollError> poll(
+        std::chrono::milliseconds timeout) = 0;
+
+    static std::unique_ptr<Poller> create();
 };
 
 }  // namespace ion

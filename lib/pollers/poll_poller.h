@@ -11,7 +11,8 @@ class PollPoller : public Poller {
     PollPoller() = default;
     ~PollPoller() override = default;
 
-    std::vector<PollEvent> poll(std::chrono::milliseconds timeout) override;
+    std::expected<std::vector<PollEvent>, PollError> poll(
+        std::chrono::milliseconds timeout) override;
     void set(int fd, PollEventType event_types) override;
     void remove(int fd) override;
 

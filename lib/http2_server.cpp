@@ -60,15 +60,18 @@ void Http2Server::start(uint16_t port) {
     const int listener_fd = listener.raw_fd();
     spdlog::info("listening on port {}", port);
 
-    auto poller = std::make_unique<PollPoller>();
+    auto poller = Poller::create();
     poller->set(listener_fd, PollEventType::Read);
 
     while (!user_req_termination_) {
         auto events = poller->poll(std::chrono::milliseconds{100});
+        if (!events) {
+            continue;
+        }
 
         // dispatch events
-        for (auto& pe : events) {
-            if (pe.fd == listener_fd) {
+        for (auto& [fd, events] : *events) {
+            if (fd == listener_fd) {
                 // new client
                 const bool at_capacity = connections_.size() >= MAX_CONNECTIONS;
                 if (!at_capacity) {
@@ -78,25 +81,25 @@ void Http2Server::start(uint16_t port) {
             }
 
             // existing connection?
-            auto it = connections_.find(pe.fd);
+            auto it = connections_.find(fd);
             if (it == connections_.end()) {
                 continue;
             }
-            if (has_event(pe.events, PollEventType::Error) ||
-                has_event(pe.events, PollEventType::Hangup)) {
+            if (has_event(events, PollEventType::Error) ||
+                has_event(events, PollEventType::Hangup)) {
                 spdlog::debug("connection closed");
                 connections_.erase(it);
                 continue;
             }
 
-            if (!has_event(pe.events, PollEventType::Read) &&
-                !has_event(pe.events, PollEventType::Write)) {
+            if (!has_event(events, PollEventType::Read) &&
+                !has_event(events, PollEventType::Write)) {
                 continue;
             }
 
             // assume we are not write blocked until WantWrite occurs again
-            if (has_event(pe.events, PollEventType::Write)) {
-                poller->set(pe.fd, PollEventType::Read);
+            if (has_event(events, PollEventType::Write)) {
+                poller->set(fd, PollEventType::Read);
             }
 
             bool conn_active = true;
@@ -104,8 +107,8 @@ void Http2Server::start(uint16_t port) {
                 const auto& conn = it->second;
                 switch (conn->process()) {
                     case Http2ProcessResult::WantWrite:
-                        spdlog::trace("will poll write events for fd {}", pe.fd);
-                        poller->set(pe.fd, PollEventType::Read | PollEventType::Write);
+                        spdlog::trace("will poll write events for fd {}", fd);
+                        poller->set(fd, PollEventType::Read | PollEventType::Write);
                         conn_active = false;
                         break;
                     case Http2ProcessResult::WantRead:

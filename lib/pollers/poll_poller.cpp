@@ -28,7 +28,8 @@ PollEventType PollPoller::event_to_poll_event(short events) {
     return result;
 }
 
-std::vector<PollEvent> PollPoller::poll(std::chrono::milliseconds timeout) {
+std::expected<std::vector<PollEvent>, PollError> PollPoller::poll(
+    std::chrono::milliseconds timeout) {
     std::vector<pollfd> poll_fds{};
     poll_fds.reserve(fd_events_.size());
 
@@ -39,15 +40,15 @@ std::vector<PollEvent> PollPoller::poll(std::chrono::milliseconds timeout) {
     const int ret = ::poll(poll_fds.data(), poll_fds.size(), static_cast<int>(timeout.count()));
     if (ret == 0) {
         spdlog::trace("poll timed out");
-        return {};
+        return std::unexpected{PollError::Timeout};
     }
     if (ret < 0) {
         if (errno == EINTR) {
             spdlog::warn("poll interrupted by signal");
-            return {};
+            return std::unexpected{PollError::InterruptedBySignal};
         }
         spdlog::error("poll failed: {}", strerror(errno));
-        return {};
+        return std::unexpected{PollError::Error};
     }
 
     std::vector<PollEvent> result{};
