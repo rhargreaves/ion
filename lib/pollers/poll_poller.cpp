@@ -25,6 +25,12 @@ PollEventType PollPoller::event_to_poll_event(short events) {
     if (events & POLLOUT) {
         result |= PollEventType::Write;
     }
+    if (events & POLLHUP) {
+        result |= PollEventType::Hangup;
+    }
+    if (events & POLLERR) {
+        result |= PollEventType::Error;
+    }
     return result;
 }
 
