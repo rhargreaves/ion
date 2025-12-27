@@ -86,6 +86,8 @@ run-docker-app:
 build-and-test-in-docker:
 	docker build -f build.Dockerfile -t ion .
 	docker run \
+		-e CC \
+		-e CXX \
 		-e BUILD_SUFFIX=docker \
 		-e BUILD_TYPE=$(BUILD_TYPE) \
 		-e GIT_SHA=$(GIT_SHA) \
