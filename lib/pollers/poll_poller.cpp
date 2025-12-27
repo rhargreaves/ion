@@ -23,7 +23,7 @@ PollEventType PollPoller::event_to_poll_event(short events) {
         result |= PollEventType::Read;
     }
     if (events & POLLOUT) {
-        result |= PollEventType::Read;
+        result |= PollEventType::Write;
     }
     return result;
 }
