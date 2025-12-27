@@ -1,6 +1,6 @@
 #include "byte_reader.h"
 
-bool ByteReader::has_bytes(size_t count) const {
+bool ByteReader::has_bytes(std::size_t count) const {
     return pos_ + count <= data_.size();
 }
 
@@ -18,7 +18,7 @@ std::expected<uint8_t, ByteReaderError> ByteReader::peek_byte() const {
     return data_[pos_];
 }
 
-std::expected<std::span<const uint8_t>, ByteReaderError> ByteReader::read_bytes(size_t count) {
+std::expected<std::span<const uint8_t>, ByteReaderError> ByteReader::read_bytes(std::size_t count) {
     if (!has_bytes(count)) {
         return std::unexpected(ByteReaderError::NotEnoughBytes);
     }

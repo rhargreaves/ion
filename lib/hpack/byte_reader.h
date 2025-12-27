@@ -15,12 +15,12 @@ class ByteReader {
     ByteReader(ByteReader&&) = default;
     ByteReader& operator=(ByteReader&&) = default;
 
-    [[nodiscard]] bool has_bytes(size_t count = 1) const;
+    [[nodiscard]] bool has_bytes(std::size_t count = 1) const;
     std::expected<uint8_t, ByteReaderError> read_byte();
     [[nodiscard]] std::expected<uint8_t, ByteReaderError> peek_byte() const;
-    std::expected<std::span<const uint8_t>, ByteReaderError> read_bytes(size_t count);
+    std::expected<std::span<const uint8_t>, ByteReaderError> read_bytes(std::size_t count);
 
    private:
     std::span<const uint8_t> data_;
-    size_t pos_;
+    std::size_t pos_;
 };
