@@ -33,29 +33,20 @@ class ServerRunner:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
-
         print(f"server pid = {self.proc.pid}")
 
         self._tasks.append(asyncio.create_task(self._read_stream(self.proc.stdout, self._stdout_buffer)))
         self._tasks.append(asyncio.create_task(self._read_stream(self.proc.stderr, self._stderr_buffer)))
 
-        # Give it a tiny bit of time to fail if it's going to fail immediately (e.g. port bind error)
-        try:
-            await asyncio.wait_for(self.proc.wait(), timeout=0.1)
-            # If we get here, the process already exited
-            stdout = self.get_stdout()
-            stderr = self.get_stderr()
-            raise RuntimeError(
-                f"Server exited immediately with code {self.proc.returncode}.\nSTDOUT: {stdout}\nSTDERR: {stderr}")
-        except asyncio.TimeoutError:
-            # Process is still running, which is what we want
-            pass
-
         if self._wait_for_port:
-            if not await wait_for_port(self.port):
+            if not await wait_for_port(self.port, 1):
                 await self.stop()
-                raise TimeoutError(
-                    f"Port {self.port} did not open in time. Server STDOUT: {self.get_stdout()} STDERR: {self.get_stderr()}")
+                stdout = self.get_stdout()
+                stderr = self.get_stderr()
+                if self.proc.returncode is not None:
+                    raise RuntimeError(
+                        f"Server exited with code {self.proc.returncode}.\nSTDOUT: {stdout}\nSTDERR: {stderr}")
+                raise TimeoutError(f"Port {self.port} did not open in time.\nSTDOUT: {stdout}\nSTDERR: {stderr}")
         return self
 
     async def _read_stream(self, stream, buffer):
@@ -73,7 +64,7 @@ class ServerRunner:
             if self.proc.returncode is None:
                 try:
                     self.proc.terminate()
-                    await asyncio.wait_for(self.proc.wait(), timeout=5)
+                    await asyncio.wait_for(self.proc.wait(), timeout=1)
                 except (asyncio.TimeoutError, ProcessLookupError):
                     try:
                         self.proc.kill()
