@@ -40,7 +40,7 @@ int main() {
     ion::Http2Server server{};
     auto& router = server.router();
 
-    router.add_route("/", "GET", [](ion::HttpRequest&) {
+    router.add_route("/", "GET", [](const ion::HttpRequest&) {
         const std::string body_text = "hello";
         const std::vector<uint8_t> body_bytes(body_text.begin(), body_text.end());
 
@@ -146,6 +146,11 @@ OPTIONS:
                               Path to certificate file for TLS
           --tls-key-path TEXT (Env:ION_TLS_KEY_PATH)
                               Path to private key file for TLS
+          --custom-404-file-path TEXT
+                              Path to custom 404 page
+          --under-test        Adds routes used for internal testing. Do not enable in
+                              production
+          --status-page       Adds page (/_ion/status) displaying server status
   -v,     --version           Display program version information and exit
 ```
 
