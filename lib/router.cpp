@@ -11,19 +11,23 @@ Router::Router() {
 RouteHandler Router::get_handler(const std::string& path, const std::string& method) const {
     RouteHandler target = default_handler_;
 
+    bool found = false;
     for (const auto& route : routes_) {
         if (route.path == path && route.method == method) {
             target = route.handler;
+            found = true;
             break;
         }
     }
 
-    if (method == "GET" || method == "HEAD") {
-        for (const auto& handler : static_handlers_) {
-            if (handler->matches(path)) {
-                target = [&handler, path, &method](const HttpRequest&) -> HttpResponse {
-                    return handler->handle(path, method == "HEAD");
-                };
+    if (!found) {
+        if (method == "GET" || method == "HEAD") {
+            for (const auto& handler : static_handlers_) {
+                if (handler->matches(path)) {
+                    target = [&handler, path, &method](const HttpRequest&) -> HttpResponse {
+                        return handler->handle(path, method == "HEAD");
+                    };
+                }
             }
         }
     }

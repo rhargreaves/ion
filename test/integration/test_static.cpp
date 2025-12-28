@@ -3,7 +3,6 @@
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
-#include <iostream>
 
 #include "catch2/catch_test_macros.hpp"
 #include "curl_client.h"
@@ -20,6 +19,8 @@ TEST_CASE("static: basic static file mapping") {
     auto sfh = std::make_unique<ion::StaticFileHandler>("/static", "./test/system/static");
 
     server.router().add_static_handler(std::move(sfh));
+    server.router().add_route("/static/some-route", "GET",
+                              [](const auto&) { return ion::HttpResponse{.status_code = 204}; });
 
     TestServerRunner run(server, TEST_PORT);
 
@@ -71,6 +72,12 @@ TEST_CASE("static: basic static file mapping") {
         const auto res =
             client.get(std::format("https://localhost:{}/static/index.html?v=1", TEST_PORT));
         REQUIRE(res.status_code == 200);
+    }
+
+    SECTION ("prioritises explicit routes over static routes") {
+        const auto res =
+            client.get(std::format("https://localhost:{}/static/some-route", TEST_PORT));
+        REQUIRE(res.status_code == 204);
     }
 }
 
