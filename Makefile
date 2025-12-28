@@ -43,7 +43,7 @@ test-h2spec:
 	./test/system/test_h2spec.sh
 PHONY: test-h2spec
 
-run: build $(CERT_PEM) $(KEY_PEM)
+run: $(CERT_PEM) $(KEY_PEM)
 	$(ION_PATH) -p $(SERVER_PORT) \
 		-l $(LOG_LEVEL) \
 		--under-test \
