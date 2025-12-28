@@ -50,7 +50,7 @@ void StatusPage::add_status_page(ion::Router& router) {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ion server info</title>
+    <title>ion server status</title>
     <style>
    :root {
             --bg: #0d1117;
