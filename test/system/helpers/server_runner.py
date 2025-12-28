@@ -7,10 +7,14 @@ from .utils import DEFAULT_ARGS, wait_for_port
 class ServerRunner:
     def __init__(self, port, args=None, extra_args=None, wait_for_port=True):
         if args is None:
-            args = DEFAULT_ARGS
-        self.args = args
+            args = list(DEFAULT_ARGS)
+        else:
+            args = list(args)
+
         if extra_args is not None:
-            self.args += extra_args
+            args.extend(extra_args)
+
+        self.args = args
         self.port = port
         self._wait_for_port = wait_for_port
         self.proc = None
@@ -23,6 +27,7 @@ class ServerRunner:
                "-p", str(self.port)
                ] + self.args
 
+        print(f"Starting server with cmd: {' '.join(cmd)}")
         self.proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
@@ -34,10 +39,23 @@ class ServerRunner:
         self._tasks.append(asyncio.create_task(self._read_stream(self.proc.stdout, self._stdout_buffer)))
         self._tasks.append(asyncio.create_task(self._read_stream(self.proc.stderr, self._stderr_buffer)))
 
+        # Give it a tiny bit of time to fail if it's going to fail immediately (e.g. port bind error)
+        try:
+            await asyncio.wait_for(self.proc.wait(), timeout=0.1)
+            # If we get here, the process already exited
+            stdout = self.get_stdout()
+            stderr = self.get_stderr()
+            raise RuntimeError(
+                f"Server exited immediately with code {self.proc.returncode}.\nSTDOUT: {stdout}\nSTDERR: {stderr}")
+        except asyncio.TimeoutError:
+            # Process is still running, which is what we want
+            pass
+
         if self._wait_for_port:
             if not await wait_for_port(self.port):
                 await self.stop()
-                raise TimeoutError(f"Port {self.port} did not open in time")
+                raise TimeoutError(
+                    f"Port {self.port} did not open in time. Server STDOUT: {self.get_stdout()} STDERR: {self.get_stderr()}")
         return self
 
     async def _read_stream(self, stream, buffer):
