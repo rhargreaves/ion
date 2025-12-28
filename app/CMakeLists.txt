@@ -9,6 +9,8 @@ add_executable(ion-server
         test_routes.h
         status_page.cpp
         status_page.h
+        server_stats.cpp
+        server_stats.h
 )
 
 target_link_libraries(ion-server PRIVATE

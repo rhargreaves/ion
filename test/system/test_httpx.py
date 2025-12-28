@@ -149,4 +149,7 @@ async def test_httpx_test_routes_not_available_if_not_under_test(ion_server):
 async def test_httpx_status_page_shows_server_status(ion_server):
     client = httpx.AsyncClient(http2=True, verify=False)
     response = await client.get(BASE_URL + "/_ion/status")
+
     assert response.status_code == 200
+    assert response.headers["content-type"] == "text/html; charset=utf-8"
+    assert response.headers["cache-control"] == "no-store"
