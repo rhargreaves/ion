@@ -23,6 +23,7 @@ I'm documenting non-obvious stuff I've learnt along the way in [LEARNINGS.md](do
 * Route registration
 * Middleware support for manipulating requests/responses
 * Static file serving (GET, HEAD requests)
+* Non-blocking network I/O (uses `epoll` on Linux, `poll` on macOS)
 * Combined Log Format (CLF) access logs
 * Close server using Ctrl+C (`SIGINT`) or `SIGTERM`
 
