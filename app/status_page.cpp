@@ -8,16 +8,6 @@
 #include "server_stats.h"
 #include "version.h"
 
-std::string_view StatusPage::get_platform() {
-#ifdef __apple_build_version__
-    return "macOS (AppleClang)";
-#elif defined(__linux__)
-    return "Linux";
-#else
-    return "Unknown";
-#endif
-}
-
 void StatusPage::add_status_page(ion::Router& router) {
     router.add_middleware(ServerStats::middleware());
     router.add_route("/_ion/status", "GET", [](const auto&) {
@@ -28,8 +18,6 @@ void StatusPage::add_status_page(ion::Router& router) {
 
         uint64_t total = stats.total_requests;
         double avg_lat = total > 0 ? (double)stats.total_duration_us / total / 1000.0 : 0.0;
-
-        const auto platform = get_platform();
 
         std::stringstream html;
         html << R"html(
@@ -214,7 +202,8 @@ void StatusPage::add_status_page(ion::Router& router) {
         </div>
     </div>
     <div class="footer">
-        Powered by ion • The light-weight HTTP/2 server
+        powered by <a href="https://github.com/rhargreaves/ion">ion</a> • instance id: )html"
+             << stats.server_id << R"html(
     </div>
 </body>
 </html>

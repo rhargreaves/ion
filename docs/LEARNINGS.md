@@ -5,3 +5,4 @@
   Linux.
 * TCP_NODELAY should be used to disable Nagle's algorithm to give better performance. The algorithm holds back smaller
   packets until they reach a certain size, which can lead to increased latency for small packets.
+* There's no standard way to generate a UUID as of C++23. Incredible.
