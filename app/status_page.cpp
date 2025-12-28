@@ -1,5 +1,7 @@
 #include "status_page.h"
 
+#include <spdlog/spdlog.h>
+
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -10,14 +12,17 @@
 
 void StatusPage::add_status_page(ion::Router& router) {
     router.add_middleware(ServerStats::middleware());
-    router.add_route("/_ion/status", "GET", [](const auto&) {
-        auto& stats = ServerStats::instance();
-        auto now = std::chrono::steady_clock::now();
-        auto uptime_sec =
+
+    auto& stats = ServerStats::instance();
+    spdlog::info("instance id: {}", stats.server_id);
+
+    router.add_route("/_ion/status", "GET", [&stats](const auto&) {
+        const auto now = std::chrono::steady_clock::now();
+        const auto uptime_sec =
             std::chrono::duration_cast<std::chrono::seconds>(now - stats.start_time).count();
 
-        uint64_t total = stats.total_requests;
-        double avg_lat = total > 0 ? (double)stats.total_duration_us / total / 1000.0 : 0.0;
+        const uint64_t total = stats.total_requests;
+        const double avg_lat = total > 0 ? (double)stats.total_duration_us / total / 1000.0 : 0.0;
 
         std::stringstream html;
         html << R"html(
