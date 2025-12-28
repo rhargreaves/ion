@@ -48,11 +48,13 @@ void StatusPage::add_status_page(ion::Router& router) {
         std::stringstream html;
         html << R"html(
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>ion server status</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-   :root {
+        :root {
             --bg: #0d1117;
             --card-bg: #161b22;
             --border: #30363d;
@@ -188,7 +190,7 @@ void StatusPage::add_status_page(ion::Router& router) {
             animation: blink 2s infinite;
         }
 
-        @ keyframes blink {
+        @keyframes blink {
             0% { opacity: 1; }
             50% { opacity: 0.3; }
             100% { opacity: 1; }
