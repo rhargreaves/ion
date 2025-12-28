@@ -10,6 +10,26 @@
 #include "server_stats.h"
 #include "version.h"
 
+std::string StatusPage::format_duration(uint64_t total_seconds) {
+    const auto days = total_seconds / 86400;
+    total_seconds %= 86400;
+    const auto hours = total_seconds / 3600;
+    total_seconds %= 3600;
+    const auto minutes = total_seconds / 60;
+    const auto seconds = total_seconds % 60;
+
+    std::stringstream ss;
+    if (days > 0)
+        ss << days << "d ";
+    if (hours > 0 || days > 0)
+        ss << hours << "h ";
+    if (minutes > 0 || hours > 0 || days > 0)
+        ss << minutes << "m ";
+    ss << seconds << "s";
+
+    return ss.str();
+}
+
 void StatusPage::add_status_page(ion::Router& router) {
     router.add_middleware(ServerStats::middleware());
 
@@ -20,6 +40,7 @@ void StatusPage::add_status_page(ion::Router& router) {
         const auto now = std::chrono::steady_clock::now();
         const auto uptime_sec =
             std::chrono::duration_cast<std::chrono::seconds>(now - stats.start_time).count();
+        const std::string uptime = format_duration(uptime_sec);
 
         const uint64_t total = stats.total_requests;
         const double avg_lat = total > 0 ? (double)stats.total_duration_us / total / 1000.0 : 0.0;
@@ -95,7 +116,7 @@ void StatusPage::add_status_page(ion::Router& router) {
 
         .stat-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1.5rem;
         }
 
@@ -117,6 +138,7 @@ void StatusPage::add_status_page(ion::Router& router) {
             color: var(--cyan);
             font-size: 1.25rem;
             font-weight: 500;
+            white-space: nowrap;
         }
 
         .code-list {
@@ -182,13 +204,11 @@ void StatusPage::add_status_page(ion::Router& router) {
         </h1>
         <div class="stat-grid">
             <div class="stat-item"><span class="label">Uptime</span><span class="value">)html"
-             << uptime_sec << R"html(s</span></div>
+             << uptime << R"html(</span></div>
             <div class="stat-item"><span class="label">Requests</span><span class="value">)html"
              << stats.total_requests << R"html(</span></div>
             <div class="stat-item"><span class="label">Avg Latency</span><span class="value">)html"
              << std::fixed << std::setprecision(2) << avg_lat << R"html(ms</span></div>
-            <div class="stat-item"><span class="label">Version</span><span class="value">)html"
-             << ion::BUILD_VERSION << R"html(</span></div>
         </div>
 
         <h3>HTTP Status Codes</h3>
@@ -207,8 +227,8 @@ void StatusPage::add_status_page(ion::Router& router) {
         </div>
     </div>
     <div class="footer">
-        powered by <a href="https://github.com/rhargreaves/ion">ion</a> • instance id: )html"
-             << stats.server_id << R"html(
+        powered by <a href="https://github.com/rhargreaves/ion">ion</a> v)html"
+             << ion::BUILD_VERSION << R"html( • instance id: )html" << stats.server_id << R"html(
     </div>
 </body>
 </html>

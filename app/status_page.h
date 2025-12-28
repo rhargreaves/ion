@@ -6,5 +6,5 @@ class StatusPage {
     static void add_status_page(ion::Router& router);
 
    private:
-    static std::string_view get_platform();
+    static std::string format_duration(uint64_t total_seconds);
 };
