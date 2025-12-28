@@ -10,6 +10,7 @@
 #include "proc_ctrl.h"
 #include "signal_handler.h"
 #include "spdlog/sinks/basic_file_sink.h"
+#include "status_page.h"
 #include "test_routes.h"
 
 void run_server(const Args& args) {
@@ -18,7 +19,13 @@ void run_server(const Args& args) {
     auto& router = server.router();
 
     if (args.under_test) {
+        spdlog::info("running under test mode");
         TestRoutes::add_test_routes(router);
+    }
+
+    if (args.status_page) {
+        spdlog::info("status page enabled: /_ion/status");
+        StatusPage::add_status_page(router);
     }
 
     if (args.static_map.size() == 2) {

@@ -7,6 +7,8 @@ add_executable(ion-server
         proc_ctrl.h
         test_routes.cpp
         test_routes.h
+        status_page.cpp
+        status_page.h
 )
 
 target_link_libraries(ion-server PRIVATE

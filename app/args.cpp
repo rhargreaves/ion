@@ -36,6 +36,9 @@ Args Args::register_opts(CLI::App& app) {
     app.add_flag("--under-test", args.under_test,
                  "Adds routes used for internal testing. Do not enable in production");
 
+    app.add_flag("--status-page", args.status_page,
+                 "Adds page (/_ion/status) displaying server status");
+
     app.set_version_flag("-v,--version", std::string(ion::BUILD_VERSION));
 
     return args;

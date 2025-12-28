@@ -144,10 +144,9 @@ async def test_httpx_test_routes_not_available_if_not_under_test(ion_server):
     assert response.status_code == 404
 
 
-@pytest.mark.skip("wip")
 @pytest.mark.asyncio
-@pytest.mark.parametrize("ion_server", [["--info-page"]], indirect=True)
-async def test_httpx_info_page_shows_server_info(ion_server):
+@pytest.mark.parametrize("ion_server", [["--status-page"]], indirect=True)
+async def test_httpx_status_page_shows_server_status(ion_server):
     client = httpx.AsyncClient(http2=True, verify=False)
-    response = await client.get(BASE_URL + "/_ion/info")
+    response = await client.get(BASE_URL + "/_ion/status")
     assert response.status_code == 200
