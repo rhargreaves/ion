@@ -73,8 +73,8 @@ TlsTransport::TlsTransport(SocketFd&& client_fd, const std::filesystem::path& ce
     });
 
     ssl_ = SSL_new(ctx);
+    SSL_CTX_free(ctx);
     if (!ssl_) {
-        SSL_CTX_free(ctx);
         throw std::runtime_error("failed to create SSL object");
     }
 
