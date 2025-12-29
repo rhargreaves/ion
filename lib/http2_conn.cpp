@@ -25,11 +25,17 @@ static constexpr std::string_view CLIENT_PREFACE{"PRI * HTTP/2.0\r\n\r\nSM\r\n\r
 
 static constexpr size_t MAX_FRAME_SIZE = 16384;
 
-static constexpr size_t READ_BUFFER_SIZE = 512 * 1024;
+static constexpr size_t INITIAL_READ_BUFFER_SIZE = 16 * 1024;
+static constexpr size_t INITIAL_WRITE_BUFFER_SIZE = 16 * 1024;
+
+static constexpr size_t TEMP_READ_BUFFER_SIZE = 16 * 1024;
 
 Http2Connection::Http2Connection(std::unique_ptr<Transport> transport, const std::string& client_ip,
                                  const Router& router)
-    : transport_(std::move(transport)), client_ip_(client_ip), router_(router) {}
+    : transport_(std::move(transport)), client_ip_(client_ip), router_(router) {
+    read_buffer_.reserve(INITIAL_READ_BUFFER_SIZE);
+    write_buffer_.reserve(INITIAL_WRITE_BUFFER_SIZE);
+}
 
 Http2WindowUpdate Http2Connection::process_window_update_payload(std::span<const uint8_t> payload) {
     return Http2WindowUpdate::parse(payload.subspan<0, Http2WindowUpdate::wire_size>());
@@ -124,7 +130,7 @@ void Http2Connection::write_settings() {
 }
 
 void Http2Connection::populate_read_buffer() {
-    std::vector<uint8_t> temp_buffer(READ_BUFFER_SIZE);
+    std::vector<uint8_t> temp_buffer(TEMP_READ_BUFFER_SIZE);
     const auto result = transport_->read(temp_buffer);
 
     if (!result) {

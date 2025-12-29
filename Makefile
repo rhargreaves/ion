@@ -51,7 +51,7 @@ run: $(CERT_PEM) $(KEY_PEM)
 .PHONY: run
 
 benchmark:
-	h2load https://localhost:$(SERVER_PORT)/ -n 1000 -c 10 -t 8
+	h2load https://localhost:$(SERVER_PORT)/_tests/ok -n 10000 -c 10 -t 8
 .PHONY: benchmark
 
 clean:
