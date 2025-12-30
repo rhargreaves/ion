@@ -59,6 +59,8 @@ add_library(ion
         pollers/poller.cpp
         pollers/epoll_poller.cpp
         pollers/epoll_poller.h
+        transports/tls_context.cpp
+        transports/tls_context.h
 )
 
 target_compile_options(ion PUBLIC ${ION_DEV_FLAGS})

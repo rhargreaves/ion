@@ -8,6 +8,7 @@
 #include "server_config.h"
 #include "stop_reason.h"
 #include "tcp_listener.h"
+#include "transports/tls_context.h"
 
 namespace ion {
 class Poller;
@@ -32,6 +33,7 @@ class Http2Server {
     ServerConfiguration config_;
     StopReason stop_reason_{};
     std::map<int, std::unique_ptr<Http2Connection>> connections_;
+    std::optional<TlsContext> tls_ctx_{};
 };
 
 }  // namespace ion

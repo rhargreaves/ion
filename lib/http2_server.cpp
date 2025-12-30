@@ -4,19 +4,22 @@
 
 #include <optional>
 #include <set>
-#include <vector>
 
 #include "pollers/poll_poller.h"
 #include "tcp_listener.h"
 #include "transports/tcp_transport.h"
+#include "transports/tls_context.h"
 #include "transports/tls_transport.h"
 
 namespace ion {
 
 static constexpr std::size_t MAX_CONNECTIONS = 128;
 
-Http2Server::Http2Server(const ServerConfiguration& config) : config_(config), router_(Router{}) {
+Http2Server::Http2Server(const ServerConfiguration& config) : router_(Router{}), config_(config) {
     config_.validate();
+    if (!config_.cleartext) {
+        tls_ctx_.emplace(*config_.cert_path, *config_.key_path);
+    }
 }
 
 std::unique_ptr<Transport> Http2Server::create_transport(SocketFd&& fd) const {
@@ -24,7 +27,7 @@ std::unique_ptr<Transport> Http2Server::create_transport(SocketFd&& fd) const {
         return std::make_unique<TcpTransport>(std::move(fd));
     }
 
-    auto tls = std::make_unique<TlsTransport>(std::move(fd), *config_.cert_path, *config_.key_path);
+    auto tls = std::make_unique<TlsTransport>(std::move(fd), *tls_ctx_);
     if (!tls->handshake()) {
         return nullptr;
     }

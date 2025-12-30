@@ -5,15 +5,15 @@
 #include <filesystem>
 #include <span>
 
-#include "../socket_fd.h"
+#include "socket_fd.h"
+#include "tls_context.h"
 #include "transport.h"
 
 namespace ion {
 
 class TlsTransport : public Transport {
    public:
-    explicit TlsTransport(SocketFd&& client_fd, const std::filesystem::path& cert_path,
-                          const std::filesystem::path& key_path);
+    explicit TlsTransport(SocketFd&& client_fd, const TlsContext& tls_context);
     ~TlsTransport() override;
 
     TlsTransport(TlsTransport&& other) noexcept;
@@ -31,9 +31,6 @@ class TlsTransport : public Transport {
    private:
     SocketFd client_fd_;
     SSL* ssl_ = nullptr;
-
-    static int alpn_callback(SSL* ssl, const unsigned char** out, unsigned char* outlen,
-                             const unsigned char* in, unsigned int inlen, void* arg);
 };
 
 }  // namespace ion
