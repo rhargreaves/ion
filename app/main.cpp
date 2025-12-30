@@ -73,10 +73,7 @@ void setup_access_logs(const std::string& log_path) {
 
 void enable_no_new_privs_on_linux() {
 #ifdef __linux__
-    if (ProcessControl::enable_no_new_privs()) {
-        spdlog::warn("failed to set PR_SET_NO_NEW_PRIVS: {}", std::strerror(errno));
-    }
-    spdlog::debug("PR_SET_NO_NEW_PRIVS enabled");
+    ProcessControl::enable_no_new_privs();
 #endif
 }
 
