@@ -7,7 +7,7 @@
 
 namespace ion {
 
-constexpr size_t MAX_PLAIN_TEXT_STRING_LENGTH = 3;
+static constexpr size_t MAX_PLAIN_TEXT_STRING_LENGTH = 3;
 
 HeaderBlockEncoder::HeaderBlockEncoder(DynamicTable& dynamic_table)
     : dynamic_table_(dynamic_table) {}

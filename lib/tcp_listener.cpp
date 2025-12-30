@@ -14,7 +14,7 @@
 
 namespace ion {
 
-constexpr int enable_opt = 1;
+static constexpr int ENABLE_OPT = 1;
 
 inline int to_poll_timeout_ms(std::chrono::milliseconds timeout) {
     if (timeout.count() < 0) {
@@ -37,7 +37,7 @@ void TcpListener::set_nonblocking_socket(const SocketFd& socket_fd) {
 }
 
 void TcpListener::set_reusable_addr() {
-    if (setsockopt(server_fd_, SOL_SOCKET, SO_REUSEADDR, &enable_opt, sizeof(enable_opt))) {
+    if (setsockopt(server_fd_, SOL_SOCKET, SO_REUSEADDR, &ENABLE_OPT, sizeof(ENABLE_OPT))) {
         throw std::system_error(errno, std::system_category(), "setsockopt SO_REUSEADDR");
     }
 }
@@ -75,7 +75,7 @@ int TcpListener::raw_fd() const {
 }
 
 void TcpListener::set_tcp_no_delay(const SocketFd& client_fd) {
-    if (setsockopt(client_fd, IPPROTO_TCP, TCP_NODELAY, &enable_opt, sizeof(enable_opt)) < 0) {
+    if (setsockopt(client_fd, IPPROTO_TCP, TCP_NODELAY, &ENABLE_OPT, sizeof(ENABLE_OPT)) < 0) {
         spdlog::warn("failed to set TCP_NODELAY on client fd: {}", strerror(errno));
     }
 }
