@@ -1,4 +1,7 @@
 import pytest
+import asyncio
+import ssl
+import socket
 
 SERVER_PORT = 8443
 from helpers.h2_helpers import create_connection, send_request, close_connection, open_tls_wrapped_socket
@@ -45,3 +48,62 @@ async def test_server_connection_limit(ion_server):
         assert resp.status == 200
     finally:
         close_connection(conn)
+
+
+@pytest.mark.asyncio
+@pytest.mark.timeout(10)
+async def test_server_handles_slow_client_read_before_tls_handshake(ion_server):
+    slow_socks = []
+    num_socks = 1  # TODO: need to test with more than one - currently server effectively blocks :(
+
+    for _ in range(num_socks):
+        s = socket.create_connection(("localhost", SERVER_PORT))
+        s.setblocking(False)
+        slow_socks.append(s)
+
+    await asyncio.sleep(7)
+
+    eof_errors = 0
+    still_open = 0
+    for s in slow_socks:
+        try:
+            closed = (s.recv(1) == b"")
+            eof_errors += 1
+            assert closed, "connection should have been closed by server"
+        except BlockingIOError:
+            still_open += 1
+            pass
+        except ConnectionResetError:
+            eof_errors += 1
+            pass
+    assert eof_errors == num_socks
+    assert still_open == 0
+
+
+@pytest.mark.skip("wip")
+@pytest.mark.asyncio
+@pytest.mark.timeout(7)
+async def test_server_handles_slow_client_read_after_tls_handshake(ion_server):
+    slow_socks = []
+    num_socks = 5
+
+    for _ in range(num_socks):
+        s = open_tls_wrapped_socket(SERVER_PORT)
+        s.setblocking(False)
+        slow_socks.append(s)
+
+    await asyncio.sleep(5)
+
+    eof_errors = 0
+    still_open = 0
+    for s in slow_socks:
+        try:
+            assert s.recv(1) == b"", "connection should have been closed by server"
+        except (BlockingIOError, ssl.SSLWantReadError):
+            still_open += 1
+            pass
+        except (ConnectionResetError, ssl.SSLEOFError):
+            eof_errors += 1
+            pass
+    assert eof_errors == num_socks
+    assert still_open == 0
