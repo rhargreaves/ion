@@ -32,7 +32,7 @@ async def test_server_connection_limit(ion_server):
 
     for i in range(max_connections + 2):
         try:
-            s = open_tls_wrapped_socket(SERVER_PORT)
+            s = await asyncio.to_thread(open_tls_wrapped_socket, SERVER_PORT)
             s.setblocking(False)
             active_socks.append(s)
         except Exception as e:
@@ -54,7 +54,7 @@ async def test_server_connection_limit(ion_server):
 @pytest.mark.timeout(10)
 async def test_server_handles_slow_client_read_before_tls_handshake(ion_server):
     slow_socks = []
-    num_socks = 1  # TODO: need to test with more than one - currently server effectively blocks :(
+    num_socks = 5
 
     for _ in range(num_socks):
         s = socket.create_connection(("localhost", SERVER_PORT))

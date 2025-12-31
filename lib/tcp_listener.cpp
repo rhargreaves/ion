@@ -65,7 +65,7 @@ TcpListener::TcpListener(uint16_t port) {
 }
 
 void TcpListener::listen() {
-    if (::listen(server_fd_, 1) < 0) {
+    if (::listen(server_fd_, SOMAXCONN) < 0) {
         throw std::system_error(errno, std::system_category(), "listen");
     }
 }

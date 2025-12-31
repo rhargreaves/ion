@@ -12,6 +12,8 @@
 
 namespace ion {
 
+static constexpr std::string_view CLIENT_PREFACE{"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"};
+
 static constexpr uint8_t FRAME_TYPE_DATA = 0x00;
 static constexpr uint8_t FRAME_TYPE_HEADERS = 0x01;
 static constexpr uint8_t FRAME_TYPE_SETTINGS = 0x04;
@@ -21,14 +23,12 @@ static constexpr uint8_t FRAME_TYPE_WINDOW_UPDATE = 0x08;
 static constexpr uint8_t FLAG_END_HEADERS = 0x04;
 static constexpr uint8_t FLAG_END_STREAM = 0x01;
 
-static constexpr std::string_view CLIENT_PREFACE{"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"};
-
 static constexpr size_t MAX_FRAME_SIZE = 16384;
-
 static constexpr size_t INITIAL_READ_BUFFER_SIZE = 16 * 1024;
 static constexpr size_t INITIAL_WRITE_BUFFER_SIZE = 16 * 1024;
-
 static constexpr size_t TEMP_READ_BUFFER_SIZE = 16 * 1024;
+
+static constexpr std::chrono::seconds IDLE_TIMEOUT{5};
 
 Http2Connection::Http2Connection(std::unique_ptr<Transport> transport, const std::string& client_ip,
                                  const Router& router)
@@ -136,27 +136,31 @@ void Http2Connection::populate_read_buffer() {
     if (!result) {
         switch (result.error()) {
             case TransportError::WantReadOrWrite:
-                spdlog::trace("TLS want read/write");
+                spdlog::trace("transport want read/write");
                 break;
             case TransportError::ConnectionClosed:
-                spdlog::debug("TLS connection closed");
+                spdlog::debug("transport connection closed");
                 update_state(Http2ConnectionState::ClientClosed);
                 break;
             case TransportError::ProtocolError:
-                spdlog::error("TLS protocol error");
+                spdlog::error("transport protocol error");
                 update_state(Http2ConnectionState::ProtocolError);
                 break;
             case TransportError::WriteError:
-                spdlog::error("TLS write error");
+                spdlog::error("transport write error");
                 break;
             case TransportError::OtherError:
-                spdlog::error("TLS other error (presumed non fatal)");
+                spdlog::error("transport other error (presumed non fatal)");
+                break;
+            case TransportError::Timeout:
+                spdlog::trace("transport timeout");
                 break;
         }
         return;
     }
     const auto bytes_read = result.value();
     if (bytes_read > 0) {
+        update_last_activity();
         read_buffer_.insert(read_buffer_.end(), temp_buffer.begin(),
                             temp_buffer.begin() + bytes_read);
         spdlog::trace("read {} bytes, buffer size now {}", bytes_read, read_buffer_.size());
@@ -284,6 +288,8 @@ void Http2Connection::process_frame(const Http2FrameReader& frame) {
 
 constexpr std::string_view state_to_string(Http2ConnectionState state) {
     switch (state) {
+        case Http2ConnectionState::AwaitingHandshake:
+            return "AwaitingHandshake";
         case Http2ConnectionState::AwaitingPreface:
             return "AwaitingPreface";
         case Http2ConnectionState::AwaitingFrame:
@@ -310,20 +316,40 @@ Http2ProcessResult Http2Connection::process() {
 
 Http2ProcessResult Http2Connection::internal_process() {
     spdlog::trace("processing state: {}", state_to_string(state_));
+    if (state_ != Http2ConnectionState::AwaitingHandshake) {
+        flush_write_buffer();
 
-    flush_write_buffer();
+        // If we still have data to send, we are blocked on writing
+        if (!write_buffer_.empty()) {
+            return Http2ProcessResult::WantWrite;
+        }
 
-    // If we still have data to send, we are blocked on writing
-    if (!write_buffer_.empty()) {
-        return Http2ProcessResult::WantWrite;
-    }
-
-    if (state_ == Http2ConnectionState::AwaitingPreface ||
-        state_ == Http2ConnectionState::AwaitingFrame) {
-        populate_read_buffer();  // updates connection state on error
+        if (state_ == Http2ConnectionState::AwaitingPreface ||
+            state_ == Http2ConnectionState::AwaitingFrame) {
+            populate_read_buffer();  // updates connection state on error
+        }
     }
 
     switch (state_) {
+        case Http2ConnectionState::AwaitingHandshake: {
+            if (auto handshake_result = transport_->handshake()) {
+                update_last_activity();
+                spdlog::trace("transport handshake complete");
+                update_state(Http2ConnectionState::AwaitingPreface);
+                return Http2ProcessResult::Complete;
+            } else {
+                if (handshake_result.error() == TransportError::WantReadOrWrite) {
+                    spdlog::trace("handshake: want read/write");
+                    return Http2ProcessResult::WantRead;
+                }
+                if (handshake_result.error() == TransportError::ConnectionClosed) {
+                    spdlog::trace("handshake: connection closed");
+                    return Http2ProcessResult::ClientClosed;
+                }
+                spdlog::trace("handshake: connection error");
+                return Http2ProcessResult::ConnectionError;
+            }
+        }
         case Http2ConnectionState::AwaitingPreface: {
             switch (read_preface()) {
                 case ReadPrefaceResult::Success:
@@ -450,10 +476,19 @@ void Http2Connection::flush_write_buffer() {
         }
         return;
     }
+    update_last_activity();
     spdlog::trace("flushed {} bytes from write buffer", *result);
 
     // remove what was actually sent
     write_buffer_.erase(write_buffer_.begin(), write_buffer_.begin() + *result);
+}
+
+void Http2Connection::update_last_activity() {
+    last_activity_ = std::chrono::steady_clock::now();
+}
+
+bool Http2Connection::has_timed_out() const {
+    return (std::chrono::steady_clock::now() - last_activity_) > IDLE_TIMEOUT;
 }
 
 }  // namespace ion

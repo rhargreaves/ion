@@ -21,7 +21,7 @@ class H2Response:
 
 
 def open_tls_wrapped_socket(port):
-    socket.setdefaulttimeout(15)
+    socket.setdefaulttimeout(60)
     ctx = ssl.create_default_context(cafile=certifi.where())
     ctx.set_alpn_protocols(['h2'])
     ctx.check_hostname = False

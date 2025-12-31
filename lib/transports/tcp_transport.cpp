@@ -68,4 +68,8 @@ void TcpTransport::graceful_shutdown() const {
     }
 }
 
+std::expected<void, TransportError> TcpTransport::handshake() const {
+    return {};
+}
+
 }  // namespace ion

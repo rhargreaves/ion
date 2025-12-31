@@ -26,13 +26,7 @@ std::unique_ptr<Transport> Http2Server::create_transport(SocketFd&& fd) const {
     if (config_.cleartext) {
         return std::make_unique<TcpTransport>(std::move(fd));
     }
-
-    auto tls = std::make_unique<TlsTransport>(std::move(fd), *tls_ctx_);
-    if (!tls->handshake()) {
-        return nullptr;
-    }
-    spdlog::debug("TLS handshake completed successfully");
-    return tls;
+    return std::make_unique<TlsTransport>(std::move(fd), *tls_ctx_);
 }
 
 void Http2Server::establish_conn(TcpListener& listener, Poller& poller) {
@@ -67,7 +61,19 @@ void Http2Server::start(uint16_t port) {
     poller->set(listener_fd, PollEventType::Read);
 
     while (!user_req_termination_) {
-        auto events = poller->poll(std::chrono::milliseconds{100});
+        // idle connection reaper
+        for (auto it = connections_.begin(); it != connections_.end();) {
+            const auto& conn = it->second;
+            if (conn->has_timed_out()) {
+                spdlog::warn("closing connection due to inactivity (fd: {})", it->first);
+                poller->remove(it->first);
+                it = connections_.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        auto events = poller->poll(std::chrono::milliseconds{25});
         if (!events) {
             continue;
         }
@@ -114,6 +120,15 @@ void Http2Server::start(uint16_t port) {
             bool conn_active = true;
             while (conn_active) {
                 const auto& conn = it->second;
+
+                if (conn->has_timed_out()) {
+                    spdlog::error("connection timed out. force closing connection");
+                    connections_.erase(it);
+                    poller->remove(fd);
+                    conn_active = false;
+                    break;
+                }
+
                 switch (conn->process()) {
                     case Http2ProcessResult::WantWrite:
                         spdlog::trace("will poll write events for fd {}", fd);

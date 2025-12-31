@@ -21,6 +21,7 @@ class Transport {
     virtual std::expected<ssize_t, TransportError> read(std::span<uint8_t> buffer) const = 0;
     virtual std::expected<ssize_t, TransportError> write(std::span<const uint8_t> buffer) const = 0;
     virtual void graceful_shutdown() const = 0;
+    [[nodiscard]] virtual std::expected<void, TransportError> handshake() const = 0;
 };
 
 }  // namespace ion
