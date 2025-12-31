@@ -4,6 +4,7 @@
 #include <map>
 
 #include "http2_conn.h"
+#include "pollers/poller.h"
 #include "router.h"
 #include "server_config.h"
 #include "stop_reason.h"
@@ -26,6 +27,9 @@ class Http2Server {
 
    private:
     void establish_conn(TcpListener& listener, Poller& poller);
+    void reap_idle_connections(Poller& poller);
+    void handle_incoming_connection(TcpListener& listener, Poller& poller);
+    void handle_connection_events(Poller& poller, int fd, PollEventType poll_events);
     std::unique_ptr<Transport> create_transport(SocketFd&& fd) const;
 
     volatile std::sig_atomic_t user_req_termination_ = 0;
