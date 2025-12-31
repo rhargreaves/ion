@@ -152,9 +152,6 @@ void Http2Connection::populate_read_buffer() {
             case TransportError::OtherError:
                 spdlog::error("transport other error (presumed non fatal)");
                 break;
-            case TransportError::Timeout:
-                spdlog::trace("transport timeout");
-                break;
         }
         return;
     }
