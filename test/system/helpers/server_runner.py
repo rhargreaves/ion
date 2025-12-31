@@ -55,7 +55,9 @@ class ServerRunner:
                 data = await stream.read(64 * 1024)
                 if not data:
                     break
-                buffer.write(data.decode(errors='replace'))
+                text = data.decode(errors='replace')
+                buffer.write(text)
+                print(text, end='', flush=True)
         except asyncio.CancelledError:
             pass
 
