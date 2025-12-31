@@ -120,15 +120,6 @@ void Http2Server::start(uint16_t port) {
             bool conn_active = true;
             while (conn_active) {
                 const auto& conn = it->second;
-
-                if (conn->has_timed_out()) {
-                    spdlog::error("connection timed out. force closing connection");
-                    connections_.erase(it);
-                    poller->remove(fd);
-                    conn_active = false;
-                    break;
-                }
-
                 switch (conn->process()) {
                     case Http2ProcessResult::WantWrite:
                         spdlog::trace("will poll write events for fd {}", fd);
