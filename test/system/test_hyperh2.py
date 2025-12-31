@@ -24,9 +24,10 @@ async def test_hyperh2_returns_200_for_multiple_requests_over_persistent_connect
 
 @pytest.mark.asyncio
 async def test_server_connection_limit(ion_server):
+    max_connections = 128
     active_socks = []
-    # MAX_CONNECTIONS is 128. Let's open 130.
-    for i in range(130):
+
+    for i in range(max_connections + 2):
         try:
             s = open_tls_wrapped_socket(SERVER_PORT)
             s.setblocking(False)
