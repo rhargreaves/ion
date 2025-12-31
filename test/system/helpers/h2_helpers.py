@@ -5,9 +5,19 @@ import certifi
 import h2.connection
 import h2.events
 
+from dataclasses import dataclass, field
+from typing import List, Dict, Any
 from time import sleep
 
 SERVER_NAME = 'localhost'
+
+
+@dataclass
+class H2Response:
+    status: int | None
+    body: str | None
+    headers: Dict[str, str] = field(default_factory=dict)
+    events: List[Any] = field(default_factory=list)
 
 
 def open_tls_wrapped_socket(port):
@@ -47,28 +57,38 @@ def send_request(conn, stream_id):
     c.send_headers(stream_id, headers, end_stream=True)
     s.sendall(c.data_to_send())
 
+    status_code = None
+    headers_dict = {}
     body = b''
+    all_events = []
     response_stream_ended = False
+
     while not response_stream_ended:
-        # read raw data from the socket
-        data = s.recv(65536 * 1024)
+        data = s.recv(64 * 1024)
         if not data:
             break
 
-        # feed raw data into h2, and process resulting events
         events = c.receive_data(data)
         for event in events:
-            print(event)
+            all_events.append(event)
+
+            if isinstance(event, h2.events.ResponseReceived):
+                headers_dict = {k.decode(): v.decode() for k, v in event.headers}
+                status_code = headers_dict.get(':status')
+
             if isinstance(event, h2.events.DataReceived):
-                # update flow control so the server doesn't starve us
                 c.acknowledge_received_data(event.flow_controlled_length, event.stream_id)
-                # more response body data received
                 body += event.data
+
             if isinstance(event, h2.events.StreamEnded):
-                # response body completed, let's exit the loop
                 response_stream_ended = True
                 break
-        # send any pending data to the server
+
         s.sendall(c.data_to_send())
 
-    return body.decode()
+    return H2Response(
+        status=int(status_code),
+        body=body.decode() if body else None,
+        headers=headers_dict,
+        events=all_events
+    )

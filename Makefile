@@ -1,6 +1,6 @@
 PYTEST_ARGS=
 #PYTEST_ARGS=--log-cli-level=DEBUG
-#PYTEST_ARGS=
+PYTEST_ARGS=-v
 CERT_PEM=cert.pem
 KEY_PEM=key.pem
 BUILD_SUFFIX?=make

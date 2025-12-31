@@ -73,12 +73,17 @@ void Http2Server::start(uint16_t port) {
         }
 
         // dispatch events
-        for (auto& [fd, events] : *events) {
+        for (auto& [fd, poll_events] : *events) {
             if (fd == listener_fd) {
                 // new client
                 const bool at_capacity = connections_.size() >= MAX_CONNECTIONS;
                 if (!at_capacity) {
                     establish_conn(listener, *poller);
+                } else {
+                    if (const auto overflow = listener.try_accept()) {
+                        spdlog::warn("server at capacity. rejecting new connection from {}",
+                                     overflow->client_ip().value_or("unknown IP"));
+                    }
                 }
                 continue;
             }
@@ -88,21 +93,21 @@ void Http2Server::start(uint16_t port) {
             if (it == connections_.end()) {
                 continue;
             }
-            if (has_event(events, PollEventType::Error) ||
-                has_event(events, PollEventType::Hangup)) {
+            if (has_event(poll_events, PollEventType::Error) ||
+                has_event(poll_events, PollEventType::Hangup)) {
                 spdlog::debug("connection closed");
                 connections_.erase(it);
                 poller->remove(fd);
                 continue;
             }
 
-            if (!has_event(events, PollEventType::Read) &&
-                !has_event(events, PollEventType::Write)) {
+            if (!has_event(poll_events, PollEventType::Read) &&
+                !has_event(poll_events, PollEventType::Write)) {
                 continue;
             }
 
             // assume we are not write blocked until WantWrite occurs again
-            if (has_event(events, PollEventType::Write)) {
+            if (has_event(poll_events, PollEventType::Write)) {
                 poller->set(fd, PollEventType::Read);
             }
 
