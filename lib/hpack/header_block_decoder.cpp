@@ -50,26 +50,35 @@ std::expected<std::string, FrameError> HeaderBlockDecoder::read_length_and_strin
     return read_string(is_huffman, str_size, *str_span_res);
 }
 
-std::expected<std::string, FrameError> HeaderBlockDecoder::read_string(
-    bool is_huffman, size_t size, std::span<const uint8_t> data) {
-    if (is_huffman) {
-        auto bytes_res = huffman_tree_.decode(data.subspan(0, size));
-        if (!bytes_res) {
-            return std::unexpected{FrameError::ProtocolError};
-        }
-        if (bytes_res->size() > MAX_HEADER_STRING_LENGTH) {
-            spdlog::error("Header string length exceeds maximum allowed size (len: {}, max: {})",
-                          bytes_res->size(), MAX_HEADER_STRING_LENGTH);
-            return std::unexpected(FrameError::ProtocolError);
-        }
-        return std::string{bytes_res->begin(), bytes_res->end()};
-    }
+bool HeaderBlockDecoder::string_length_within_limit(size_t size) {
     if (size > MAX_HEADER_STRING_LENGTH) {
         spdlog::error("Header string length exceeds maximum allowed size (len: {}, max: {})", size,
                       MAX_HEADER_STRING_LENGTH);
-        return std::unexpected(FrameError::ProtocolError);
+        return false;
     }
+    return true;
+}
 
+std::expected<std::string, FrameError> HeaderBlockDecoder::decode_huffman_string(
+    size_t size, std::span<const uint8_t> data) {
+    auto bytes_res = huffman_tree_.decode(data.subspan(0, size));
+    if (!bytes_res) {
+        return std::unexpected{FrameError::ProtocolError};
+    }
+    if (!string_length_within_limit(bytes_res->size())) {
+        return std::unexpected{FrameError::ProtocolError};
+    }
+    return std::string{bytes_res->begin(), bytes_res->end()};
+}
+
+std::expected<std::string, FrameError> HeaderBlockDecoder::read_string(
+    bool is_huffman, size_t size, std::span<const uint8_t> data) {
+    if (is_huffman) {
+        return decode_huffman_string(size, data);
+    }
+    if (!string_length_within_limit(size)) {
+        return std::unexpected{FrameError::ProtocolError};
+    }
     auto raw_data = data.subspan(0, size);
     return std::string{raw_data.begin(), raw_data.end()};
 }

@@ -24,9 +24,12 @@ class HeaderBlockDecoder {
     std::expected<std::string, FrameError> read_string(bool is_huffman, size_t size,
                                                        std::span<const uint8_t> data);
     std::expected<std::string, FrameError> read_length_and_string(ByteReader& reader);
+    static bool string_length_within_limit(size_t size);
     std::expected<HttpHeader, FrameError> decode_literal_field(uint8_t idx_prefix_bits,
                                                                ByteReader& reader);
     std::expected<HttpHeader, FrameError> decode_indexed_field(ByteReader& reader);
+    std::expected<std::string, FrameError> decode_huffman_string(size_t size,
+                                                                 std::span<const uint8_t> data);
     std::expected<std::string, FrameError> read_indexed_header_name(size_t index);
     std::expected<HttpHeader, FrameError> read_indexed_header(size_t index);
     std::expected<void, FrameError> decode_dynamic_table_size_update(ByteReader& reader);
