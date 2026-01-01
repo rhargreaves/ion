@@ -298,7 +298,6 @@ TEST_CASE("headers: decodes dynamic table entries") {
     }
 
     SECTION ("literal header field - enforce string length limit on decode") {
-        spdlog::set_level(spdlog::level::trace);
         auto encoder_dt = ion::DynamicTable{};
         auto encoder = ion::HeaderBlockEncoder{encoder_dt};
 
@@ -355,5 +354,14 @@ TEST_CASE("headers: dynamic table management") {
         decoder.decode(resize_table_to_80);
         REQUIRE(dynamic_table.count() == 2);
         REQUIRE(dynamic_table.size() == 80);
+    }
+
+    SECTION ("limits maximum size of table requested") {
+        constexpr auto resize_table_to_64_kb_plus_1 =
+            std::to_array<uint8_t>({0x3f, 0xe2, 0xff, 0x03});
+        auto res = decoder.decode(resize_table_to_64_kb_plus_1);
+
+        REQUIRE(!res);
+        REQUIRE(res.error() == FrameError::ProtocolError);
     }
 }

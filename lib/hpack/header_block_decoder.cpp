@@ -41,6 +41,7 @@ std::expected<std::string, FrameError> HeaderBlockDecoder::read_length_and_strin
         spdlog::error("Failed to decode string length integer");
         return std::unexpected(FrameError::ProtocolError);
     }
+
     const uint32_t str_size = *length_res;
     const auto str_span_res = reader.read_bytes(str_size);
     if (!str_span_res) {
@@ -172,6 +173,13 @@ std::expected<void, FrameError> HeaderBlockDecoder::decode_dynamic_table_size_up
         spdlog::error("failed to decode dynamic table size update (not enough bytes)");
         return std::unexpected(FrameError::ProtocolError);
     }
+
+    if (*new_sz > HARD_TABLE_SIZE_LIMIT) {
+        spdlog::error("dynamic table size update exceeds hard limit ({} > {})", *new_sz,
+                      HARD_TABLE_SIZE_LIMIT);
+        return std::unexpected(FrameError::ProtocolError);
+    }
+
     dynamic_table_.set_max_table_size(*new_sz);
     spdlog::trace("dynamic table size updated to: {}", *new_sz);
     return {};
