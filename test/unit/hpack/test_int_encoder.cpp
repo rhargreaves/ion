@@ -20,15 +20,21 @@ TEST_CASE("integer encoder: encoders ints within prefix range") {
 }
 
 TEST_CASE("integer encoder: encoders ints outside of prefix range") {
-    SECTION ("prefix 5") {
+    SECTION ("prefix 5; edge") {
         auto bytes = ion::IntegerEncoder::encode(31, 5);
 
         REQUIRE_THAT(bytes, Catch::Matchers::Equals(std::vector<uint8_t>{0x1f, 0x00}));
     }
 
-    SECTION ("prefix 7") {
+    SECTION ("prefix 7; edge") {
         auto bytes = ion::IntegerEncoder::encode(127, 7);
 
         REQUIRE_THAT(bytes, Catch::Matchers::Equals(std::vector<uint8_t>{0x7f, 0x00}));
+    }
+
+    SECTION ("prefix 7") {
+        auto bytes = ion::IntegerEncoder::encode(1023, 7);
+
+        REQUIRE_THAT(bytes, Catch::Matchers::Equals(std::vector<uint8_t>{0x7f, 0x80, 0x07}));
     }
 }

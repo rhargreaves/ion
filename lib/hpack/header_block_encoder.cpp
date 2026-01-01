@@ -1,9 +1,12 @@
 #include "header_block_encoder.h"
 
+#include <ranges>
+
 #include "bit_writer.h"
 #include "header_block_decoder.h"
 #include "header_static_table.h"
 #include "huffman_codes.h"
+#include "int_encoder.h"
 
 namespace ion {
 
@@ -23,12 +26,22 @@ std::vector<uint8_t> HeaderBlockEncoder::write_length_and_string(const std::stri
             bw.write_bits(huffman_code.lsb_aligned_code, huffman_code.code_len);
         }
         auto bitstream = bw.finalize();
-        bytes.push_back(0x80 | (bitstream.size() & 0x7F));
+
+        auto encoded_length = IntegerEncoder::encode(bitstream.size(), 7);
+        bytes.push_back(0x80 | encoded_length[0]);
+        for (const auto& byte : encoded_length | std::ranges::views::drop(1)) {
+            bytes.push_back(byte);
+        }
+
         bytes.insert(bytes.end(), bitstream.begin(), bitstream.end());
     } else {
         // non huffman
-        const auto length = str.size() & 0x7F;  // no huffman encoding
-        bytes.push_back(static_cast<uint8_t>(length));
+        auto encoded_length = IntegerEncoder::encode(str.size(), 7);
+        bytes.push_back(encoded_length[0]);
+        for (const auto& byte : encoded_length | std::ranges::views::drop(1)) {
+            bytes.push_back(byte);
+        }
+
         for (const char c : str) {
             bytes.push_back(c);
         }

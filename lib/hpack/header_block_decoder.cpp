@@ -13,6 +13,8 @@
 
 namespace ion {
 
+static constexpr size_t MAX_HEADER_STRING_LENGTH = 4 * 1024;
+
 static void populate_huffman_tree(HuffmanTree& tree) {
     for (uint16_t i = 0; i < static_cast<uint16_t>(HUFFMAN_CODES.size()); i++) {
         auto code = HUFFMAN_CODES[i];
@@ -27,15 +29,19 @@ HeaderBlockDecoder::HeaderBlockDecoder(DynamicTable& dynamic_table)
 
 std::expected<std::string, FrameError> HeaderBlockDecoder::read_length_and_string(
     ByteReader& reader) {
-    const auto length_byte_res = reader.read_byte();
+    const auto length_byte_res = reader.peek_byte();
     if (!length_byte_res) {
         spdlog::error("Unexpected end of data while reading header length & string");
         return std::unexpected(FrameError::ProtocolError);
     }
 
     const bool is_huffman = *length_byte_res & 0x80;
-    const auto str_size = *length_byte_res & 0x7F;
-
+    const auto length_res = IntegerDecoder::decode(reader, 7);
+    if (!length_res) {
+        spdlog::error("Failed to decode string length integer");
+        return std::unexpected(FrameError::ProtocolError);
+    }
+    const uint32_t str_size = *length_res;
     const auto str_span_res = reader.read_bytes(str_size);
     if (!str_span_res) {
         spdlog::error("Insufficient data for string");
@@ -51,8 +57,19 @@ std::expected<std::string, FrameError> HeaderBlockDecoder::read_string(
         if (!bytes_res) {
             return std::unexpected{FrameError::ProtocolError};
         }
+        if (bytes_res->size() > MAX_HEADER_STRING_LENGTH) {
+            spdlog::error("Header string length exceeds maximum allowed size (len: {}, max: {})",
+                          bytes_res->size(), MAX_HEADER_STRING_LENGTH);
+            return std::unexpected(FrameError::ProtocolError);
+        }
         return std::string{bytes_res->begin(), bytes_res->end()};
     }
+    if (size > MAX_HEADER_STRING_LENGTH) {
+        spdlog::error("Header string length exceeds maximum allowed size (len: {}, max: {})", size,
+                      MAX_HEADER_STRING_LENGTH);
+        return std::unexpected(FrameError::ProtocolError);
+    }
+
     auto raw_data = data.subspan(0, size);
     return std::string{raw_data.begin(), raw_data.end()};
 }

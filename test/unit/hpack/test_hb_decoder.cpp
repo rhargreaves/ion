@@ -296,6 +296,21 @@ TEST_CASE("headers: decodes dynamic table entries") {
 
         REQUIRE(dynamic_table.count() == 0);
     }
+
+    SECTION ("literal header field - enforce string length limit on decode") {
+        spdlog::set_level(spdlog::level::trace);
+        auto encoder_dt = ion::DynamicTable{};
+        auto encoder = ion::HeaderBlockEncoder{encoder_dt};
+
+        constexpr int max_length = 4096;
+        auto long_str = std::string(max_length + 1, 'a');
+        auto hdr_bytes = encoder.encode({{"new", long_str}});
+
+        auto hdrs = decoder.decode(hdr_bytes);
+
+        REQUIRE(!hdrs);
+        REQUIRE(hdrs.error() == FrameError::ProtocolError);
+    }
 }
 
 TEST_CASE("headers: dynamic table management") {
