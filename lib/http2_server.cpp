@@ -100,42 +100,20 @@ void Http2Server::handle_connection_events(Poller& poller, int fd, PollEventType
         poller.set(fd, PollEventType::Read);
     }
 
-    bool conn_active = true;
-    while (conn_active) {
-        const auto& conn = it->second;
-        switch (conn->process()) {
-            case Http2ProcessResult::WantWrite:
-                spdlog::trace("will poll write events for fd {}", fd);
-                poller.set(fd, PollEventType::Read | PollEventType::Write);
-                conn_active = false;
-                break;
-            case Http2ProcessResult::WantRead:
-                // rely on poll() to tell us when new data is available
-                conn_active = false;
-                break;
-            case Http2ProcessResult::Complete:
-                // need to keep processing until want read/write is hit
-                break;
-            case Http2ProcessResult::ClientClosed:
-                spdlog::info("client closed connection");
-                connections_.erase(it);
-                poller.remove(fd);
-                conn_active = false;
-                break;
-            case Http2ProcessResult::ProtocolError:
-                spdlog::error("protocol error. closing connection");
-                conn->close();
-                connections_.erase(it);
-                poller.remove(fd);
-                conn_active = false;
-                break;
-            case Http2ProcessResult::ConnectionError:
-                spdlog::error("connection error. force closing connection");
-                connections_.erase(it);
-                poller.remove(fd);
-                conn_active = false;
-                break;
-        }
+    const auto& conn = it->second;
+    switch (conn->process()) {
+        case Http2ProcessResult::WantWrite:
+            spdlog::trace("will poll write events for fd {}", fd);
+            poller.set(fd, PollEventType::Read | PollEventType::Write);
+            break;
+        case Http2ProcessResult::WantRead:
+            // interest is already Read (or was reset above), just keep waiting
+            break;
+        case Http2ProcessResult::DiscardConnection:
+            spdlog::info("closing connection");
+            poller.remove(fd);
+            connections_.erase(it);
+            break;
     }
 }
 

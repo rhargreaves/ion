@@ -307,13 +307,34 @@ Http2ProcessResult Http2Connection::process() {
     } catch (const std::exception& e) {
         spdlog::error("unhandled error processing connection: {}", e.what());
         update_state(Http2ConnectionState::ProtocolError);
-        return Http2ProcessResult::ProtocolError;
+        return Http2ProcessResult::DiscardConnection;
     }
 }
 
 Http2ProcessResult Http2Connection::internal_process() {
-    spdlog::trace("processing state: {}", state_to_string(state_));
-    if (state_ != Http2ConnectionState::AwaitingHandshake) {
+    while (true) {
+        spdlog::trace("processing state: {}", state_to_string(state_));
+
+        if (state_ == Http2ConnectionState::AwaitingHandshake) {
+            if (auto handshake_result = transport_->handshake()) {
+                update_last_activity();
+                spdlog::trace("transport handshake complete");
+                update_state(Http2ConnectionState::AwaitingPreface);
+                continue;
+            } else {
+                if (handshake_result.error() == TransportError::WantReadOrWrite) {
+                    spdlog::trace("handshake: want read/write");
+                    return Http2ProcessResult::WantRead;
+                }
+                if (handshake_result.error() == TransportError::ConnectionClosed) {
+                    spdlog::trace("handshake: connection closed");
+                    return Http2ProcessResult::DiscardConnection;
+                }
+                spdlog::trace("handshake: connection error");
+                return Http2ProcessResult::DiscardConnection;
+            }
+        }
+
         flush_write_buffer();
 
         // If we still have data to send, we are blocked on writing
@@ -325,59 +346,42 @@ Http2ProcessResult Http2Connection::internal_process() {
             state_ == Http2ConnectionState::AwaitingFrame) {
             populate_read_buffer();  // updates connection state on error
         }
-    }
 
-    switch (state_) {
-        case Http2ConnectionState::AwaitingHandshake: {
-            if (auto handshake_result = transport_->handshake()) {
-                update_last_activity();
-                spdlog::trace("transport handshake complete");
-                update_state(Http2ConnectionState::AwaitingPreface);
-                return Http2ProcessResult::Complete;
-            } else {
-                if (handshake_result.error() == TransportError::WantReadOrWrite) {
-                    spdlog::trace("handshake: want read/write");
-                    return Http2ProcessResult::WantRead;
+        switch (state_) {
+            case Http2ConnectionState::AwaitingPreface: {
+                switch (read_preface()) {
+                    case ReadPrefaceResult::Success:
+                        break;
+                    case ReadPrefaceResult::NotEnoughData:
+                        return Http2ProcessResult::WantRead;
+                    case ReadPrefaceResult::ProtocolError:
+                        return Http2ProcessResult::DiscardConnection;
                 }
-                if (handshake_result.error() == TransportError::ConnectionClosed) {
-                    spdlog::trace("handshake: connection closed");
-                    return Http2ProcessResult::ClientClosed;
+            }
+            case Http2ConnectionState::AwaitingFrame: {
+                if (try_read_frame()) {
+                    spdlog::debug("frame processed, continuing...");
+                    break;
                 }
-                spdlog::trace("handshake: connection error");
-                return Http2ProcessResult::ConnectionError;
+                return Http2ProcessResult::WantRead;
             }
-        }
-        case Http2ConnectionState::AwaitingPreface: {
-            switch (read_preface()) {
-                case ReadPrefaceResult::Success:
-                    return Http2ProcessResult::Complete;
-                case ReadPrefaceResult::NotEnoughData:
-                    return Http2ProcessResult::WantRead;
-                case ReadPrefaceResult::ProtocolError:
-                    return Http2ProcessResult::ConnectionError;
+            case Http2ConnectionState::Closing: {
+                spdlog::debug("in closing state, completing shutdown");
+                transport_->graceful_shutdown();
+                update_state(Http2ConnectionState::ClientClosed);
+                return Http2ProcessResult::DiscardConnection;
             }
-        }
-        case Http2ConnectionState::AwaitingFrame: {
-            if (try_read_frame()) {
-                spdlog::debug("frame processed, continuing...");
-                return Http2ProcessResult::Complete;
+            case Http2ConnectionState::ProtocolError: {
+                spdlog::error("protocol error. closing connection");
+                close();
+                return Http2ProcessResult::DiscardConnection;
             }
-            return Http2ProcessResult::WantRead;
-        }
-        case Http2ConnectionState::Closing: {
-            spdlog::debug("in closing state, completing shutdown");
-            transport_->graceful_shutdown();
-            update_state(Http2ConnectionState::ClientClosed);
-            return Http2ProcessResult::ClientClosed;
-        }
-        case Http2ConnectionState::ProtocolError: {
-            return Http2ProcessResult::ProtocolError;
-        }
-        case Http2ConnectionState::ClientClosed: {
-            return Http2ProcessResult::ClientClosed;
-        }
-        default: {
-            throw std::runtime_error("invalid state");
+            case Http2ConnectionState::ClientClosed: {
+                return Http2ProcessResult::DiscardConnection;
+            }
+            default: {
+                throw std::runtime_error("invalid state");
+            }
         }
     }
 }
