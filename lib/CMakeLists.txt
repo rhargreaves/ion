@@ -61,6 +61,8 @@ add_library(ion
         pollers/epoll_poller.h
         transports/tls_context.cpp
         transports/tls_context.h
+        hpack/int_encoder.cpp
+        hpack/int_encoder.h
 )
 
 target_compile_options(ion PUBLIC ${ION_DEV_FLAGS})

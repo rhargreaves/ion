@@ -17,6 +17,7 @@ add_executable(unit-test
         hpack/test_int_decoder.cpp
         test_router_middleware.cpp
         hpack/test_byte_reader.cpp
+        hpack/test_int_encoder.cpp
 )
 
 target_link_libraries(unit-test
