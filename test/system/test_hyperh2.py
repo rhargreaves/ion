@@ -2,6 +2,7 @@ import pytest
 import asyncio
 import ssl
 import socket
+import struct
 
 SERVER_PORT = 8443
 from helpers.h2_helpers import create_connection, send_request, close_connection, open_tls_wrapped_socket
@@ -108,3 +109,37 @@ async def test_server_handles_slow_client_read_during_http2_preface(ion_server):
             pass
     assert eof_errors == num_socks
     assert still_open == 0
+
+
+@pytest.mark.asyncio
+async def test_server_rejects_oversized_frame_header(ion_server):
+    sock = await asyncio.to_thread(open_tls_wrapped_socket, SERVER_PORT)
+    sock.setblocking(True)
+    sock.sendall(b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n")
+    oversized_length = 256 * 1024
+
+    # construct header frame
+    length_bytes = struct.pack(">I", oversized_length)[1:]
+    frame_type = b'\x00'  # DATA frame
+    flags = b'\x00'
+    stream_id = struct.pack(">I", 1)
+    header = length_bytes + frame_type + flags + stream_id
+
+    sock.sendall(header)
+
+    await asyncio.sleep(0.2)
+    sock.setblocking(False)
+
+    closed = False
+    try:
+        # b"" = FIN, ConnectionResetError = RST
+        while True:
+            data = sock.recv(4096)
+            if data == b"":
+                closed = True
+                break
+    except (ssl.SSLEOFError, ConnectionResetError, BrokenPipeError):
+        closed = True
+    except (ssl.SSLWantReadError, socket.timeout, BlockingIOError):
+        closed = False
+    assert closed, "Server should have closed the connection"

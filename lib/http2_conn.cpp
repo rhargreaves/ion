@@ -200,6 +200,11 @@ bool Http2Connection::try_read_frame() {
     const auto header = Http2FrameHeader::parse(buffer.subspan<0, Http2FrameHeader::wire_size>());
     spdlog::debug("received frame header: type: {}, flag: {:#04x}, length: {}", header.type,
                   header.flags, header.length);
+    if (header.length > MAX_FRAME_SIZE) {
+        spdlog::warn("frame too big (sz: {}, max: {})", header.length, MAX_FRAME_SIZE);
+        update_state(Http2ConnectionState::ProtocolError);
+        return true;
+    }
 
     const size_t total_frame_size = Http2FrameHeader::wire_size + header.length;
     if (read_buffer_.size() < total_frame_size) {
