@@ -33,8 +33,7 @@ void DynamicTable::insert(const HttpHeader& header) {
 
     table_.push_front(header);
     table_size_ += entry_size;
-    spdlog::debug("dynamic table: entry too big (sz: {}, max: {}), table wiped", entry_size,
-                  max_table_size_);
+    spdlog::debug("dynamic table: current sz: {}, max: {}", entry_size, max_table_size_);
 }
 
 std::optional<size_t> DynamicTable::find(const HttpHeader& header) {
