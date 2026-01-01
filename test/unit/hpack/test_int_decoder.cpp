@@ -89,4 +89,19 @@ TEST_CASE("integer decoder: decodes ints outside prefix range") {
         REQUIRE(!result);
         REQUIRE(result.error() == ion::IntegerDecodeError::IntegerOverflow);
     }
+
+    SECTION ("long continuation sequence should fail with IntegerOverflow") {
+        std::vector<uint8_t> bytes = {0xff};
+        for (int i = 0; i < 1000; ++i) {
+            bytes.push_back(0x80);  // continuation bit set, value 0
+        }
+        bytes.push_back(0x00);
+
+        ByteReader br{bytes};
+
+        auto result = ion::IntegerDecoder::decode(br, 8);
+
+        REQUIRE(!result);
+        REQUIRE(result.error() == ion::IntegerDecodeError::TooManyContinuationBytes);
+    }
 }

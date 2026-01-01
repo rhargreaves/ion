@@ -34,9 +34,11 @@ std::expected<uint32_t, IntegerDecodeError> IntegerDecoder::decode(ByteReader& r
         if (!continuation_res) {
             return std::unexpected(IntegerDecodeError::NotEnoughBytes);
         }
-
         const uint32_t value = *continuation_res & 0x7F;
 
+        if (shift > 28) {
+            return std::unexpected(IntegerDecodeError::TooManyContinuationBytes);
+        }
         if (value > (std::numeric_limits<uint32_t>::max() - sum) >> shift) {
             return std::unexpected(IntegerDecodeError::IntegerOverflow);
         }

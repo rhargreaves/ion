@@ -5,7 +5,7 @@
 
 namespace ion {
 
-enum class IntegerDecodeError { NotEnoughBytes, IntegerOverflow };
+enum class IntegerDecodeError { NotEnoughBytes, IntegerOverflow, TooManyContinuationBytes };
 
 class IntegerDecoder {
    public:
