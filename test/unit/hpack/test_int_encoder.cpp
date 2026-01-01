@@ -38,3 +38,13 @@ TEST_CASE("integer encoder: encoders ints outside of prefix range") {
         REQUIRE_THAT(bytes, Catch::Matchers::Equals(std::vector<uint8_t>{0x7f, 0x80, 0x07}));
     }
 }
+
+TEST_CASE("integer encoder: throws exceptions when prefix out of range") {
+    SECTION ("prefix 0") {
+        REQUIRE_THROWS_AS(ion::IntegerEncoder::encode(30, 0), std::out_of_range);
+    }
+
+    SECTION ("prefix 9") {
+        REQUIRE_THROWS_AS(ion::IntegerEncoder::encode(126, 9), std::out_of_range);
+    }
+}
