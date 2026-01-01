@@ -129,37 +129,36 @@ void Http2Connection::write_settings() {
     spdlog::debug("SETTINGS frame sent");
 }
 
-void Http2Connection::populate_read_buffer() {
-    std::vector<uint8_t> temp_buffer(TEMP_READ_BUFFER_SIZE);
-    const auto result = transport_->read(temp_buffer);
+void Http2Connection::fill_read_buffer() {
+    while (true) {
+        std::array<uint8_t, TEMP_READ_BUFFER_SIZE> buffer;  // NOLINT(*-pro-type-member-init)
+        const auto bytes_read_res = transport_->read(buffer);
 
-    if (!result) {
-        switch (result.error()) {
-            case TransportError::WantReadOrWrite:
-                spdlog::trace("transport want read/write");
-                break;
-            case TransportError::ConnectionClosed:
-                spdlog::debug("transport connection closed");
-                update_state(Http2ConnectionState::ClientClosed);
-                break;
-            case TransportError::ProtocolError:
-                spdlog::error("transport protocol error");
-                update_state(Http2ConnectionState::ProtocolError);
-                break;
-            case TransportError::WriteError:
-                spdlog::error("transport write error");
-                break;
-            case TransportError::OtherError:
-                spdlog::error("transport other error (presumed non fatal)");
-                break;
+        if (!bytes_read_res) {
+            switch (bytes_read_res.error()) {
+                case TransportError::WantReadOrWrite:
+                    spdlog::trace("transport want read/write");
+                    break;
+                case TransportError::ConnectionClosed:
+                    spdlog::debug("transport connection closed");
+                    update_state(Http2ConnectionState::ClientClosed);
+                    break;
+                case TransportError::ProtocolError:
+                    spdlog::error("transport protocol error");
+                    update_state(Http2ConnectionState::ProtocolError);
+                    break;
+                case TransportError::WriteError:
+                    spdlog::error("transport write error");
+                    break;
+                case TransportError::OtherError:
+                    spdlog::error("transport other error (presumed non fatal)");
+                    break;
+            }
+            return;
         }
-        return;
-    }
-    const auto bytes_read = result.value();
-    if (bytes_read > 0) {
+        const auto bytes_read = *bytes_read_res;
         update_last_activity();
-        read_buffer_.insert(read_buffer_.end(), temp_buffer.begin(),
-                            temp_buffer.begin() + bytes_read);
+        read_buffer_.insert(read_buffer_.end(), buffer.begin(), buffer.begin() + bytes_read);
         spdlog::trace("read {} bytes, buffer size now {}", bytes_read, read_buffer_.size());
     }
 }
@@ -311,41 +310,44 @@ Http2ProcessResult Http2Connection::process() {
     }
 }
 
+std::optional<Http2ProcessResult> Http2Connection::handle_handshake() {
+    if (auto handshake_result = transport_->handshake()) {
+        update_last_activity();
+        spdlog::trace("transport handshake complete");
+        update_state(Http2ConnectionState::AwaitingPreface);
+        return std::nullopt;
+    } else {
+        if (handshake_result.error() == TransportError::WantReadOrWrite) {
+            spdlog::trace("handshake: want read/write");
+            return Http2ProcessResult::WantRead;
+        }
+        if (handshake_result.error() == TransportError::ConnectionClosed) {
+            spdlog::trace("handshake: connection closed");
+            return Http2ProcessResult::DiscardConnection;
+        }
+        spdlog::trace("handshake: connection error");
+        return Http2ProcessResult::DiscardConnection;
+    }
+}
+
 Http2ProcessResult Http2Connection::internal_process() {
     while (true) {
         spdlog::trace("processing state: {}", state_to_string(state_));
 
         if (state_ == Http2ConnectionState::AwaitingHandshake) {
-            if (auto handshake_result = transport_->handshake()) {
-                update_last_activity();
-                spdlog::trace("transport handshake complete");
-                update_state(Http2ConnectionState::AwaitingPreface);
-                continue;
-            } else {
-                if (handshake_result.error() == TransportError::WantReadOrWrite) {
-                    spdlog::trace("handshake: want read/write");
-                    return Http2ProcessResult::WantRead;
-                }
-                if (handshake_result.error() == TransportError::ConnectionClosed) {
-                    spdlog::trace("handshake: connection closed");
-                    return Http2ProcessResult::DiscardConnection;
-                }
-                spdlog::trace("handshake: connection error");
-                return Http2ProcessResult::DiscardConnection;
+            if (const auto result = handle_handshake()) {
+                return *result;
             }
         }
 
         flush_write_buffer();
 
-        // If we still have data to send, we are blocked on writing
+        // if we still have data to send, we are blocked on writing
         if (!write_buffer_.empty()) {
             return Http2ProcessResult::WantWrite;
         }
 
-        if (state_ == Http2ConnectionState::AwaitingPreface ||
-            state_ == Http2ConnectionState::AwaitingFrame) {
-            populate_read_buffer();  // updates connection state on error
-        }
+        fill_read_buffer();
 
         switch (state_) {
             case Http2ConnectionState::AwaitingPreface: {

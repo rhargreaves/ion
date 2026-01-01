@@ -59,7 +59,7 @@ class Http2Connection {
     ReadPrefaceResult read_preface();
     Http2WindowUpdate process_window_update_payload(std::span<const uint8_t> payload);
     bool try_read_frame();
-    void populate_read_buffer();
+    void fill_read_buffer();
     void discard_processed_buffer(size_t length);
     void write_frame_header(const Http2FrameHeader& header);
     void write_settings(const std::vector<Http2Setting>& settings);
@@ -76,6 +76,7 @@ class Http2Connection {
     void enqueue_write(std::span<const uint8_t> data);
     void flush_write_buffer();
     void update_last_activity();
+    std::optional<Http2ProcessResult> handle_handshake();
 };
 
 }  // namespace ion
