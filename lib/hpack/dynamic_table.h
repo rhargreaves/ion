@@ -8,7 +8,7 @@
 
 namespace ion {
 
-constexpr size_t DEFAULT_MAX_TABLE_SIZE = 4096;
+constexpr size_t DEFAULT_MAX_TABLE_SIZE = 64 * 1024;
 
 class DynamicTable {
    public:
