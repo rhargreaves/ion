@@ -23,6 +23,7 @@ static constexpr uint8_t FRAME_TYPE_WINDOW_UPDATE = 0x08;
 static constexpr uint8_t FLAG_END_HEADERS = 0x04;
 static constexpr uint8_t FLAG_END_STREAM = 0x01;
 
+static constexpr size_t MAX_READ_BUFFER_SIZE = 64 * 1024;
 static constexpr size_t MAX_FRAME_SIZE = 16384;
 static constexpr size_t INITIAL_READ_BUFFER_SIZE = 16 * 1024;
 static constexpr size_t INITIAL_WRITE_BUFFER_SIZE = 16 * 1024;
@@ -131,6 +132,11 @@ void Http2Connection::write_settings() {
 
 void Http2Connection::fill_read_buffer() {
     while (true) {
+        if (read_buffer_.size() + TEMP_READ_BUFFER_SIZE >= MAX_READ_BUFFER_SIZE) {
+            spdlog::debug("read buffer full");
+            return;
+        }
+
         std::array<uint8_t, TEMP_READ_BUFFER_SIZE> buffer;  // NOLINT(*-pro-type-member-init)
         const auto bytes_read_res = transport_->read(buffer);
 
