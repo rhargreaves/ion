@@ -52,7 +52,7 @@ async def test_server_connection_limit(ion_server):
 
 @pytest.mark.asyncio
 @pytest.mark.timeout(10)
-async def test_server_handles_slow_client_read_before_tls_handshake(ion_server):
+async def test_server_handles_slow_client_read_during_tls_handshake(ion_server):
     slow_socks = []
     num_socks = 5
 
@@ -80,10 +80,9 @@ async def test_server_handles_slow_client_read_before_tls_handshake(ion_server):
     assert still_open == 0
 
 
-@pytest.mark.skip("wip")
 @pytest.mark.asyncio
-@pytest.mark.timeout(7)
-async def test_server_handles_slow_client_read_after_tls_handshake(ion_server):
+@pytest.mark.timeout(10)
+async def test_server_handles_slow_client_read_during_http2_preface(ion_server):
     slow_socks = []
     num_socks = 5
 
@@ -92,13 +91,15 @@ async def test_server_handles_slow_client_read_after_tls_handshake(ion_server):
         s.setblocking(False)
         slow_socks.append(s)
 
-    await asyncio.sleep(5)
+    await asyncio.sleep(7)
 
     eof_errors = 0
     still_open = 0
     for s in slow_socks:
         try:
-            assert s.recv(1) == b"", "connection should have been closed by server"
+            closed = (s.recv(1) == b"")
+            eof_errors += 1
+            assert closed, "connection should have been closed by server"
         except (BlockingIOError, ssl.SSLWantReadError):
             still_open += 1
             pass
