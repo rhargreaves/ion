@@ -1,6 +1,8 @@
 #include "telemetry.h"
 
 #include <opentelemetry/exporters/ostream/span_exporter_factory.h>
+#include <opentelemetry/exporters/otlp/otlp_http_exporter_factory.h>
+#include <opentelemetry/exporters/otlp/otlp_http_exporter_options.h>
 #include <opentelemetry/nostd/shared_ptr.h>
 #include <opentelemetry/sdk/resource/resource.h>
 #include <opentelemetry/sdk/trace/simple_processor_factory.h>
@@ -10,7 +12,13 @@
 namespace ion::app {
 
 Telemetry::Telemetry(const std::string& service_name) {
-    auto exporter = opentelemetry::exporter::trace::OStreamSpanExporterFactory::Create();
+    opentelemetry::exporter::otlp::OtlpHttpExporterOptions opts;
+    opts.url = "http://localhost:4318/v1/traces";
+
+    // auto exporter = opentelemetry::exporter::trace::OStreamSpanExporterFactory::Create();
+
+    auto exporter = opentelemetry::exporter::otlp::OtlpHttpExporterFactory::Create(opts);
+
     auto processor =
         opentelemetry::sdk::trace::SimpleSpanProcessorFactory::Create(std::move(exporter));
     auto resource =

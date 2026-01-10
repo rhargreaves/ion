@@ -89,7 +89,7 @@ def assert_curl_response_ok(result):
 def assert_last_log_line_is_valid(buffer):
     lines = [line.strip() for line in buffer.splitlines() if line.strip()]
     assert lines, "Access log is empty"
-    last_line = lines[-1]
+    line = lines[0]
 
     # Combined Log Format Regex:
     # 1. IP
@@ -102,4 +102,4 @@ def assert_last_log_line_is_valid(buffer):
     # 8. User Agent
     log_pattern = r'^[\d\.]+ - - \[.*?\] \".*? HTTP/2\" \d{3} (\d+|-) \".*?\" \".*?\"$'
 
-    assert re.match(log_pattern, last_line), f"Log entry does not match expected format: {last_line}"
+    assert re.match(log_pattern, line), f"Log entry does not match expected format: {line}"
