@@ -20,7 +20,6 @@ target_link_libraries(ion-server PRIVATE
         CLI11::CLI11
         opentelemetry-cpp::api
         opentelemetry-cpp::sdk
-        opentelemetry-cpp::ostream_span_exporter
         opentelemetry-cpp::otlp_http_exporter
 )
 
