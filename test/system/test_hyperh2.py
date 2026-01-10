@@ -4,7 +4,7 @@ import ssl
 import socket
 import struct
 
-SERVER_PORT = 8443
+from helpers.utils import SERVER_PORT
 from helpers.h2_helpers import create_connection, send_request, close_connection, open_tls_wrapped_socket
 
 

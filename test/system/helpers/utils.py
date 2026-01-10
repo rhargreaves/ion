@@ -14,8 +14,11 @@ DEFAULT_ARGS = ["-s", "/static", STATIC_DIR,
                 "--tls-key-path", TLS_KEY_PATH]
 
 SERVER_PORT = 8443
+SERVER_H2C_PORT = 8080
+
 BASE_URL = f"https://localhost:{SERVER_PORT}"
 OK_URL = BASE_URL + "/_tests/ok"
+SECURITY_URL = BASE_URL + "/_tests/no_new_privs"
 
 
 async def wait_for_port(port, timeout=5):

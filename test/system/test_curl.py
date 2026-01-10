@@ -1,11 +1,6 @@
 import pytest
 
-from helpers.utils import curl_http2, assert_curl_response_ok, curl
-
-SERVER_CLEARTEXT_PORT = 8080
-SERVER_PORT = 8443
-URL = f"https://localhost:{SERVER_PORT}"
-OK_URL = URL + "/_tests/ok"
+from helpers.utils import curl_http2, assert_curl_response_ok, curl, OK_URL, SERVER_H2C_PORT, BASE_URL
 
 
 @pytest.mark.asyncio
@@ -44,19 +39,19 @@ async def test_http2_returns_200_many_times_same_server(ion_server):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("ion_server", [{"port": SERVER_CLEARTEXT_PORT, "args": ["--cleartext", "--under-test"]}],
+@pytest.mark.parametrize("ion_server", [{"port": SERVER_H2C_PORT, "args": ["--cleartext", "--under-test"]}],
                          indirect=True)
 async def test_supports_cleartext_http2(ion_server):
-    result = await curl(f"http://localhost:{SERVER_CLEARTEXT_PORT}/_tests/ok", ["--http2-prior-knowledge"])
+    result = await curl(f"http://localhost:{SERVER_H2C_PORT}/_tests/ok", ["--http2-prior-knowledge"])
 
     assert result.returncode == 0
     assert_curl_response_ok(result)
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("ion_server", [{"port": SERVER_CLEARTEXT_PORT, "args": ["--cleartext"]}], indirect=True)
+@pytest.mark.parametrize("ion_server", [{"port": SERVER_H2C_PORT, "args": ["--cleartext"]}], indirect=True)
 async def test_drops_http1_connections(ion_server):
-    result = await curl(f"http://localhost:{SERVER_CLEARTEXT_PORT}/_tests/ok", ["--http1.1"])
+    result = await curl(f"http://localhost:{SERVER_H2C_PORT}/_tests/ok", ["--http1.1"])
     assert result.returncode == 52
 
     await ion_server.stop()
@@ -66,7 +61,7 @@ async def test_drops_http1_connections(ion_server):
 
 @pytest.mark.asyncio
 async def test_curl_returns_large_body(ion_server):
-    result = await curl_http2(URL + "/_tests/large_body")
+    result = await curl_http2(BASE_URL + "/_tests/large_body")
 
     print("server stdout: " + ion_server.get_stdout())
     assert result.returncode == 0

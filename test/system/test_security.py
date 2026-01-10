@@ -1,11 +1,6 @@
 import pytest
 import sys
-from helpers.utils import curl_http2, assert_curl_response_ok
-
-SERVER_CLEARTEXT_PORT = 8080
-SERVER_PORT = 8443
-URL = f"https://localhost:{SERVER_PORT}"
-SECURITY_URL = URL + "/_tests/no_new_privs"
+from helpers.utils import curl_http2, assert_curl_response_ok, SECURITY_URL
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="PR_SET_NO_NEW_PRIVS is Linux-specific")
