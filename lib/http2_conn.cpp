@@ -1,5 +1,6 @@
 #include "http2_conn.h"
 
+#include <opentelemetry/trace/provider.h>
 #include <spdlog/spdlog.h>
 
 #include <format>
@@ -244,6 +245,10 @@ void Http2Connection::process_frame(const Http2FrameReader& frame) {
             break;
         }
         case FRAME_TYPE_HEADERS: {
+            auto tracer = opentelemetry::trace::Provider::GetTracerProvider()->GetTracer("ion");
+            auto span = tracer->StartSpan("http_request");
+            auto scope = tracer->WithActiveSpan(span);
+
             spdlog::debug("received HEADERS frame for stream {}", frame.stream_id());
             spdlog::debug(" - end headers: {}, end stream: {}, length: {}", frame.is_end_headers(),
                           frame.is_end_stream(), frame.length());
@@ -259,7 +264,7 @@ void Http2Connection::process_frame(const Http2FrameReader& frame) {
                 spdlog::debug(" - request header: {}: {}", hdr.name, hdr.value);
             }
 
-            auto resp = process_request(*hdrs);
+            auto resp = process_request(*hdrs, span);
             auto hdrs_bytes = encoder_.encode(resp.headers);
             log_dynamic_tables();
 
@@ -435,7 +440,8 @@ static std::optional<std::string> get_header(const std::vector<HttpHeader>& head
     return it->value;
 }
 
-HttpResponse Http2Connection::process_request(const std::vector<HttpHeader>& headers) {
+HttpResponse Http2Connection::process_request(const std::vector<HttpHeader>& headers,
+                                              SpanPtr span) {
     auto path = get_header(headers, ":path");
     auto method = get_header(headers, ":method");
 
@@ -443,6 +449,10 @@ HttpResponse Http2Connection::process_request(const std::vector<HttpHeader>& hea
         spdlog::error("invalid request: missing path or method");
         return HttpResponse{.status_code = 400};
     }
+
+    span->SetAttribute("http.method", *method);
+    span->SetAttribute("http.target", *path);
+    span->SetAttribute("ion.client_ip", client_ip_);
 
     auto handler = router_.get_handler(path.value(), method.value());
     HttpRequest req{.method = *method, .path = *path, .headers = headers};
@@ -454,6 +464,8 @@ HttpResponse Http2Connection::process_request(const std::vector<HttpHeader>& hea
         spdlog::error("error processing request: {}", e.what());
         resp = HttpResponse{.status_code = 500};
     }
+
+    span->SetAttribute("http.status_code", resp.status_code);
 
     resp.headers.insert(resp.headers.begin(),
                         HttpHeader{":status", std::to_string(resp.status_code)});

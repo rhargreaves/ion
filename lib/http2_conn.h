@@ -1,4 +1,6 @@
 #pragma once
+#include <opentelemetry/trace/span.h>
+
 #include <chrono>
 #include <span>
 #include <vector>
@@ -11,6 +13,8 @@
 #include "transports/transport.h"
 
 namespace ion {
+
+using SpanPtr = opentelemetry::nostd::shared_ptr<opentelemetry::trace::Span>;
 
 enum class Http2ProcessResult {
     WantRead,
@@ -72,7 +76,7 @@ class Http2Connection {
     void process_frame(const Http2FrameReader& frame);
     void update_state(Http2ConnectionState new_state);
     void log_dynamic_tables();
-    HttpResponse process_request(const std::vector<HttpHeader>& req_hdrs);
+    HttpResponse process_request(const std::vector<HttpHeader>& req_hdrs, SpanPtr span);
     void enqueue_write(std::span<const uint8_t> data);
     void flush_write_buffer();
     void update_last_activity();
