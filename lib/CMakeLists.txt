@@ -91,6 +91,7 @@ target_link_libraries(ion PUBLIC
         OpenSSL::SSL
         OpenSSL::Crypto
         spdlog::spdlog
+        opentelemetry-cpp::api
 )
 
 target_compile_features(ion PUBLIC cxx_std_23)

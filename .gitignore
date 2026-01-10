@@ -49,3 +49,6 @@ key.pem
 **/build/
 access.log
 .venv/
+
+# agent output
+.output.txt

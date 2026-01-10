@@ -2,6 +2,7 @@
   <dictionary name="project">
     <words>
       <w>inlen</w>
+      <w>opentelemetry</w>
       <w>outlen</w>
       <w>privs</w>
       <w>sslkeylogfile</w>

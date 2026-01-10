@@ -48,6 +48,18 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(CLI11)
 
+set(WITH_SDK OFF CACHE INTERNAL "")
+set(WITH_EXAMPLES OFF CACHE INTERNAL "")
+set(BUILD_TESTING OFF CACHE INTERNAL "")
+
+FetchContent_Declare(
+        opentelemetry-cpp
+        GIT_REPOSITORY https://github.com/open-telemetry/opentelemetry-cpp.git
+        GIT_TAG v1.24.0
+        GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(opentelemetry-cpp)
+
 add_subdirectory(lib)
 add_subdirectory(app)
 add_subdirectory(test/unit)
