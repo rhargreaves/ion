@@ -11,6 +11,7 @@
 #include "signal_handler.h"
 #include "spdlog/sinks/basic_file_sink.h"
 #include "status_page.h"
+#include "telemetry.h"
 #include "test_routes.h"
 
 void run_server(const Args& args) {
@@ -86,6 +87,7 @@ int main(int argc, char* argv[]) {
         return app.exit(e);
     }
 
+    auto telemetry = ion::app::Telemetry("ion-server");
     spdlog::set_level(args.log_level_enum());
     spdlog::info("ion {} started ⚡️", ion::BUILD_VERSION);
     try {

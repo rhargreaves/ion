@@ -11,11 +11,16 @@ add_executable(ion-server
         status_page.h
         server_stats.cpp
         server_stats.h
+        telemetry.cpp
+        telemetry.h
 )
 
 target_link_libraries(ion-server PRIVATE
         ion
         CLI11::CLI11
+        opentelemetry-cpp::api
+        opentelemetry-cpp::sdk
+        opentelemetry-cpp::ostream_span_exporter
 )
 
 target_include_directories(ion-server PRIVATE
