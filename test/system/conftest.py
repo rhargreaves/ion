@@ -11,6 +11,7 @@ async def ion_server(request):
     port = DEFAULT_SERVER_PORT
     server_args = None
     extra_args = None
+    env = None
 
     if isinstance(param, list):
         extra_args = param
@@ -18,6 +19,7 @@ async def ion_server(request):
         port = param.get("port", DEFAULT_SERVER_PORT)
         server_args = param.get("args")
         extra_args = param.get("extra_args")
+        env = param.get("env")
 
-    async with ServerRunner(port, args=server_args, extra_args=extra_args) as runner:
+    async with ServerRunner(port, args=server_args, extra_args=extra_args, env=env) as runner:
         yield runner

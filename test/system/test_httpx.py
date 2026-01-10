@@ -1,12 +1,8 @@
-from helpers.utils import assert_last_log_line_is_valid, DEFAULT_ARGS, STATIC_DIR
+from helpers.utils import assert_last_log_line_is_valid, DEFAULT_ARGS, OK_URL, BASE_URL
 import httpx
 import pytest
 import logging
 import os
-
-SERVER_PORT = 8443
-BASE_URL = f"https://localhost:{SERVER_PORT}"
-OK_URL = BASE_URL + "/_tests/ok"
 
 logging.basicConfig(
     format="%(levelname)s [%(asctime)s] %(name)s - %(message)s",

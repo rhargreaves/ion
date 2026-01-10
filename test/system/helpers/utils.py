@@ -13,6 +13,10 @@ DEFAULT_ARGS = ["-s", "/static", STATIC_DIR,
                 "--tls-cert-path", TLS_CERT_PATH,
                 "--tls-key-path", TLS_KEY_PATH]
 
+SERVER_PORT = 8443
+BASE_URL = f"https://localhost:{SERVER_PORT}"
+OK_URL = BASE_URL + "/_tests/ok"
+
 
 async def wait_for_port(port, timeout=5):
     print(f"waiting for port {port} to be open")

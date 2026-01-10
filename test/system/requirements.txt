@@ -4,3 +4,4 @@ pytest-only
 pytest-timeout
 ruff
 httpx[http2]
+aiohttp

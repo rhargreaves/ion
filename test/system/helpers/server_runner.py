@@ -5,15 +5,19 @@ from .utils import DEFAULT_ARGS, wait_for_port
 
 
 class ServerRunner:
-    def __init__(self, port, args=None, extra_args=None, wait_for_port=True):
+    def __init__(self, port, args=None, extra_args=None, wait_for_port=True, env=None):
         if args is None:
             args = list(DEFAULT_ARGS)
         else:
             args = list(args)
 
+        if env is None:
+            env = os.environ.copy()
+
         if extra_args is not None:
             args.extend(extra_args)
 
+        self.env = env
         self.args = args
         self.port = port
         self._wait_for_port = wait_for_port
@@ -27,11 +31,12 @@ class ServerRunner:
                "-p", str(self.port)
                ] + self.args
 
-        print(f"Starting server with cmd: {' '.join(cmd)}")
+        print(f"Starting server with cmd: {' '.join(cmd)}, env: {self.env}")
         self.proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            stderr=asyncio.subprocess.PIPE,
+            env=self.env
         )
         print(f"server pid = {self.proc.pid}")
 
