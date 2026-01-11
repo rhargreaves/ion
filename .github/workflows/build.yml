@@ -136,5 +136,4 @@ jobs:
           TAGS=$(echo "${{ steps.meta.outputs.tags }}" | xargs -I {} echo "-t {}")
 
           docker buildx imagetools create $TAGS \
-            ${BASE_IMAGE}:git-${{ steps.vars.outputs.sha_short }}-amd64 \
-            ${BASE_IMAGE}:git-${{ steps.vars.outputs.sha_short }}-arm64
+            ${BASE_IMAGE}:git-${{ steps.vars.outputs.sha_short }}-amd64
