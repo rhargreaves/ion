@@ -78,6 +78,15 @@ void enable_no_new_privs_on_linux() {
 #endif
 }
 
+std::unique_ptr<ion::app::Telemetry> configure_telemetry() {
+    const char* otel_disabled = std::getenv("OTEL_SDK_DISABLED");
+    if (!otel_disabled || std::string_view(otel_disabled) != "true") {
+        return std::make_unique<ion::app::Telemetry>("ion-server");
+    }
+    spdlog::info("OpenTelemetry disabled.");
+    return nullptr;
+}
+
 int main(int argc, char* argv[]) {
     CLI::App app{"ion: the light-weight HTTP/2 server ⚡️"};
     auto args = Args::register_opts(app);
@@ -87,7 +96,7 @@ int main(int argc, char* argv[]) {
         return app.exit(e);
     }
 
-    auto telemetry = ion::app::Telemetry("ion-server");
+    auto telemetry = configure_telemetry();
     spdlog::set_level(args.log_level_enum());
     spdlog::info("ion {} started ⚡️", ion::BUILD_VERSION);
     try {

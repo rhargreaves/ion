@@ -59,3 +59,22 @@ async def test_ion_exports_otlp_traces(ion_server):
 
     finally:
         await collector.stop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ion_server", [{
+    "env": {
+        "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:1",
+        "OTEL_BSP_SCHEDULE_DELAY": "10",
+        "OTEL_BSP_MAX_EXPORT_BATCH_SIZE": "1",
+        "OTEL_SDK_DISABLED": "true"
+    }
+}], indirect=True)
+async def test_telemetry_silent_when_collector_unavailable(ion_server):
+    client = httpx.AsyncClient(http2=True, verify=False)
+    resp = await client.get(OK_URL)
+    assert resp.status_code == 200
+    await asyncio.sleep(0.1)
+    await ion_server.stop()
+
+    assert "[OTLP TRACE HTTP Exporter]" not in ion_server.get_stderr()
