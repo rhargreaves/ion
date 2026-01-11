@@ -25,6 +25,7 @@ I'm documenting non-obvious stuff I've learnt along the way in [LEARNINGS.md](do
 * Static file serving (GET, HEAD requests)
 * Non-blocking network I/O (uses `epoll` on Linux, `poll` on macOS)
 * Combined Log Format (CLF) access logs
+* OpenTelemetry support (via OTLP HTTP Exporter)
 * Close server using Ctrl+C (`SIGINT`) or `SIGTERM`
 
 <p align="center">
