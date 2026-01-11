@@ -17,13 +17,6 @@ if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 17)
     message(FATAL_ERROR "Clang 17 or higher is required. Found: ${CMAKE_CXX_COMPILER_VERSION}")
 endif ()
 
-find_program(CCACHE_PROGRAM ccache)
-if (CCACHE_PROGRAM)
-    set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
-    set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
-    message(STATUS "ccache enabled")
-endif ()
-
 set(ION_DEV_FLAGS "")
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     list(APPEND ION_DEV_FLAGS -fsanitize=address -fno-omit-frame-pointer -g)
