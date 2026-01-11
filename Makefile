@@ -18,7 +18,7 @@ export SSLKEYLOGFILE=/tmp/ion-tls-keys.log
 export CC=clang
 export CXX=clang++
 
-build:
+build: check-vcpkg
 	cmake -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -S . -B $(BUILD_DIR) \
 		-DCMAKE_TOOLCHAIN_FILE=$(VCPKG_ROOT)/scripts/buildsystems/vcpkg.cmake
 	cmake --build $(BUILD_DIR) --parallel
@@ -97,7 +97,16 @@ build-and-test-in-docker:
 		-e GIT_SHA=$(GIT_SHA) \
 		-e CCACHE_DIR=/workspace/.ccache \
 		-e CCACHE_BASEDIR=/workspace \
-		-w /workspace -v $(PWD):/workspace \
+		-e VCPKG_ROOT=/vcpkg \
+		-w /workspace \
+		-v $(PWD):/workspace \
+		-v $(VCPKG_ROOT):/vcpkg \
 		-i $(TTY_ARG) ion \
-		make build test VCPKG_ROOT=/opt/vcpkg
+		make build test
 .PHONY: build-and-test-in-docker
+
+check-vcpkg:
+ifndef VCPKG_ROOT
+	$(error VCPKG_ROOT is not set. Set it to a bootstrapped vcpkg repo directory.)
+endif
+.PHONY: check-vcpkg

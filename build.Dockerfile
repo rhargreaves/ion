@@ -21,12 +21,6 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# Install vcpkg
-RUN git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg && \
-    /opt/vcpkg/bootstrap-vcpkg.sh -disableMetrics
-ENV VCPKG_ROOT=/opt/vcpkg
-ENV PATH="${VCPKG_ROOT}:${PATH}"
-
 # Install CMake
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "x86_64" ]; then \
