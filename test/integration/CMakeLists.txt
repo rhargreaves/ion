@@ -1,5 +1,5 @@
 find_package(CURL CONFIG REQUIRED)
-find_package(catch2 CONFIG REQUIRED)
+find_package(Catch2 CONFIG REQUIRED)
 
 add_executable(int-test
         test_server.cpp
