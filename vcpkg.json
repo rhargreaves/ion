@@ -1,12 +1,23 @@
 {
   "name": "ion",
   "version-string": "0.1.11",
+  "builtin-baseline": "25b458671af03578e6a34edd8f0d1ac85e084df4",
   "dependencies": [
-    "spdlog",
-    "cli11",
-    "catch2",
+    {
+      "name": "spdlog",
+      "version>=": "1.16.0"
+    },
+    {
+      "name": "cli11",
+      "version>=": "2.6.1"
+    },
+    {
+      "name": "catch2",
+      "version>=": "3.12.0"
+    },
     {
       "name": "curl",
+      "version>=": "8.17.0",
       "default-features": false,
       "features": [
         "ssl",
@@ -16,6 +27,7 @@
     },
     {
       "name": "opentelemetry-cpp",
+      "version>=": "1.24.0",
       "features": [
         "otlp-http"
       ]
