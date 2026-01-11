@@ -20,7 +20,7 @@ export CXX=clang++
 
 build:
 	cmake -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -S . -B $(BUILD_DIR)
-	cmake --build $(BUILD_DIR) --parallel
+	cmake --build $(BUILD_DIR)
 .PHONY: build
 
 test: test-unit test-integration test-system
