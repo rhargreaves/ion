@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     net-tools \
     git \
     libcurl4-openssl-dev \
+    lld \
     ccache \
     && rm -rf /var/lib/apt/lists/*
 RUN ARCH=$(uname -m) && \

@@ -21,7 +21,7 @@ jobs:
           - arch: amd64
             runner: buildjet-8vcpu-ubuntu-2204
           - arch: arm64
-            runner: buildjet-16vcpu-ubuntu-2204-arm
+            runner: buildjet-32vcpu-ubuntu-2204-arm
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read

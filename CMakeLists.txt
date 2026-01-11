@@ -36,6 +36,10 @@ if (UNIX AND NOT APPLE)
     link_libraries(c++abi)
 endif ()
 
+if (NOT APPLE)
+    add_link_options("-fuse-ld=lld")
+endif ()
+
 find_package(OpenSSL REQUIRED)
 
 include(FetchContent)
