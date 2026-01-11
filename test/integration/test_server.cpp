@@ -69,7 +69,7 @@ TEST_CASE("server: returns body") {
     auto server = TestHelpers::create_test_server();
 
     server.router().add_route("/body", "GET", [](auto&) {
-        constexpr std::string body_text = "hello";
+        constexpr std::string_view body_text = "hello";
         const std::vector<uint8_t> body_bytes(body_text.begin(), body_text.end());
 
         return ion::HttpResponse{

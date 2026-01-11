@@ -19,7 +19,8 @@ export CC=clang
 export CXX=clang++
 
 build:
-	cmake -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -S . -B $(BUILD_DIR)
+	cmake -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -S . -B $(BUILD_DIR) \
+		-DCMAKE_TOOLCHAIN_FILE=$(VCPKG_ROOT)/scripts/buildsystems/vcpkg.cmake
 	cmake --build $(BUILD_DIR) --parallel
 .PHONY: build
 
@@ -105,5 +106,5 @@ build-and-test-in-docker:
 		-e CCACHE_BASEDIR=/workspace \
 		-w /workspace -v $(PWD):/workspace \
 		-i $(TTY_ARG) ion \
-		make build test
+		make build test VCPKG_ROOT=/opt/vcpkg
 .PHONY: build-and-test-in-docker

@@ -1,4 +1,4 @@
-FROM ubuntu:24.04 AS builder
+FROM ubuntu:26.04 AS builder
 RUN apt-get update && apt-get install -y \
     clang clang-tools libc++-dev libc++abi-dev \
     build-essential \
@@ -15,7 +15,19 @@ RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     lld \
     ccache \
+    zip \
+    unzip \
+    tar \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
+
+# Install vcpkg
+RUN git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg && \
+    /opt/vcpkg/bootstrap-vcpkg.sh -disableMetrics
+ENV VCPKG_ROOT=/opt/vcpkg
+ENV PATH="${VCPKG_ROOT}:${PATH}"
+
+# Install CMake
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "x86_64" ]; then \
         CMAKE_ARCH="linux-x86_64"; \
@@ -33,6 +45,8 @@ ARG GIT_SHA
 ARG CC
 ARG CXX
 RUN cmake -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake \
+    -DVCPKG_BUILD_TYPE=release \
     -S . -B build && \
     cmake --build build --target ion-server --parallel
 RUN ldd /build-context/build/app/ion-server # for troubleshooting subsequent failures

@@ -1,5 +1,7 @@
 #include "int_encoder.h"
 
+#include <stdexcept>
+
 namespace ion {
 
 std::vector<uint8_t> IntegerEncoder::encode(uint32_t value, uint8_t prefix_bits) {

@@ -1,11 +1,5 @@
-FetchContent_Declare(
-        Catch2
-        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-        GIT_TAG v3.11.0
-)
-FetchContent_MakeAvailable(Catch2)
-
-find_package(CURL REQUIRED)
+find_package(CURL CONFIG REQUIRED)
+find_package(catch2 CONFIG REQUIRED)
 
 add_executable(int-test
         test_server.cpp
@@ -18,16 +12,14 @@ add_executable(int-test
         test_helpers.cpp
 )
 
-target_link_libraries(int-test
-        PRIVATE
+target_link_libraries(int-test PRIVATE
         ion
-        spdlog
+        spdlog::spdlog
         Catch2::Catch2WithMain
         CURL::libcurl
 )
 
-target_compile_definitions(int-test
-        PRIVATE
+target_compile_definitions(int-test PRIVATE
         PROJECT_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
         PROJECT_BINARY_DIR="${CMAKE_BINARY_DIR}")
 

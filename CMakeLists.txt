@@ -29,55 +29,16 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     list(APPEND ION_DEV_FLAGS -fsanitize=address -fno-omit-frame-pointer -g)
 endif ()
 
-add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-stdlib=libc++>")
-add_link_options("$<$<COMPILE_LANGUAGE:CXX>:-stdlib=libc++>")
-
-if (UNIX AND NOT APPLE)
-    link_libraries(c++abi)
-endif ()
-
 if (NOT APPLE)
     add_link_options("-fuse-ld=lld")
 endif ()
 
-find_package(OpenSSL REQUIRED)
-
 include(FetchContent)
 
-FetchContent_Declare(
-        spdlog
-        GIT_REPOSITORY https://github.com/gabime/spdlog.git
-        GIT_TAG v1.16.0
-        GIT_SHALLOW TRUE
-)
-FetchContent_MakeAvailable(spdlog)
-FetchContent_Declare(
-        CLI11
-        GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
-        GIT_TAG v2.6.1
-        GIT_SHALLOW TRUE
-)
-FetchContent_MakeAvailable(CLI11)
-
-set(WITH_SDK ON CACHE INTERNAL "")
-set(WITH_OTLP_HTTP ON CACHE INTERNAL "")
-set(WITH_STL ON CACHE INTERNAL "")
-set(WITH_NO_DEPRECATED_CODE ON CACHE INTERNAL "")
-
-set(WITH_OTLP_GRPC OFF CACHE INTERNAL "")
-set(WITH_EXAMPLES OFF CACHE INTERNAL "")
-set(BUILD_TESTING OFF CACHE INTERNAL "")
-set(WITH_LOGS OFF CACHE INTERNAL "")
-set(WITH_PROMETHEUS OFF CACHE INTERNAL "")
-set(WITH_ZIPKIN OFF CACHE INTERNAL "")
-
-FetchContent_Declare(
-        opentelemetry-cpp
-        GIT_REPOSITORY https://github.com/open-telemetry/opentelemetry-cpp.git
-        GIT_TAG v1.24.0
-        GIT_SHALLOW TRUE
-)
-FetchContent_MakeAvailable(opentelemetry-cpp)
+find_package(OpenSSL REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
+find_package(CLI11 CONFIG REQUIRED)
+find_package(opentelemetry-cpp CONFIG REQUIRED)
 
 add_subdirectory(lib)
 add_subdirectory(app)

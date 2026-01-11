@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 RUN apt-get update && apt-get install -y \
     clang clang-tools libc++-dev libc++abi-dev \
     build-essential \
@@ -15,7 +15,17 @@ RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     lld \
     ccache \
+    zip \
+    unzip \
+    tar \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
+
+# Install vcpkg
+RUN git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg && \
+    /opt/vcpkg/bootstrap-vcpkg.sh -disableMetrics
+ENV VCPKG_ROOT=/opt/vcpkg
+ENV PATH="${VCPKG_ROOT}:${PATH}"
 
 # Install CMake
 RUN ARCH=$(uname -m) && \

@@ -1,6 +1,8 @@
 #pragma once
 #include <functional>
+#include <memory>
 #include <string>
+#include <vector>
 
 #include "http_response.h"
 #include "static_file_handler.h"

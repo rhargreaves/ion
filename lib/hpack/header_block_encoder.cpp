@@ -1,5 +1,6 @@
 #include "header_block_encoder.h"
 
+#include <algorithm>
 #include <ranges>
 
 #include "bit_writer.h"
