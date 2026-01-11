@@ -24,13 +24,6 @@ build:
 	cmake --build $(BUILD_DIR) --parallel
 .PHONY: build
 
-build-deps:
-	cmake -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -S . -B $(BUILD_DIR)
-	cmake --build $(BUILD_DIR) \
-		--target spdlog CLI11 opentelemetry_exporter_otlp_http \
-		--parallel
-.PHONY: build-deps
-
 test: test-unit test-integration test-system
 .PHONY: test
 
