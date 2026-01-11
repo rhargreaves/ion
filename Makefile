@@ -24,6 +24,17 @@ build: check-vcpkg
 	cmake --build $(BUILD_DIR) --parallel
 .PHONY: build
 
+build-scratch-root-dir:
+	./build-scratch-root.sh
+.PHONY: build-scratch-root-dir
+
+bootstrap-vcpkg:
+	@if [ ! -f $(VCPKG_ROOT)/vcpkg ]; then \
+		git clone https://github.com/microsoft/vcpkg.git $(VCPKG_ROOT); \
+		$(VCPKG_ROOT)/bootstrap-vcpkg.sh -disableMetrics; \
+	fi
+.PHONY: bootstrap-vcpkg
+
 test: test-unit test-integration test-system
 .PHONY: test
 
@@ -68,11 +79,7 @@ $(CERT_PEM) $(KEY_PEM):
 
 build-docker-app:
 	docker build -f app.Dockerfile \
-		--progress=plain \
-		--build-arg GIT_SHA="$(GIT_SHA)" \
-		--build-arg CC="$(CC)" \
-		--build-arg CXX="$(CXX)" \
-		-t ion-app .
+		-t ion-app $(BUILD_DIR)/scratch-root
 .PHONY: build-docker-app
 
 run-docker-app:
@@ -86,23 +93,37 @@ run-docker-app:
 		$(ARGS)
 .PHONY: run-docker-app
 
-build-and-test-in-docker:
+build-ci:
 	docker build -f build.Dockerfile -t ion .
-	mkdir -p $(PWD)/.ccache
 	docker run \
 		-e CC \
 		-e CXX \
 		-e BUILD_SUFFIX=docker \
 		-e BUILD_TYPE=$(BUILD_TYPE) \
 		-e GIT_SHA=$(GIT_SHA) \
-		-e CCACHE_DIR=/workspace/.ccache \
-		-e CCACHE_BASEDIR=/workspace \
 		-e VCPKG_ROOT=/vcpkg \
 		-w /workspace \
 		-v $(PWD):/workspace \
 		-v $(VCPKG_ROOT):/vcpkg \
-		-i $(TTY_ARG) ion \
-		make build test
+		-i $(TTY_ARG) \
+		ion \
+		make build test build-scratch-root-dir
+.PHONY: build-ci
+
+build-and-test-in-docker:
+	docker build -f build.Dockerfile -t ion .
+	docker run \
+		-e CC \
+		-e CXX \
+		-e BUILD_SUFFIX=docker \
+		-e BUILD_TYPE=$(BUILD_TYPE) \
+		-e GIT_SHA=$(GIT_SHA) \
+		-e VCPKG_ROOT=/workspace/vcpkg-docker \
+		-w /workspace \
+		-v $(PWD):/workspace \
+		-i $(TTY_ARG) \
+		ion \
+		make bootstrap-vcpkg build test build-scratch-root-dir
 .PHONY: build-and-test-in-docker
 
 check-vcpkg:

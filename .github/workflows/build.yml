@@ -20,8 +20,8 @@ jobs:
         include:
           - arch: amd64
             runner: buildjet-8vcpu-ubuntu-2204
-          - arch: arm64
-            runner: buildjet-8vcpu-ubuntu-2204-arm
+    #          - arch: arm64
+    #            runner: buildjet-8vcpu-ubuntu-2204-arm
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
@@ -52,7 +52,7 @@ jobs:
         env:
           GIT_SHA: ${{ steps.vars.outputs.sha_short }}
           BUILD_TYPE: Release
-        run: make build-and-test-in-docker
+        run: make build-ci
 
       - name: Upload Binaries
         uses: actions/upload-artifact@v4
@@ -62,21 +62,17 @@ jobs:
             build/docker/app/ion-server
             build/docker/lib/libion.so
 
-  #      - name: Push Docker Image
-  #        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
-  #        uses: docker/build-push-action@v6
-  #        with:
-  #          context: .
-  #          file: app.Dockerfile
-  #          push: true
-  #          tags: |
-  #            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:git-${{ steps.vars.outputs.sha_short }}-${{ matrix.arch }}
-  #          labels: |
-  #            org.opencontainers.image.source=https://github.com/${{ github.repository }}
-  #          build-args: |
-  #            GIT_SHA=${{ steps.vars.outputs.sha_short }}
-  #            CC=clang
-  #            CXX=clang++
+      - name: Build & Push App Docker Image
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+        uses: docker/build-push-action@v6
+        with:
+          context: build/docker/scratch-root
+          file: app.Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:git-${{ steps.vars.outputs.sha_short }}-${{ matrix.arch }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
 
   docker-publish:
     needs: build-and-test

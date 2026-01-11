@@ -1,4 +1,5 @@
 build/
+!build/docker/scratch-root
 .idea/
 .venv/
 .git/
