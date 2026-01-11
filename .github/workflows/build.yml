@@ -19,9 +19,9 @@ jobs:
       matrix:
         include:
           - arch: amd64
-            runner: buildjet-8vcpu-ubuntu-2204
+            runner: ubuntu-24.04
     #          - arch: arm64
-    #            runner: buildjet-8vcpu-ubuntu-2204-arm
+    #            runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
