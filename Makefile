@@ -19,8 +19,16 @@ export SSLKEYLOGFILE=/tmp/ion-tls-keys.log
 export CC=clang
 export CXX=clang++
 
+ifeq ($(BUILD_TYPE),Debug)
+  VCPKG_BUILD_TYPE = debug
+else
+  VCPKG_BUILD_TYPE = release
+endif
+export VCPKG_BUILD_TYPE
+
 build: check-vcpkg
 	cmake -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -S . -B $(BUILD_DIR) \
+		-DVCPKG_BUILD_TYPE=$(VCPKG_BUILD_TYPE) \
 		-DCMAKE_TOOLCHAIN_FILE=$(VCPKG_ROOT)/scripts/buildsystems/vcpkg.cmake
 	cmake --build $(BUILD_DIR) --parallel
 .PHONY: build
