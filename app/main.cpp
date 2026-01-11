@@ -1,3 +1,4 @@
+#include <spdlog/pattern_formatter.h>
 #include <spdlog/spdlog.h>
 #include <version.h>
 
@@ -13,6 +14,7 @@
 #include "status_page.h"
 #include "telemetry.h"
 #include "test_routes.h"
+#include "trace_id_flag.h"
 
 void run_server(const Args& args) {
     ion::Http2Server server{args.to_server_config()};
@@ -97,7 +99,13 @@ int main(int argc, char* argv[]) {
     }
 
     auto telemetry = configure_telemetry();
+
+    auto formatter = std::make_unique<spdlog::pattern_formatter>();
+    formatter->add_flag<ion::app::TraceIdFlag>('J');
+    formatter->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %J%v");
+    spdlog::set_formatter(std::move(formatter));
     spdlog::set_level(args.log_level_enum());
+
     spdlog::info("ion {} started ⚡️", ion::BUILD_VERSION);
     try {
         enable_no_new_privs_on_linux();

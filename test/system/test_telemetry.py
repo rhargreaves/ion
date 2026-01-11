@@ -1,6 +1,7 @@
 import pytest
 import httpx
 import asyncio
+import re
 from aiohttp import web
 from helpers.utils import OK_URL
 
@@ -78,3 +79,25 @@ async def test_telemetry_silent_when_collector_unavailable(ion_server):
     await ion_server.stop()
 
     assert "[OTLP TRACE HTTP Exporter]" not in ion_server.get_stderr()
+
+
+@pytest.mark.asyncio
+async def test_trace_id_appears_in_logs(ion_server):
+    client = httpx.AsyncClient(http2=True, verify=False)
+    resp = await client.get(OK_URL)
+    assert resp.status_code == 200
+    await asyncio.sleep(0.1)
+    await ion_server.stop()
+
+    stdout = ion_server.get_stdout()
+
+    # Regex breakdown:
+    # \[.*?\]             -> The timestamp: [%Y-%m-%d %H:%M:%S.%e]
+    # \s+                 -> space
+    # \[.*?\]             -> The level: [%l]
+    # \s+                 -> space
+    # \[([a-f0-9]{32})\]  -> The Trace ID: [%J] (capturing group for 32 hex chars)
+    trace_id_pattern = re.compile(r"\[.*?\]\s+\[.*?\]\s+\[([a-f0-9]{32})\]\s+received HEADERS frame")
+
+    matches = trace_id_pattern.findall(stdout)
+    assert len(matches) > 0

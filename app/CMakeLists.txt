@@ -13,6 +13,8 @@ add_executable(ion-server
         server_stats.h
         telemetry.cpp
         telemetry.h
+        trace_id_flag.cpp
+        trace_id_flag.h
 )
 
 target_link_libraries(ion-server PRIVATE
