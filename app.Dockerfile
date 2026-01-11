@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     net-tools \
     git \
     libcurl4-openssl-dev \
+    ccache \
     && rm -rf /var/lib/apt/lists/*
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "x86_64" ]; then \

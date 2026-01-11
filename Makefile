@@ -94,12 +94,15 @@ run-docker-app:
 
 build-and-test-in-docker:
 	docker build -f build.Dockerfile -t ion .
+	mkdir -p $(PWD)/.ccache
 	docker run \
 		-e CC \
 		-e CXX \
 		-e BUILD_SUFFIX=docker \
 		-e BUILD_TYPE=$(BUILD_TYPE) \
 		-e GIT_SHA=$(GIT_SHA) \
+		-e CCACHE_DIR=/workspace/.ccache \
+		-e CCACHE_BASEDIR=/workspace \
 		-w /workspace -v $(PWD):/workspace \
 		-i $(TTY_ARG) ion \
 		make build test

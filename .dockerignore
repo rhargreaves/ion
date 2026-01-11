@@ -8,3 +8,4 @@ build/
 benchmark/
 docs/
 *.Dockerfile
+.ccache/
