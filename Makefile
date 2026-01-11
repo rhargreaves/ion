@@ -118,7 +118,7 @@ build-and-test-in-docker:
 		-e BUILD_SUFFIX=docker \
 		-e BUILD_TYPE=$(BUILD_TYPE) \
 		-e GIT_SHA=$(GIT_SHA) \
-		-e VCPKG_ROOT=/workspace/vcpkg-docker \
+		-e VCPKG_ROOT=/workspace/build/docker/vcpkg-root \
 		-w /workspace \
 		-v $(PWD):/workspace \
 		-i $(TTY_ARG) \
