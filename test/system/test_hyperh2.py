@@ -27,6 +27,7 @@ async def test_hyperh2_returns_200_for_multiple_requests_over_persistent_connect
 
 
 @pytest.mark.asyncio
+@pytest.mark.timeout(15)
 async def test_server_connection_limit(ion_server):
     max_connections = 128
     active_socks = []

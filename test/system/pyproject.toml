@@ -26,4 +26,4 @@ skip-magic-trailing-comma = true
 line-ending = "auto"
 
 [tool.pytest.ini_options]
-timeout = 10
+timeout = 5
