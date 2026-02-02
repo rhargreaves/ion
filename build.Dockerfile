@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y \
     tar \
     pkg-config \
     mono-complete \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Install CMake
