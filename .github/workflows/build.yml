@@ -12,6 +12,12 @@ on:
     tags:
       - v*
 
+env:
+  USERNAME: rhargreaves
+  VCPKG_EXE: ${{ github.workspace }}/vcpkg/vcpkg
+  FEED_URL: https://nuget.pkg.github.com/rhargreaves/index.json
+  VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/rhargreaves/index.json,readwrite"
+
 jobs:
   build-and-test:
     strategy:
@@ -31,8 +37,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install nuget dependencies
+        run: sudo apt-get install -y mono-complete
+
+      - name: Add NuGet sources
+        shell: bash
+        run: |
+          mono `${{ env.VCPKG_EXE }} fetch nuget | tail -n 1` \
+          sources add \
+          -Source "${{ env.FEED_URL }}" \
+          -StorePasswordInClearText \
+          -Name GitHubPackages \
+          -UserName "${{ env.USERNAME }}" \
+          -Password "${{ secrets.GITHUB_TOKEN }}"
+          mono `${{ env.VCPKG_EXE }} fetch nuget | tail -n 1` \
+          setapikey "${{ secrets.GITHUB_TOKEN }}" \
+          -Source "${{ env.FEED_URL }}"
+
       - name: Run vcpkg
         uses: lukka/run-vcpkg@v11
+        with:
+          doNotCache: false
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
