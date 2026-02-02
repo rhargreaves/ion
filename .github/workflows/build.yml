@@ -40,6 +40,11 @@ jobs:
       - name: Install nuget dependencies
         run: sudo apt-get install -y mono-complete
 
+      - name: Run vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          doNotCache: false
+
       - name: Add NuGet sources
         shell: bash
         run: |
@@ -53,11 +58,6 @@ jobs:
           mono `${{ env.VCPKG_EXE }} fetch nuget | tail -n 1` \
           setapikey "${{ secrets.GITHUB_TOKEN }}" \
           -Source "${{ env.FEED_URL }}"
-
-      - name: Run vcpkg
-        uses: lukka/run-vcpkg@v11
-        with:
-          doNotCache: false
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
