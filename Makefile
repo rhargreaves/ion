@@ -111,6 +111,11 @@ build-ci:
 		-e BUILD_TYPE=$(BUILD_TYPE) \
 		-e GIT_SHA=$(GIT_SHA) \
 		-e VCPKG_ROOT=/vcpkg \
+		-e VCPKG_BINARY_SOURCES \
+		-e ACTIONS_CACHE_URL \
+		-e ACTIONS_RUNTIME_TOKEN \
+		-e RUNVCPKG_VCPKG_ROOT=/vcpkg \
+		-e RUNVCPKG_VCPKG_ROOT_OUT=/vcpkg \
 		-w /workspace \
 		-v $(PWD):/workspace \
 		-v $(VCPKG_ROOT):/vcpkg \
