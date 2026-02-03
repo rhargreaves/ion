@@ -111,7 +111,7 @@ build-ci:
 		-e BUILD_TYPE=$(BUILD_TYPE) \
 		-e GIT_SHA=$(GIT_SHA) \
 		-e VCPKG_ROOT=/vcpkg \
-		-e VCPKG_BINARY_SOURCES \
+		-e VCPKG_BINARY_SOURCES="clear;files,/vcpkg-binary-cache,readwrite" \
 		-e ACTIONS_CACHE_URL \
 		-e ACTIONS_RUNTIME_TOKEN \
 		-e RUNVCPKG_VCPKG_ROOT=/vcpkg \
@@ -119,6 +119,7 @@ build-ci:
 		-w /workspace \
 		-v $(PWD):/workspace \
 		-v $(VCPKG_ROOT):/vcpkg \
+		-v $(PWD)/vcpkg-binary-cache:/vcpkg-binary-cache \
 		-i $(TTY_ARG) \
 		ion \
 		make build test build-scratch-root-dir
