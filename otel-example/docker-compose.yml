@@ -1,0 +1,33 @@
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    ports:
+      - "16686:16686" # UI
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:16686/" ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  ion:
+    image: ion-app:latest
+    container_name: ion
+    depends_on:
+      jaeger:
+        condition: service_healthy
+    environment:
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "http://jaeger:4318/v1/traces"
+      OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=local"
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./www:/www
+      - ../cert.pem:/cert.pem
+      - ../key.pem:/key.pem
+    command: --static / /www --tls-cert-path /cert.pem --tls-key-path /key.pem
