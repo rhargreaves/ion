@@ -1,0 +1,57 @@
+services:
+  ion:
+    image: ion-app:latest
+    container_name: ion
+    depends_on:
+      otel-collector:
+        condition: service_started
+    environment:
+      OTEL_SERVICE_NAME: "ion"
+      OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=local"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "http://otel-collector:4318/v1/traces"
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./www:/www:ro
+      - ../cert.pem:/cert.pem:ro
+      - ../key.pem:/key.pem:ro
+    command: --static / /www --tls-cert-path /cert.pem --tls-key-path /key.pem
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.145.0
+    container_name: otel-collector
+    command: [ "--config=/etc/otel-collector.yaml" ]
+    volumes:
+      - ./otel-collector-tempo.yaml:/etc/otel-collector.yaml:ro
+    depends_on:
+      tempo:
+        condition: service_started
+
+  tempo:
+    image: grafana/tempo:2.10.0
+    container_name: tempo
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
+
+  grafana:
+    image: grafana/grafana:12.3.0
+    container_name: grafana
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana-provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      tempo:
+        condition: service_started
+
+volumes:
+  grafana-data:
+  tempo-data:
