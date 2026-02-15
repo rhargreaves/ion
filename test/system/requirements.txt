@@ -1,6 +1,5 @@
 pytest
 pytest-asyncio
-pytest-only
 pytest-timeout
 ruff
 httpx[http2]

@@ -40,4 +40,3 @@ WORKDIR /workspace
 
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
-RUN pip install --upgrade setuptools
