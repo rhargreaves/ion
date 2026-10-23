@@ -141,11 +141,20 @@ async def test_httpx_test_routes_not_available_if_not_under_test(ion_server):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("ion_server", [["--status-page"]], indirect=True)
-async def test_httpx_status_page_shows_server_status(ion_server):
+@pytest.mark.parametrize("ion_server", [["--status"]], indirect=True)
+async def test_httpx_status_endpoint_returns_server_status(ion_server):
     client = httpx.AsyncClient(http2=True, verify=False)
+    await client.get(OK_URL)
     response = await client.get(BASE_URL + "/_ion/status")
 
     assert response.status_code == 200
-    assert response.headers["content-type"] == "text/html; charset=utf-8"
+    assert response.headers["content-type"] == "application/json"
     assert response.headers["cache-control"] == "no-store"
+
+    status = response.json()
+    assert status["version"]
+    assert status["instance_id"]
+    assert status["uptime_seconds"] >= 0
+    assert status["requests"] >= 1
+    assert status["avg_latency_ms"] >= 0
+    assert status["status_codes"]["200"] >= 1

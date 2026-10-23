@@ -11,7 +11,7 @@
 #include "proc_ctrl.h"
 #include "signal_handler.h"
 #include "spdlog/sinks/basic_file_sink.h"
-#include "status_page.h"
+#include "status_endpoint.h"
 #include "telemetry.h"
 #include "test_routes.h"
 #include "trace_id_flag.h"
@@ -26,9 +26,9 @@ void run_server(const Args& args) {
         TestRoutes::add_test_routes(router);
     }
 
-    if (args.status_page) {
-        spdlog::info("status page enabled: /_ion/status");
-        StatusPage::add_status_page(router);
+    if (args.status) {
+        spdlog::info("status endpoint enabled: /_ion/status");
+        StatusEndpoint::add_status_endpoint(router);
     }
 
     if (args.static_map.size() == 2) {

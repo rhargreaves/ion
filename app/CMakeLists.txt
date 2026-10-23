@@ -7,8 +7,8 @@ add_executable(ion-server
         proc_ctrl.h
         test_routes.cpp
         test_routes.h
-        status_page.cpp
-        status_page.h
+        status_endpoint.cpp
+        status_endpoint.h
         server_stats.cpp
         server_stats.h
         telemetry.cpp
@@ -20,6 +20,7 @@ add_executable(ion-server
 target_link_libraries(ion-server PRIVATE
         ion
         CLI11::CLI11
+        nlohmann_json::nlohmann_json
         opentelemetry-cpp::api
         opentelemetry-cpp::sdk
         opentelemetry-cpp::otlp_http_exporter

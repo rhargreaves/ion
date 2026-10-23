@@ -151,7 +151,7 @@ OPTIONS:
                               Path to custom 404 page
           --under-test        Adds routes used for internal testing. Do not enable in
                               production
-          --status-page       Adds page (/_ion/status) displaying server status
+          --status            Adds JSON endpoint (/_ion/status) reporting server status
   -v,     --version           Display program version information and exit
 ```
 
