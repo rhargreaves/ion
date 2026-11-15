@@ -13,6 +13,8 @@ class HeaderBlockEncoder {
 
    private:
     std::vector<uint8_t> write_length_and_string(const std::string& str);
+    static void write_table_index(std::vector<uint8_t>& bytes, size_t index, uint8_t prefix_bits,
+                                  uint8_t pattern);
 
     DynamicTable& dynamic_table_;
 };

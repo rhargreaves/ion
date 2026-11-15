@@ -83,3 +83,29 @@ TEST_CASE("headers: encodes dynamic table entries") {
         REQUIRE(bytes2 == std::vector<uint8_t>{0x7e, 0x03, 0x62, 0x61, 0x7a});
     }
 }
+
+TEST_CASE("headers: encodes dynamic table indices beyond the integer prefix") {
+    auto dynamic_table = ion::DynamicTable{};
+    auto encoder = ion::HeaderBlockEncoder{dynamic_table};
+
+    SECTION ("name index at the 6-bit boundary needs a continuation byte") {
+        encoder.encode({{"a", "1"}});
+        encoder.encode({{"b", "2"}});
+
+        // "a" is now dynamic entry 1, so its table index is 61 + 1 + 1 = 63.
+        const auto bytes = encoder.encode({{"a", "3"}});
+
+        REQUIRE(bytes == std::vector<uint8_t>{0x7f, 0x00, 0x01, 0x33});
+    }
+
+    SECTION ("field index past the 7-bit prefix needs a continuation byte") {
+        for (int i = 0; i < 66; i++) {
+            encoder.encode({{"x" + std::to_string(i), "v"}});
+        }
+
+        // "x0" is now dynamic entry 65, so its table index is 61 + 65 + 1 = 127.
+        const auto bytes = encoder.encode({{"x0", "v"}});
+
+        REQUIRE(bytes == std::vector<uint8_t>{0xff, 0x00});
+    }
+}

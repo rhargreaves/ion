@@ -50,6 +50,15 @@ std::vector<uint8_t> HeaderBlockEncoder::write_length_and_string(const std::stri
     return bytes;
 }
 
+void HeaderBlockEncoder::write_table_index(std::vector<uint8_t>& bytes, size_t index,
+                                           uint8_t prefix_bits, uint8_t pattern) {
+    auto encoded = IntegerEncoder::encode(static_cast<uint32_t>(index), prefix_bits);
+    bytes.push_back(static_cast<uint8_t>(encoded[0] | pattern));
+    for (const auto& byte : encoded | std::ranges::views::drop(1)) {
+        bytes.push_back(byte);
+    }
+}
+
 std::vector<uint8_t> HeaderBlockEncoder::encode(const std::vector<HttpHeader>& headers) {
     std::vector<uint8_t> bytes{};
     for (auto& hdr : headers) {
@@ -63,14 +72,14 @@ std::vector<uint8_t> HeaderBlockEncoder::encode(const std::vector<HttpHeader>& h
             // found static header
             const size_t table_index = std::distance(STATIC_TABLE.begin(), st_it);
             const size_t index = table_index + 1;
-            bytes.push_back(static_cast<uint8_t>(index | 0x80));
+            write_table_index(bytes, index, 7, 0x80);
             continue;
         }
 
         // check dynamic headers too
         if (auto dyn_table_index = dynamic_table_.find(hdr)) {
             const size_t index = STATIC_TABLE.size() + dyn_table_index.value() + 1;
-            bytes.push_back(static_cast<uint8_t>(index | 0x80));
+            write_table_index(bytes, index, 7, 0x80);
             continue;
         }
 
@@ -82,7 +91,7 @@ std::vector<uint8_t> HeaderBlockEncoder::encode(const std::vector<HttpHeader>& h
         if (st_name_it != STATIC_TABLE.end()) {
             const size_t table_index = std::distance(STATIC_TABLE.begin(), st_name_it);
             const size_t index = table_index + 1;
-            bytes.push_back(static_cast<uint8_t>(index | 0x40));
+            write_table_index(bytes, index, 6, 0x40);
 
             // encode string
             const auto len_and_str_bytes = write_length_and_string(hdr.value);
@@ -96,7 +105,7 @@ std::vector<uint8_t> HeaderBlockEncoder::encode(const std::vector<HttpHeader>& h
         // is dynamic field header name?
         if (auto dyn_table_index = dynamic_table_.find_name(hdr.name)) {
             const size_t index = STATIC_TABLE.size() + dyn_table_index.value() + 1;
-            bytes.push_back(static_cast<uint8_t>(index | 0x40));
+            write_table_index(bytes, index, 6, 0x40);
 
             // encode string
             const auto len_and_str_bytes = write_length_and_string(hdr.value);
