@@ -155,3 +155,27 @@ def test_server_advertises_header_table_size(ion_server):
     assert h2.settings.SettingCodes.HEADER_TABLE_SIZE in changed
     assert changed[h2.settings.SettingCodes.HEADER_TABLE_SIZE].new_value == 65536
     close_connection((c, s))
+
+
+@pytest.mark.asyncio
+async def test_supports_client_zero_sized_header_table(ion_server):
+    c = h2.connection.H2Connection()
+    # Assigning c.local_settings.header_table_size is ignored (it only queues a
+    # pending value), so replace the object to put 0 in the initial SETTINGS.
+    c.local_settings = h2.settings.Settings(
+        client=True,
+        initial_values={h2.settings.SettingCodes.HEADER_TABLE_SIZE: 0},
+    )
+    # don't also require the §6.3 size-update signal.
+    c.decoder.max_allowed_table_size = 0
+    c.decoder.header_table_size = 0
+
+    c.initiate_connection()
+    s = open_tls_wrapped_socket(SERVER_PORT)
+    s.sendall(c.data_to_send())
+    conn = (c, s)
+    try:
+        for i in range(5):
+            assert send_request(conn, i * 2 + 1).status == 200
+    finally:
+        close_connection(conn)

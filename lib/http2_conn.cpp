@@ -240,11 +240,23 @@ void Http2Connection::process_frame(const Http2FrameReader& frame) {
             if (frame.has_flag(0x01)) {
                 spdlog::debug("received SETTINGS ACK");
             } else {
-                auto settings = frame.read_settings();
+                const auto settings = frame.read_settings();
                 if (!settings) {
                     update_state(Http2ConnectionState::ProtocolError);
                     return;
                 }
+                for (const auto& [id, value] : *settings) {
+                    switch (id) {
+                        case SettingId::HeaderTableSize: {
+                            encoder_dynamic_table_.set_max_table_size(value);
+                        } break;
+                        default: {
+                            spdlog::debug("unsupported setting: 0x{:x}: {}", std::to_underlying(id),
+                                          value);
+                        } break;
+                    }
+                }
+
                 spdlog::debug("read {} settings, sending ACK", settings->size());
                 write_settings_ack();
             }
