@@ -59,21 +59,28 @@ struct Http2FrameHeader {
     }
 };
 
+enum class SettingId : uint16_t {
+    HeaderTableSize = 0x1,
+    MaxConcurrentStreams = 0x3,
+    InitialWindowSize = 0x4,
+    MaxFrameSize = 0x5
+};
+
 struct Http2Setting {
-    uint16_t identifier;
+    SettingId identifier;
     uint32_t value;
 
     static constexpr size_t wire_size = 6;
 
     static Http2Setting parse(std::span<const uint8_t, wire_size> data) {
         return Http2Setting{
-            .identifier = load_uint16_be(data.subspan<0, 2>()),
+            .identifier = static_cast<SettingId>(load_uint16_be(data.subspan<0, 2>())),
             .value = load_uint32_be(data.subspan<2, 4>()),
         };
     }
 
     void serialize(std::span<uint8_t, wire_size> data) const {
-        store_uint16_be(identifier, data.subspan<0, 2>());
+        store_uint16_be(static_cast<uint16_t>(identifier), data.subspan<0, 2>());
         store_uint32_be(value, data.subspan<2, 4>());
     }
 };

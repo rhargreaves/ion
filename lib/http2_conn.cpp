@@ -25,10 +25,13 @@ static constexpr uint8_t FLAG_END_HEADERS = 0x04;
 static constexpr uint8_t FLAG_END_STREAM = 0x01;
 
 static constexpr size_t MAX_READ_BUFFER_SIZE = 64 * 1024;
-static constexpr size_t MAX_FRAME_SIZE = 16384;
 static constexpr size_t INITIAL_READ_BUFFER_SIZE = 16 * 1024;
 static constexpr size_t INITIAL_WRITE_BUFFER_SIZE = 16 * 1024;
 static constexpr size_t TEMP_READ_BUFFER_SIZE = 16 * 1024;
+
+static constexpr size_t MAX_FRAME_SIZE = 16384;
+static constexpr uint32_t MAX_CONCURRENT_STREAMS = 100;
+static constexpr uint32_t INITIAL_WINDOW_SIZE = 64 * 1024;
 
 static constexpr std::chrono::seconds IDLE_TIMEOUT{5};
 
@@ -125,10 +128,11 @@ void Http2Connection::write_goaway(uint32_t last_stream_id, ErrorCode error_code
 
 void Http2Connection::write_settings() {
     const std::vector<Http2Setting> settings = {
-        {0x0001, static_cast<uint32_t>(decoder_dynamic_table_.max_size())},  // HEADER_TABLE_SIZE,
-        {0x0003, 100},    // MAX_CONCURRENT_STREAMS
-        {0x0004, 65535},  // INITIAL_WINDOW_SIZE
-        {0x0005, MAX_FRAME_SIZE}};
+        {SettingId::HeaderTableSize, static_cast<uint32_t>(decoder_dynamic_table_.max_size())},
+        {SettingId::MaxConcurrentStreams, MAX_CONCURRENT_STREAMS},
+        {SettingId::InitialWindowSize, INITIAL_WINDOW_SIZE},
+        {SettingId::MaxFrameSize, MAX_FRAME_SIZE}};
+
     write_settings(settings);
     spdlog::debug("SETTINGS frame sent");
 }
