@@ -124,9 +124,11 @@ void Http2Connection::write_goaway(uint32_t last_stream_id, ErrorCode error_code
 }
 
 void Http2Connection::write_settings() {
-    const std::vector<Http2Setting> settings = {{0x0003, 100},    // MAX_CONCURRENT_STREAMS
-                                                {0x0004, 65535},  // INITIAL_WINDOW_SIZE
-                                                {0x0005, MAX_FRAME_SIZE}};
+    const std::vector<Http2Setting> settings = {
+        {0x0001, static_cast<uint32_t>(decoder_dynamic_table_.max_size())},  // HEADER_TABLE_SIZE,
+        {0x0003, 100},    // MAX_CONCURRENT_STREAMS
+        {0x0004, 65535},  // INITIAL_WINDOW_SIZE
+        {0x0005, MAX_FRAME_SIZE}};
     write_settings(settings);
     spdlog::debug("SETTINGS frame sent");
 }

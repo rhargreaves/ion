@@ -29,6 +29,14 @@ TEST_CASE("DynamicTable") {
         REQUIRE(table.size() == expected_size);
     }
 
+    SECTION ("returns max table size (bytes)") {
+        table.insert(ion::HttpHeader{"foo", "bar"});
+
+        constexpr auto expected_max_size = 64 * 1024;
+
+        REQUIRE(table.max_size() == expected_max_size);
+    }
+
     SECTION ("evicts old headers when table size exceeds max") {
         table = ion::DynamicTable{50};
 

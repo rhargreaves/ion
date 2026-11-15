@@ -22,6 +22,7 @@ class DynamicTable {
     std::optional<size_t> find_name(const std::string& name);
     void log_contents() const;
     int size() const;
+    size_t max_size() const;
     void set_max_table_size(size_t new_sz);
 
    private:

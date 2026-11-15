@@ -67,6 +67,10 @@ int DynamicTable::size() const {
     return table_size_;
 }
 
+size_t DynamicTable::max_size() const {
+    return max_table_size_;
+}
+
 void DynamicTable::set_max_table_size(size_t new_sz) {
     max_table_size_ = new_sz;
     while (table_size_ > max_table_size_) {

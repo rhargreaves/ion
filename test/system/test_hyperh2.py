@@ -1,3 +1,4 @@
+import h2
 import pytest
 import asyncio
 import ssl
@@ -144,3 +145,13 @@ async def test_server_rejects_oversized_frame_header(ion_server):
     except (ssl.SSLWantReadError, socket.timeout, BlockingIOError):
         closed = False
     assert closed, "Server should have closed the connection"
+
+
+def test_server_advertises_header_table_size(ion_server):
+    c, s = create_connection(SERVER_PORT)
+    events = c.receive_data(s.recv(64 * 1024))
+    changed = next(e.changed_settings for e in events
+                   if isinstance(e, h2.events.RemoteSettingsChanged))
+    assert h2.settings.SettingCodes.HEADER_TABLE_SIZE in changed
+    assert changed[h2.settings.SettingCodes.HEADER_TABLE_SIZE].new_value == 65536
+    close_connection((c, s))
