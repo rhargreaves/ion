@@ -73,6 +73,7 @@ class Http2Connection {
     void write_data_response(uint32_t uint32, const std::vector<uint8_t>& body);
     void write_goaway(uint32_t last_stream_id, ErrorCode error_code);
     void write_settings();
+    void process_settings(std::vector<Http2Setting> settings);
     void process_frame(const Http2FrameReader& frame);
     void update_state(Http2ConnectionState new_state);
     void log_dynamic_tables();

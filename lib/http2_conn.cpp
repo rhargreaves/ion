@@ -232,6 +232,19 @@ bool Http2Connection::try_read_frame() {
     return true;
 }
 
+void Http2Connection::process_settings(std::vector<Http2Setting> settings) {
+    for (const auto& [id, value] : settings) {
+        switch (id) {
+            case SettingId::HeaderTableSize: {
+                encoder_dynamic_table_.set_max_table_size(value);
+            } break;
+            default: {
+                spdlog::debug("unsupported setting: 0x{:x}: {}", std::to_underlying(id), value);
+            } break;
+        }
+    }
+}
+
 void Http2Connection::process_frame(const Http2FrameReader& frame) {
     switch (frame.type()) {
         case FRAME_TYPE_SETTINGS: {
@@ -245,18 +258,7 @@ void Http2Connection::process_frame(const Http2FrameReader& frame) {
                     update_state(Http2ConnectionState::ProtocolError);
                     return;
                 }
-                for (const auto& [id, value] : *settings) {
-                    switch (id) {
-                        case SettingId::HeaderTableSize: {
-                            encoder_dynamic_table_.set_max_table_size(value);
-                        } break;
-                        default: {
-                            spdlog::debug("unsupported setting: 0x{:x}: {}", std::to_underlying(id),
-                                          value);
-                        } break;
-                    }
-                }
-
+                process_settings(*settings);
                 spdlog::debug("read {} settings, sending ACK", settings->size());
                 write_settings_ack();
             }
