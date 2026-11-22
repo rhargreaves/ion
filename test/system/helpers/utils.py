@@ -98,15 +98,23 @@ def assert_last_log_line_is_valid(buffer):
     assert lines, "Access log is empty"
     line = lines[0]
 
-    # Combined Log Format Regex:
-    # 1. IP
-    # 2. Ident & Auth (- -)
-    # 3. Timestamp
-    # 4. Request
-    # 5. Status
-    # 6. Size
-    # 7. Referrer
-    # 8. User Agent
-    log_pattern = r'^[\d\.]+ - - \[.*?\] \".*? HTTP/2\" \d{3} (\d+|-) \".*?\" \".*?\"$'
+    assert re.match(ACCESS_LOG_PATTERN, line), f"Log entry does not match expected format: {line}"
 
-    assert re.match(log_pattern, line), f"Log entry does not match expected format: {line}"
+
+def assert_contains_access_log_line(buffer):
+    lines = [line.strip() for line in buffer.splitlines() if line.strip()]
+    assert lines, "Output is empty"
+    assert any(re.match(ACCESS_LOG_PATTERN, line) for line in lines), \
+        f"No access log line found in output: {buffer}"
+
+
+# Combined Log Format Regex:
+# 1. IP
+# 2. Ident & Auth (- -)
+# 3. Timestamp
+# 4. Request
+# 5. Status
+# 6. Size
+# 7. Referrer
+# 8. User Agent
+ACCESS_LOG_PATTERN = r'^[\d\.]+ - - \[.*?\] \".*? HTTP/2\" \d{3} (\d+|-) \".*?\" \".*?\"$'

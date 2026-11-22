@@ -11,6 +11,7 @@
 #include "proc_ctrl.h"
 #include "signal_handler.h"
 #include "spdlog/sinks/basic_file_sink.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
 #include "status_endpoint.h"
 #include "telemetry.h"
 #include "test_routes.h"
@@ -65,10 +66,12 @@ void setup_access_logs(const std::string& log_path) {
     }
 
     try {
-        auto logger = spdlog::basic_logger_mt(ion::AccessLog::ACCESS_LOGGER_NAME, log_path);
+        auto logger = log_path == "-"
+                          ? spdlog::stdout_color_mt(ion::AccessLog::ACCESS_LOGGER_NAME)
+                          : spdlog::basic_logger_mt(ion::AccessLog::ACCESS_LOGGER_NAME, log_path);
         logger->set_pattern("%v");
         logger->flush_on(spdlog::level::info);
-        spdlog::info("writing access logs to {}", log_path);
+        spdlog::info("writing access logs to {}", log_path == "-" ? "stdout" : log_path);
     } catch (const spdlog::spdlog_ex& e) {
         spdlog::error("failed to setup access logs: {}", e.what());
     }

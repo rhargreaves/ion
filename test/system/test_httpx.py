@@ -1,4 +1,4 @@
-from helpers.utils import assert_last_log_line_is_valid, DEFAULT_ARGS, OK_URL, BASE_URL
+from helpers.utils import assert_last_log_line_is_valid, assert_contains_access_log_line, DEFAULT_ARGS, OK_URL, BASE_URL
 import httpx
 import pytest
 import logging
@@ -129,6 +129,17 @@ async def test_httpx_logs_requests_in_access_logs(ion_server):
 
     await ion_server.stop()
     assert_last_log_line_is_valid(ion_server.get_stderr())
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ion_server", [["--access-log", "-"]], indirect=True)
+async def test_httpx_logs_requests_in_access_logs_to_stdout(ion_server):
+    client = httpx.AsyncClient(http2=True, verify=False)
+    response = await client.get(OK_URL)
+    assert response.status_code == 200
+
+    await ion_server.stop()
+    assert_contains_access_log_line(ion_server.get_stdout())
 
 
 @pytest.mark.asyncio
