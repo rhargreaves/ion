@@ -1,6 +1,5 @@
 #include "http2_conn.h"
 
-#include <opentelemetry/trace/provider.h>
 #include <spdlog/spdlog.h>
 
 #include <format>
@@ -8,7 +7,6 @@
 #include "access_log.h"
 #include "hpack/header_block_decoder.h"
 #include "http2_frame_reader.h"
-#include "http2_server.h"
 #include "version.h"
 
 namespace ion {
@@ -265,9 +263,13 @@ void Http2Connection::process_frame(const Http2FrameReader& frame) {
             break;
         }
         case FRAME_TYPE_HEADERS: {
+#if ION_ENABLE_OTEL
             auto tracer = opentelemetry::trace::Provider::GetTracerProvider()->GetTracer("ion");
             auto span = tracer->StartSpan("http_request");
             auto scope = tracer->WithActiveSpan(span);
+#else
+            SpanPtr span = nullptr;
+#endif
 
             spdlog::debug("received HEADERS frame for stream {}", frame.stream_id());
             spdlog::debug(" - end headers: {}, end stream: {}, length: {}", frame.is_end_headers(),

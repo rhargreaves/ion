@@ -78,9 +78,11 @@ if (ION_WASM)
     add_library(ion ${ION_CORE_SOURCES} ${ION_WASM_SOURCES})
     target_link_libraries(ion PUBLIC
             spdlog::spdlog_header_only
-            fmt::fmt-header-only
     )
-    target_compile_definitions(ion PUBLIC SPDLOG_HEADER_ONLY FMT_HEADER_ONLY ION_WASM=1 ION_ENABLE_OTEL=0)
+    target_compile_definitions(ion PUBLIC
+            ION_WASM=1
+            ION_ENABLE_OTEL=0
+    )
 
 else ()
     add_library(ion ${ION_CORE_SOURCES} ${ION_NATIVE_SOURCES})

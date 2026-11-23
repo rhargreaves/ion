@@ -22,21 +22,37 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     list(APPEND ION_DEV_FLAGS -fsanitize=address -fno-omit-frame-pointer -g)
 endif ()
 
-if (NOT APPLE)
+if (NOT APPLE AND NOT EMSCRIPTEN)
     add_link_options("-fuse-ld=lld")
 endif ()
 
 include(FetchContent)
 
-find_package(OpenSSL 3 CONFIG REQUIRED COMPONENTS SSL Crypto)
-find_package(spdlog CONFIG REQUIRED)
-find_package(CLI11 CONFIG REQUIRED)
-find_package(nlohmann_json CONFIG REQUIRED)
-find_package(opentelemetry-cpp CONFIG REQUIRED)
+if (ION_WASM)
+    set(SPDLOG_FMT_EXTERNAL OFF CACHE BOOL "" FORCE)
+    set(SPDLOG_BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
+    set(SPDLOG_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(SPDLOG_BUILD_BENCH OFF CACHE BOOL "" FORCE)
+    set(SPDLOG_INSTALL OFF CACHE BOOL "" FORCE)
+
+    FetchContent_Declare(
+            spdlog
+            GIT_REPOSITORY https://github.com/gabime/spdlog.git
+            GIT_TAG v1.17.0
+            GIT_SHALLOW TRUE
+    )
+    FetchContent_MakeAvailable(spdlog)
+else ()
+    find_package(OpenSSL 3 CONFIG REQUIRED COMPONENTS SSL Crypto)
+    find_package(nlohmann_json CONFIG REQUIRED)
+    find_package(opentelemetry-cpp CONFIG REQUIRED)
+    find_package(CLI11 CONFIG REQUIRED)
+    find_package(spdlog CONFIG REQUIRED)
+endif ()
 
 add_subdirectory(lib)
-add_subdirectory(test/unit)
 if (NOT ION_WASM)
+    add_subdirectory(test/unit) # todo: compile for all
     add_subdirectory(app)
     add_subdirectory(test/integration)
 endif ()

@@ -37,6 +37,11 @@ build: check-vcpkg
 	cmake --build $(BUILD_DIR) --parallel
 .PHONY: build
 
+wasm:
+	emcmake cmake -S . -B build/wasm -DION_WASM=$(ION_WASM) -DCMAKE_BUILD_TYPE=Release
+	cmake --build build/wasm --target ion --parallel
+.PHONY: wasm
+
 build-scratch-root-dir:
 	./build-scratch-root.sh
 .PHONY: build-scratch-root-dir

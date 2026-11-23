@@ -1,6 +1,4 @@
 #pragma once
-#include <opentelemetry/trace/span.h>
-
 #include <chrono>
 #include <span>
 #include <vector>
@@ -14,7 +12,16 @@
 
 namespace ion {
 
+#if ION_ENABLE_OTEL
+#include <opentelemetry/trace/span.h>
 using SpanPtr = opentelemetry::nostd::shared_ptr<opentelemetry::trace::Span>;
+#else
+struct Span {
+    template <typename... Args>
+    void SetAttribute(Args&&...) {}
+};
+using SpanPtr = Span*;
+#endif
 
 enum class Http2ProcessResult {
     WantRead,
