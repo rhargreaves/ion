@@ -1,6 +1,8 @@
 #pragma once
+#include <cstddef>
+#include <cstdint>
 #include <optional>
-#include <string_view>
+#include <string>
 #include <vector>
 
 namespace ion {
