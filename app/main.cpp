@@ -8,6 +8,7 @@
 #include "access_log.h"
 #include "args.h"
 #include "http2_server.h"
+#include "native_file_store.h"
 #include "proc_ctrl.h"
 #include "signal_handler.h"
 #include "spdlog/sinks/basic_file_sink.h"
@@ -37,18 +38,22 @@ void run_server(const Args& args) {
         auto& filesystem_root = args.static_map[1];
 
         spdlog::info("serving static files at '{}' -> '{}'", url_prefix, filesystem_root);
-        auto sth = std::make_unique<ion::StaticFileHandler>(url_prefix, filesystem_root);
+        auto sth = std::make_unique<ion::StaticFileHandler>(
+            url_prefix, filesystem_root, std::make_unique<ion::NativeFileStore>());
         router.add_static_handler(std::move(sth));
     }
 
     if (!args.status_404_file_path.empty()) {
-        router.add_middleware([args](auto next) {
-            return [args, next](const auto& req) {
+        auto not_found_file_handler = std::make_shared<ion::StaticFileHandler>(
+            "", "", std::make_unique<ion::NativeFileStore>());
+
+        router.add_middleware([args, not_found_file_handler](auto next) {
+            return [args, next, not_found_file_handler](const auto& req) {
                 auto res = next(req);
 
                 if (res.status_code == 404) {
                     auto file_res =
-                        ion::StaticFileHandler::file_response(args.status_404_file_path, false);
+                        not_found_file_handler->file_response(args.status_404_file_path, false);
                     file_res.status_code = 404;
                     return file_res;
                 }

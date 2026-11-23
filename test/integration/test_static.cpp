@@ -7,6 +7,7 @@
 #include "catch2/catch_test_macros.hpp"
 #include "curl_client.h"
 #include "http2_server.h"
+#include "native_file_store.h"
 #include "static_file_handler.h"
 #include "test_helpers.h"
 #include "test_server_runner.h"
@@ -16,7 +17,8 @@ static constexpr uint16_t TEST_PORT = 8443;
 TEST_CASE("static: basic static file mapping") {
     auto server = TestHelpers::create_test_server();
 
-    auto sfh = std::make_unique<ion::StaticFileHandler>("/static", "./test/system/static");
+    auto sfh = std::make_unique<ion::StaticFileHandler>("/static", "./test/system/static",
+                                                        std::make_unique<ion::NativeFileStore>());
 
     server.router().add_static_handler(std::move(sfh));
     server.router().add_route("/static/some-route", "GET",
@@ -84,7 +86,8 @@ TEST_CASE("static: basic static file mapping") {
 TEST_CASE("static: middleware support") {
     auto server = TestHelpers::create_test_server();
 
-    auto sfh = std::make_unique<ion::StaticFileHandler>("/static", "./test/system/static");
+    auto sfh = std::make_unique<ion::StaticFileHandler>("/static", "./test/system/static",
+                                                        std::make_unique<ion::NativeFileStore>());
 
     auto& router = server.router();
 

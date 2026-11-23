@@ -35,8 +35,10 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(opentelemetry-cpp CONFIG REQUIRED)
 
 add_subdirectory(lib)
-add_subdirectory(app)
 add_subdirectory(test/unit)
-add_subdirectory(test/integration)
+if (NOT ION_WASM)
+    add_subdirectory(app)
+    add_subdirectory(test/integration)
+endif ()
 
 enable_testing()

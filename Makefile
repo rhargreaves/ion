@@ -11,6 +11,8 @@ SERVER_PORT=8443
 LOG_LEVEL=info
 TTY_ARG := $(shell [ -t 0 ] && echo "-t")
 GIT_SHA ?= $(shell git rev-parse --short HEAD 2>/dev/null)
+ION_WASM?=0
+
 export GIT_SHA
 export ION_PATH=$(BUILD_DIR)/app/ion-server
 export ION_TLS_CERT_PATH=cert.pem
@@ -24,10 +26,12 @@ ifeq ($(BUILD_TYPE),Debug)
 else
   VCPKG_BUILD_TYPE = release
 endif
+
 export VCPKG_BUILD_TYPE
 
 build: check-vcpkg
 	cmake -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -S . -B $(BUILD_DIR) \
+		-DION_WASM=$(ION_WASM) \
 		-DVCPKG_BUILD_TYPE=$(VCPKG_BUILD_TYPE) \
 		-DCMAKE_TOOLCHAIN_FILE=$(VCPKG_ROOT)/scripts/buildsystems/vcpkg.cmake
 	cmake --build $(BUILD_DIR) --parallel

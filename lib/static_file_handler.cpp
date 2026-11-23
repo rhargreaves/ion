@@ -8,8 +8,9 @@
 namespace ion {
 
 StaticFileHandler::StaticFileHandler(const std::string& url_prefix,
-                                     const std::string& filesystem_root)
-    : url_prefix_(url_prefix), filesystem_root_(filesystem_root) {}
+                                     const std::string& filesystem_root,
+                                     std::unique_ptr<FileStore> store)
+    : url_prefix_(url_prefix), filesystem_root_(filesystem_root), store_(std::move(store)) {}
 
 bool StaticFileHandler::matches(const std::string& path) const {
     return path.starts_with(url_prefix_);
@@ -35,8 +36,8 @@ std::string StaticFileHandler::get_relative_path(const std::string& url_path) co
 }
 
 HttpResponse StaticFileHandler::get_response(const std::string& path,
-                                             const std::string& mime_type) {
-    auto content = FileReader::read_file(path);
+                                             const std::string& mime_type) const {
+    auto content = store_->read(path);
     if (!content) {
         spdlog::error("failed to read file: {}", path);
         return HttpResponse{500};
@@ -48,8 +49,8 @@ HttpResponse StaticFileHandler::get_response(const std::string& path,
 }
 
 HttpResponse StaticFileHandler::head_response(const std::string& path,
-                                              const std::string& mime_type) {
-    auto size = FileReader::get_file_size(path);
+                                              const std::string& mime_type) const {
+    auto size = store_->size(path);
     if (!size) {
         spdlog::error("failed to get file size: {}", path);
         return HttpResponse{500};
@@ -61,8 +62,8 @@ HttpResponse StaticFileHandler::head_response(const std::string& path,
         .headers = {{"content-length", std::to_string(*size)}, {"content-type", mime_type}}};
 }
 
-HttpResponse StaticFileHandler::file_response(const std::string& path, bool head_request) {
-    if (!FileReader::is_readable(path)) {
+HttpResponse StaticFileHandler::file_response(const std::string& path, bool head_request) const {
+    if (!store_->exists(path)) {
         spdlog::debug("file not found or not readable: {}", path);
         return HttpResponse{404};
     }
@@ -73,8 +74,12 @@ HttpResponse StaticFileHandler::file_response(const std::string& path, bool head
 
 HttpResponse StaticFileHandler::handle(const std::string& path, bool is_head) const {
     std::string rel_path = get_relative_path(path);
-
+#ifdef ION_WASM
+    auto safe_path = std::optional<std::string>{rel_path};
+#else
     auto safe_path = FileReader::sanitize_path(filesystem_root_, rel_path);
+#endif
+
     if (!safe_path) {
         spdlog::warn("invalid file path requested: {}", path);
         return HttpResponse{403};
