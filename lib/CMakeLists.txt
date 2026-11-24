@@ -92,6 +92,10 @@ else ()
             spdlog::spdlog
             opentelemetry-cpp::api
     )
+    target_compile_definitions(ion PUBLIC
+            ION_WASM=0
+            ION_ENABLE_OTEL=1
+    )
 endif ()
 
 target_compile_options(ion PUBLIC ${ION_DEV_FLAGS})

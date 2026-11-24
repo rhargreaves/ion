@@ -9,6 +9,10 @@
 #include "http2_frame_reader.h"
 #include "version.h"
 
+#if ION_ENABLE_OTEL
+#include <opentelemetry/trace/provider.h>
+#endif
+
 namespace ion {
 
 static constexpr std::string_view CLIENT_PREFACE{"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"};

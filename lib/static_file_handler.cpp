@@ -74,7 +74,7 @@ HttpResponse StaticFileHandler::file_response(const std::string& path, bool head
 
 HttpResponse StaticFileHandler::handle(const std::string& path, bool is_head) const {
     std::string rel_path = get_relative_path(path);
-#ifdef ION_WASM
+#if ION_WASM
     auto safe_path = std::optional<std::string>{rel_path};
 #else
     auto safe_path = FileReader::sanitize_path(filesystem_root_, rel_path);

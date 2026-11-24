@@ -10,10 +10,13 @@
 #include "router.h"
 #include "transports/transport.h"
 
+#if ION_ENABLE_OTEL
+#include <opentelemetry/trace/span.h>
+#endif
+
 namespace ion {
 
 #if ION_ENABLE_OTEL
-#include <opentelemetry/trace/span.h>
 using SpanPtr = opentelemetry::nostd::shared_ptr<opentelemetry::trace::Span>;
 #else
 struct Span {
