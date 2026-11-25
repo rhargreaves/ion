@@ -45,6 +45,7 @@ __pycache__/
 
 cert.pem
 key.pem
+worker/certs/
 
 **/build/
 access.log
@@ -54,3 +55,4 @@ access.log
 .output.txt
 
 vcpkg-docker/
+node_modules/

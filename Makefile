@@ -39,7 +39,7 @@ build: check-vcpkg
 
 wasm:
 	emcmake cmake -S . -B build/wasm -DION_WASM=$(ION_WASM) -DCMAKE_BUILD_TYPE=Release
-	cmake --build build/wasm --target ion --parallel
+	cmake --build build/wasm --target ion_wasm --parallel
 .PHONY: wasm
 
 build-scratch-root-dir:

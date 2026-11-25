@@ -29,3 +29,7 @@ indent_style = tab
 [*.sh]
 indent_style = space
 indent_size = 2
+
+[*.capnp]
+indent_style = space
+indent_size = 2

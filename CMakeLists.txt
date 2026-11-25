@@ -51,9 +51,11 @@ else ()
 endif ()
 
 add_subdirectory(lib)
-if (NOT ION_WASM)
-    add_subdirectory(test/unit) # todo: compile for all
+if (ION_WASM)
+    add_subdirectory(wasm)
+else ()
     add_subdirectory(app)
+    add_subdirectory(test/unit) # todo: compile for all
     add_subdirectory(test/integration)
 endif ()
 

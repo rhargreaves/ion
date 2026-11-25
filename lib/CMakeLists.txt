@@ -71,11 +71,8 @@ set(ION_NATIVE_SOURCES
         native_file_store.h
 )
 
-set(ION_WASM_SOURCES
-)
-
 if (ION_WASM)
-    add_library(ion ${ION_CORE_SOURCES} ${ION_WASM_SOURCES})
+    add_library(ion ${ION_CORE_SOURCES})
     target_link_libraries(ion PUBLIC
             spdlog::spdlog_header_only
     )
