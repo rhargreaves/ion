@@ -31,5 +31,6 @@ const config :Workerd.Config = (
 
    sockets = [
      ( name = "ion", address = "127.0.0.1:8443", tcp = (), service = "ion" ),
+     ( name = "ion-h2c", address = "127.0.0.1:8080", tcp = (), service = "ion" ),
    ],
   );

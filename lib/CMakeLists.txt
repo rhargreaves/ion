@@ -41,6 +41,10 @@ set(ION_CORE_SOURCES
         transports/transport.h
         hpack/byte_reader.cpp
         file_store.h
+        static_file_handler.cpp
+        static_file_handler.h
+        mime_type.cpp
+        mime_type.h
 )
 
 set(ION_NATIVE_SOURCES
@@ -53,8 +57,6 @@ set(ION_NATIVE_SOURCES
         http2_server.h
         server_config.h
         server_config.cpp
-        static_file_handler.cpp
-        static_file_handler.h
         file_reader.cpp
         file_reader.h
         transports/tcp_transport.cpp

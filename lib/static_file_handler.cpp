@@ -4,6 +4,7 @@
 
 #include "file_reader.h"
 #include "http_response.h"
+#include "mime_type.h"
 
 namespace ion {
 
@@ -68,7 +69,7 @@ HttpResponse StaticFileHandler::file_response(const std::string& path, bool head
         return HttpResponse{404};
     }
 
-    const auto mime_type = FileReader::get_mime_type(path);
+    const auto mime_type = MimeType::get_mime_type(path);
     return head_request ? head_response(path, mime_type) : get_response(path, mime_type);
 }
 

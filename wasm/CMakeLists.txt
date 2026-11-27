@@ -1,11 +1,12 @@
-#add_library(ion_wasm_platform STATIC
-#)
-#target_link_libraries(ion_wasm_platform PUBLIC ion)
-
 add_executable(ion_wasm
-        ion_wasm.cpp
+        main.cpp
         ion_log_sink.h
         wasm_transport.h
+        server.cpp
+        server.h
+        wasm_transport.cpp
+        test_routes.cpp
+        test_routes.h
 )
 target_link_libraries(ion_wasm PRIVATE ion)
 
@@ -18,5 +19,5 @@ target_link_options(ion_wasm PRIVATE
         -sSTANDALONE_WASM
         -sALLOW_MEMORY_GROWTH=1
         -Wl,--no-entry
-        -sEXPORTED_FUNCTIONS=_ion_init
-        -sERROR_ON_UNDEFINED_SYMBOLS=0)
+        -sERROR_ON_UNDEFINED_SYMBOLS=1
+        -sEXPORTED_FUNCTIONS=_malloc,_free)

@@ -3,7 +3,8 @@
 #include <spdlog/common.h>
 #include <spdlog/sinks/base_sink.h>
 
-extern "C" void ion_log(int level, const char* msg, unsigned long len);
+__attribute__((import_module("env"), import_name("ion_log"))) extern "C" void ion_log(
+    int level, const char* msg, unsigned long len);
 
 namespace ion::wasm {
 
