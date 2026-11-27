@@ -12,7 +12,7 @@ LOG_LEVEL=info
 TTY_ARG := $(shell [ -t 0 ] && echo "-t")
 GIT_SHA ?= $(shell git rev-parse --short HEAD 2>/dev/null)
 ION_WASM?=0
-
+export ION_WASM
 export GIT_SHA
 export ION_PATH=$(BUILD_DIR)/app/ion-server
 export ION_TLS_CERT_PATH=cert.pem
