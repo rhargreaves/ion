@@ -4,10 +4,14 @@ const config :Workerd.Config = (
   services = [
     ( name = "ion",
      worker = (
-        modules = [
+       modules = [
          ( name = "index.mjs", esModule = embed "src/index.mjs" ),
+         ( name = "./connection.mjs", esModule = embed "src/connection.mjs" ),
+         ( name = "./runtime.mjs", esModule = embed "src/runtime.mjs" ),
+         ( name = "./log.mjs", esModule = embed "src/log.mjs" ),
+         ( name = "./wasi.mjs", esModule = embed "src/wasi.mjs" ),
          ( name = "./ion.wasm", wasm = embed "../build/wasm/ion.wasm" ),
-        ],
+       ],
        compatibilityDate = "2026-11-20",
        bindings = [
          ( name = "ASSETS",

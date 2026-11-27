@@ -1,6 +1,6 @@
 add_executable(ion_wasm
         main.cpp
-        ion_log_sink.h
+        log_sink.h
         wasm_transport.h
         server.cpp
         server.h
