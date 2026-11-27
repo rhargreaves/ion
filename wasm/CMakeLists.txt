@@ -2,7 +2,10 @@
 #)
 #target_link_libraries(ion_wasm_platform PUBLIC ion)
 
-add_executable(ion_wasm ion_wasm.cpp)
+add_executable(ion_wasm
+        ion_wasm.cpp
+        ion_log_sink.h
+)
 target_link_libraries(ion_wasm PRIVATE ion)
 
 set_target_properties(ion_wasm PROPERTIES

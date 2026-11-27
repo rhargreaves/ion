@@ -79,6 +79,7 @@ if (ION_WASM)
     target_compile_definitions(ion PUBLIC
             ION_WASM=1
             ION_ENABLE_OTEL=0
+            SPDLOG_DISABLE_DEFAULT_LOGGER=1
     )
 
 else ()

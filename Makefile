@@ -42,6 +42,10 @@ wasm:
 	cmake --build build/wasm --target ion_wasm --parallel
 .PHONY: wasm
 
+worker-run:
+	make -C worker run ION_WASM=$(ION_WASM)
+.PHONY: worker-run
+
 build-scratch-root-dir:
 	./build-scratch-root.sh
 .PHONY: build-scratch-root-dir

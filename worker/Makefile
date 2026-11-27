@@ -18,7 +18,7 @@ clean-certs:
 	rm -f $(CERT_PEM) $(KEY_PEM)
 .PHONY: clean-certs
 
-worker-run: certs
+run: certs
 	cd $(WORKER_DIR) && \
 	npx workerd serve config.capnp --experimental --watch
-.PHONY: worker-run
+.PHONY: run
