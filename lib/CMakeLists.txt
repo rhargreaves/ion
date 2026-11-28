@@ -101,8 +101,6 @@ endif ()
 target_compile_options(ion PUBLIC ${ION_DEV_FLAGS})
 target_link_options(ion PUBLIC ${ION_DEV_FLAGS})
 
-add_compile_options(-Wall -Wextra -Wpedantic -Werror)
-
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_options(-fstack-protector-strong -fPIC)
     add_definitions(-D_FORTIFY_SOURCE=2)

@@ -8,16 +8,13 @@
 #include <sys/prctl.h>
 #endif
 
-bool ProcessControl::enable_no_new_privs() {
+void ProcessControl::enable_no_new_privs() {
 #ifdef __linux__
     if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) == -1) {
         spdlog::warn("failed to set PR_SET_NO_NEW_PRIVS: {}", std::strerror(errno));
-        return false;
+        return;
     }
     spdlog::debug("PR_SET_NO_NEW_PRIVS enabled");
-    return true;
-#else
-    return false;
 #endif
 }
 

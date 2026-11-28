@@ -50,6 +50,8 @@ else ()
     find_package(spdlog CONFIG REQUIRED)
 endif ()
 
+add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+
 add_subdirectory(lib)
 if (ION_WASM)
     add_subdirectory(wasm)
