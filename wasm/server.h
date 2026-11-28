@@ -29,9 +29,4 @@ class Server {
     int next_id_ = 1;
 };
 
-struct Connection {
-    WasmTransport transport;
-    std::unique_ptr<Http2Connection> http2_conn;
-};
-
 }  // namespace ion::wasm

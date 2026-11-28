@@ -6,7 +6,8 @@
 namespace ion {
 
 // https://datatracker.ietf.org/doc/html/rfc7541#appendix-A
-constexpr std::array<StaticHttpHeader, 61> STATIC_TABLE = {  //
+// clang-format off
+constexpr std::array<StaticHttpHeader, 61> STATIC_TABLE = {
     {{":authority", ""},
      {":method", "GET"},
      {":method", "POST"},
@@ -68,5 +69,6 @@ constexpr std::array<StaticHttpHeader, 61> STATIC_TABLE = {  //
      {"vary", ""},
      {"via", ""},
      {"www-authenticate", ""}}};
+// clang-format on
 
 }  // namespace ion

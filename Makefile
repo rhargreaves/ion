@@ -29,6 +29,19 @@ endif
 
 export VCPKG_BUILD_TYPE
 
+FMT_FILES := $(shell git ls-files \
+	'lib/**/*.cpp' 'lib/**/*.h' 'app/**/*.cpp' \
+	'app/**/*.h' 'wasm/**/*.cpp' 'wasm/**/*.h' \
+	'test/**/*.cpp' 'test/**/*.h')
+
+format-check:
+	clang-format --dry-run --Werror $(FMT_FILES)
+.PHONY: format-check
+
+format:
+	clang-format -i $(FMT_FILES)
+.PHONY: format
+
 build: check-vcpkg
 	cmake -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) -S . -B $(BUILD_DIR) \
 		-DION_WASM=$(ION_WASM) \
