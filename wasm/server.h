@@ -13,9 +13,9 @@ class Server {
     Server();
     int create_connection();
     void feed(int id, std::span<const uint8_t> data);
-    int process(int id);
-    std::size_t output_size(int id) const;
-    std::size_t output_read(int id, std::span<uint8_t> out);
+    [[nodiscard]] int process(int id);
+    [[nodiscard]] std::size_t output_size(int id) const;
+    [[nodiscard]] std::size_t output_read(int id, std::span<uint8_t> out);
     void close(int id);
 
    private:
